@@ -75,6 +75,12 @@ const App: React.FC = () => {
         {view === 'faq' && <Faq />}
       </main>
       <footer className="text-center p-4 text-xs text-gray-500 dark:text-gray-400">
+          <div className="bg-gray-800 dark:bg-black py-3 mb-6 overflow-hidden">
+            <p className="animate-marquee text-white text-sm font-semibold whitespace-nowrap">
+              <span className="text-amber-400">Doctor certified</span> Wellness supplement and <span className="text-amber-400">Ayurvedic product</span> coming soon...&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+              <span className="text-amber-400">Doctor certified</span> Wellness supplement and <span className="text-amber-400">Ayurvedic product</span> coming soon...&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+            </p>
+          </div>
           <div className="mb-6">
               <h3 className="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-4 font-handwriting">
                   Connect with us
@@ -91,6 +97,10 @@ const App: React.FC = () => {
                   <a href="https://www.instagram.com/askdr.xze" target="_blank" rel="noopener noreferrer" className="flex flex-col items-center text-gray-500 dark:text-gray-400 hover:text-orange-500 dark:hover:text-orange-400 transition-all duration-300 transform hover:scale-110 opacity-0 animate-fade-in-up" style={{animationDelay: '600ms'}}>
                       <InstagramIcon className="w-8 h-8"/>
                       <span className="text-xs mt-1">@askdr.xze</span>
+                  </a>
+                  <a href="https://www.instagram.com/Xzeveda" target="_blank" rel="noopener noreferrer" className="flex flex-col items-center text-gray-500 dark:text-gray-400 hover:text-orange-500 dark:hover:text-orange-400 transition-all duration-300 transform hover:scale-110 opacity-0 animate-fade-in-up" style={{animationDelay: '800ms'}}>
+                      <InstagramIcon className="w-8 h-8"/>
+                      <span className="text-xs mt-1">@Xzeveda</span>
                   </a>
               </div>
           </div>

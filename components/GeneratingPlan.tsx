@@ -1,18 +1,22 @@
 import React, { useState, useEffect } from 'react';
 
 const quotes = [
-  "The only bad workout is the one that didn't happen.",
-  "Your body can stand almost anything. It’s your mind that you have to convince.",
-  "Success is the sum of small efforts, repeated day in and day out.",
-  "Fall in love with the process, and the results will come.",
-  "Believe in yourself. You are stronger than you think.",
-  "A little progress each day adds up to big results.",
+  "Strive for progress, not perfection.",
+  "The journey of a thousand miles begins with a single step.",
+  "Your health is an investment, not an expense.",
+  "Don't wait for tomorrow. Start today.",
+  "The secret to getting ahead is getting started.",
+  "Fitness is not about being better than someone else. It's about being better than you used to be.",
+  "Discipline is choosing between what you want now and what you want most.",
+  "Take care of your body. It's the only place you have to live.",
+  "It's not a diet. It's a lifestyle change.",
+  "Every day is another chance to get stronger, to eat better, to live healthier, and to be the best version of you.",
 ];
 
 const emojis = ['🥗', '🍎', '🏋️‍♀️', '💪', '🥦', '🏃‍♂️', '🥕', '🧘‍♀️', '🥑', '✨', '🌱', '🧡'];
 
 const GeneratingPlan: React.FC = () => {
-  const [currentQuote, setCurrentQuote] = useState(quotes[0]);
+  const [currentQuote, setCurrentQuote] = useState(quotes[Math.floor(Math.random() * quotes.length)]);
 
   useEffect(() => {
     const quoteInterval = setInterval(() => {

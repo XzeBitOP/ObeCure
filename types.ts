@@ -77,6 +77,12 @@ export interface FastingEntry {
   duration: number; // in hours
 }
 
+export interface WorkoutLogEntry {
+  date: string; // YYYY-MM-DD
+  name: string; // e.g., "General Fat Loss Workout"
+  duration: number; // in minutes
+}
+
 export interface LoggedMeal {
   name: string;
   calories: number;

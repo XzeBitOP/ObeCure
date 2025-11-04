@@ -269,7 +269,7 @@ const DietPlanner: React.FC = () => {
         } finally {
             setIsLoading(false);
         }
-    }, 500); // A small delay to make the loading state visible
+    }, 5000); // 5-second delay to show the loading animation as requested.
   };
 
   const handleMealCheckChange = (mealName: string) => {

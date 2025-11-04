@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { HealthCondition } from '../types';
+import { HealthCondition, WorkoutLogEntry } from '../types';
 import { getWorkoutPlanForConditions, WorkoutPlan } from '../data/workouts';
 
 const USER_PREFERENCES_KEY = 'obeCureUserPreferences';
+const WORKOUT_LOG_KEY = 'obeCureWorkoutLog';
 
 const workerScript = `
   let timerId = null;
@@ -140,6 +141,7 @@ const Workouts: React.FC = () => {
     const [currentExerciseIndex, setCurrentExerciseIndex] = useState(0);
     const [secondsRemaining, setSecondsRemaining] = useState(combinedWorkout[0]?.duration || 0);
     const [isTimerActive, setIsTimerActive] = useState(false);
+    const totalDuration = useMemo(() => combinedWorkout.reduce((sum, ex) => sum + ex.duration, 0), [combinedWorkout]);
 
     useEffect(() => {
         if(combinedWorkout.length > 0) {
@@ -194,6 +196,27 @@ const Workouts: React.FC = () => {
         }
     }, [secondsRemaining, isTimerActive]);
 
+    useEffect(() => {
+        if (isWorkoutFinished && activeWorkoutPlan) {
+            const newLogEntry: WorkoutLogEntry = {
+                date: new Date().toISOString().split('T')[0],
+                name: activeWorkoutPlan.name,
+                duration: Math.round(totalDuration / 60)
+            };
+            try {
+                const existingLogsRaw = localStorage.getItem(WORKOUT_LOG_KEY);
+                let existingLogs: WorkoutLogEntry[] = existingLogsRaw ? JSON.parse(existingLogsRaw) : [];
+                const alreadyLogged = existingLogs.find(log => log.date === newLogEntry.date && log.name === newLogEntry.name);
+                if (!alreadyLogged) {
+                    existingLogs.push(newLogEntry);
+                    localStorage.setItem(WORKOUT_LOG_KEY, JSON.stringify(existingLogs));
+                }
+            } catch (e) {
+                console.error("Failed to save workout log", e);
+            }
+        }
+    }, [isWorkoutFinished, activeWorkoutPlan, totalDuration]);
+
     const handleStartPause = () => {
         if (isWorkoutFinished) return;
         if (isTimerActive) {
@@ -231,7 +254,6 @@ const Workouts: React.FC = () => {
     };
 
     const currentExercise = combinedWorkout[currentExerciseIndex];
-    const totalDuration = useMemo(() => combinedWorkout.reduce((sum, ex) => sum + ex.duration, 0), [combinedWorkout]);
     const elapsedDuration = useMemo(() => {
         return combinedWorkout.slice(0, currentExerciseIndex).reduce((sum, ex) => sum + ex.duration, 0) + (currentExercise?.duration - secondsRemaining);
     }, [currentExerciseIndex, secondsRemaining, combinedWorkout, currentExercise]);

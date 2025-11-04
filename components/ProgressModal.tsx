@@ -1,11 +1,12 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { ProgressEntry, DailyIntake, SleepEntry, FastingEntry } from '../types';
+import { ProgressEntry, DailyIntake, SleepEntry, FastingEntry, WorkoutLogEntry } from '../types';
 
 const PROGRESS_DATA_KEY = 'obeCureProgressData';
 const DAILY_INTAKE_KEY = 'obeCureDailyIntake';
 const SLEEP_DATA_KEY = 'obeCureSleepData';
 const FASTING_DATA_KEY = 'obeCureFastingData';
+const WORKOUT_LOG_KEY = 'obeCureWorkoutLog';
 
 
 interface ChartDataPoint {
@@ -139,7 +140,8 @@ const ProgressModal: React.FC<{ isOpen: boolean; onClose: () => void; }> = ({ is
   const [intakeData, setIntakeData] = useState<DailyIntake[]>([]);
   const [sleepData, setSleepData] = useState<SleepEntry[]>([]);
   const [fastingData, setFastingData] = useState<FastingEntry[]>([]);
-  
+  const [workoutLogs, setWorkoutLogs] = useState<WorkoutLogEntry[]>([]);
+
   useEffect(() => {
     if (isOpen) {
       try {
@@ -151,6 +153,8 @@ const ProgressModal: React.FC<{ isOpen: boolean; onClose: () => void; }> = ({ is
         setSleepData(sleepRaw ? JSON.parse(sleepRaw) : []);
         const fastingRaw = localStorage.getItem(FASTING_DATA_KEY);
         setFastingData(fastingRaw ? JSON.parse(fastingRaw) : []);
+        const workoutLogsRaw = localStorage.getItem(WORKOUT_LOG_KEY);
+        setWorkoutLogs(workoutLogsRaw ? JSON.parse(workoutLogsRaw) : []);
       } catch (e) {
         console.error("Failed to parse progress data", e);
       }
@@ -209,28 +213,48 @@ const ProgressModal: React.FC<{ isOpen: boolean; onClose: () => void; }> = ({ is
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition text-2xl">&times;</button>
         </div>
         
-        {chartData.length > 0 ? (
+        {chartData.length > 0 || workoutLogs.length > 0 ? (
           <>
-            <div className="w-full h-64 md:h-80 bg-gray-50 dark:bg-gray-900/50 rounded-lg p-2 relative">
-                <ProgressChart data={chartData}/>
-                <div className="absolute top-2 left-2 flex flex-wrap gap-x-3 gap-y-1 text-xs font-semibold">
-                    <div className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-orange-500"></span><span className="text-gray-700 dark:text-gray-300">Weight</span></div>
-                    <div className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-teal-500"></span><span className="text-gray-700 dark:text-gray-300">BMI</span></div>
-                    <div className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-cyan-500"></span><span className="text-gray-700 dark:text-gray-300">Sleep</span></div>
-                    <div className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-purple-500"></span><span className="text-gray-700 dark:text-gray-300">Fasting (hrs)</span></div>
-                    <div className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-indigo-500"></span><span className="text-gray-700 dark:text-gray-300">Intake</span></div>
-                    <div className="flex items-center gap-1"><span className="w-3 h-1 border-b-2 border-dashed border-indigo-400 dark:border-indigo-600"></span><span className="text-gray-700 dark:text-gray-300">Target</span></div>
+            {chartData.length > 0 && (
+              <>
+              <div className="w-full h-64 md:h-80 bg-gray-50 dark:bg-gray-900/50 rounded-lg p-2 relative">
+                  <ProgressChart data={chartData}/>
+                  <div className="absolute top-2 left-2 flex flex-wrap gap-x-3 gap-y-1 text-xs font-semibold">
+                      <div className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-orange-500"></span><span className="text-gray-700 dark:text-gray-300">Weight</span></div>
+                      <div className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-teal-500"></span><span className="text-gray-700 dark:text-gray-300">BMI</span></div>
+                      <div className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-cyan-500"></span><span className="text-gray-700 dark:text-gray-300">Sleep</span></div>
+                      <div className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-purple-500"></span><span className="text-gray-700 dark:text-gray-300">Fasting (hrs)</span></div>
+                      <div className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-indigo-500"></span><span className="text-gray-700 dark:text-gray-300">Intake</span></div>
+                      <div className="flex items-center gap-1"><span className="w-3 h-1 border-b-2 border-dashed border-indigo-400 dark:border-indigo-600"></span><span className="text-gray-700 dark:text-gray-300">Target</span></div>
+                  </div>
+              </div>
+              <a href={`https://wa.me/?text=${getShareText()}`} target="_blank" rel="noopener noreferrer" className="mt-6 w-full flex items-center justify-center space-x-2 bg-green-500 text-white text-base font-semibold px-4 py-3 rounded-lg hover:bg-green-600 transition-colors shadow-sm">
+                  <WhatsAppIcon className="w-6 h-6" />
+                  <span>Share My Progress</span>
+              </a>
+              </>
+            )}
+            {workoutLogs.length > 0 && (
+                <div className="mt-6">
+                    <h3 className="text-lg font-bold text-gray-700 dark:text-gray-300 mb-3 text-center sm:text-left">Recent Workouts</h3>
+                    <div className="space-y-2 max-h-40 overflow-y-auto pr-2">
+                        {workoutLogs.slice(-5).reverse().map((log, index) => (
+                            <div key={index} className="bg-gray-50 dark:bg-gray-700/50 p-3 rounded-lg flex justify-between items-center text-sm">
+                                <div>
+                                    <p className="font-semibold text-gray-800 dark:text-gray-200">{log.name}</p>
+                                    <p className="text-xs text-gray-500 dark:text-gray-400">{new Date(log.date + 'T00:00:00').toLocaleDateString('en-GB', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                                </div>
+                                <p className="font-bold text-orange-500 dark:text-orange-400">{log.duration} min</p>
+                            </div>
+                        ))}
+                    </div>
                 </div>
-            </div>
-            <a href={`https://wa.me/?text=${getShareText()}`} target="_blank" rel="noopener noreferrer" className="mt-6 w-full flex items-center justify-center space-x-2 bg-green-500 text-white text-base font-semibold px-4 py-3 rounded-lg hover:bg-green-600 transition-colors shadow-sm">
-                <WhatsAppIcon className="w-6 h-6" />
-                <span>Share My Progress</span>
-            </a>
+            )}
           </>
         ) : (
           <div className="text-center py-12">
             <p className="text-gray-600 dark:text-gray-400">No progress data yet.</p>
-            <p className="text-sm text-gray-500 dark:text-gray-500 mt-2">Generate a diet plan or log sleep to start tracking!</p>
+            <p className="text-sm text-gray-500 dark:text-gray-500 mt-2">Generate a diet plan, log sleep, or complete a workout to start tracking!</p>
           </div>
         )}
       </div>
