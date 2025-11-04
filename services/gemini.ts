@@ -1,5 +1,5 @@
 import { GoogleGenAI, Type } from '@google/genai';
-import { DietPlan, DietPreference, Sex, ActivityLevel, DietType, HealthCondition } from '../types';
+import { DietPlan, DietPreference, Sex, ActivityLevel, DietType, HealthCondition, Meal } from '../types';
 
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
 
@@ -76,6 +76,7 @@ export interface GenerateDietPlanParams {
   dietType: DietType;
   fastingStartTime: string;
   fastingEndTime: string;
+  isThinkingMode: boolean;
 }
 
 const calculateCalorieTarget = (params: GenerateDietPlanParams): number => {
@@ -155,10 +156,10 @@ export const generateDietPlan = async (
     Provide the final output in the specified JSON format.
     `;
 
-  const response = await ai.models.generateContent({
-    model: 'gemini-2.5-flash',
-    contents: prompt,
-    config: {
+  const model = params.isThinkingMode ? 'gemini-2.5-pro' : 'gemini-2.5-flash';
+  
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const config: any = {
       responseMimeType: 'application/json',
       responseSchema: {
         type: Type.OBJECT,
@@ -216,9 +217,86 @@ export const generateDietPlan = async (
         },
         required: ['meals', 'totalCalories', 'totalMacros'],
       },
-    },
+  };
+
+  if (params.isThinkingMode) {
+    config.thinkingConfig = { thinkingBudget: 32768 };
+  }
+
+
+  const response = await ai.models.generateContent({
+    model: model,
+    contents: prompt,
+    config: config,
   });
 
   const jsonText = response.text.trim();
   return JSON.parse(jsonText) as DietPlan;
+};
+
+export interface RefineMealParams {
+  mealToRefine: Meal;
+  refinementType: 'Suggest Alternative' | 'Make it Quicker' | 'Lower Calories';
+  fullDietPlan: DietPlan;
+}
+
+export const refineMeal = async (params: RefineMealParams): Promise<Meal> => {
+  const { mealToRefine, refinementType, fullDietPlan } = params;
+
+  const prompt = `
+    You are an expert nutritionist for an Indian obesity clinic called ObeCure.
+    A user wants to refine a specific meal from their existing diet plan.
+
+    Full Diet Plan Context:
+    - Total Daily Calories: ${fullDietPlan.totalCalories} kcal
+    - Meal Times: ${fullDietPlan.meals.map(m => `${m.name} at ${m.time}`).join(', ')}
+
+    Meal to Refine:
+    - Name: ${mealToRefine.name}
+    - Original Recipe: ${mealToRefine.recipe}
+    - Original Calories: ${mealToRefine.calories} kcal
+    - Original Macros: P:${mealToRefine.macros.protein}g, C:${mealToRefine.macros.carbohydrates}g, F:${mealToRefine.macros.fat}g
+
+    User's Refinement Request: "${refinementType}"
+
+    INSTRUCTIONS:
+    1.  Generate a NEW recipe for the meal that satisfies the user's request ("${refinementType}").
+    2.  The new meal must be a healthy, simple, Indian-style dish.
+    3.  Crucially, the new meal's calorie count must be as close as possible to the original meal's calories (${mealToRefine.calories} kcal). A deviation of +/- 50 kcal is acceptable.
+    4.  The name of the meal should remain the same ("${mealToRefine.name}"), unless suggesting a completely different dish for "Suggest Alternative".
+    5.  The 'time' should remain the same.
+    6.  Provide new estimated macros for the refined meal.
+    
+    Provide ONLY the JSON object for the single refined meal.
+    `;
+
+    const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: prompt,
+        config: {
+            responseMimeType: 'application/json',
+            responseSchema: {
+                type: Type.OBJECT,
+                properties: {
+                    name: { type: Type.STRING },
+                    time: { type: Type.STRING },
+                    recipe: { type: Type.STRING },
+                    calories: { type: Type.INTEGER },
+                    macros: {
+                        type: Type.OBJECT,
+                        properties: {
+                            protein: { type: Type.INTEGER },
+                            carbohydrates: { type: Type.INTEGER },
+                            fat: { type: Type.INTEGER }
+                        },
+                        required: ['protein', 'carbohydrates', 'fat']
+                    }
+                },
+                required: ['name', 'time', 'recipe', 'calories', 'macros'],
+            }
+        }
+    });
+    
+    const jsonText = response.text.trim();
+    return JSON.parse(jsonText) as Meal;
 };

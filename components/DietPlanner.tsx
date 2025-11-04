@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { DietPreference, DietPlan, Sex, ActivityLevel, DietType, HealthCondition, DrKenilsNote, ProgressEntry, DailyIntake, FastingEntry } from '../types';
-import { generateDietPlan } from '../services/gemini';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { DietPreference, DietPlan, Sex, ActivityLevel, DietType, HealthCondition, DrKenilsNote, ProgressEntry, DailyIntake, FastingEntry, Meal } from '../types';
+import { generateDietPlan, refineMeal } from '../services/gemini';
 import { StarIcon } from './icons/StarIcon';
+import { MagicWandIcon } from './icons/MagicWandIcon';
 import { drKenilsNotes } from '../data/notes';
 import DrKenilsNoteComponent from './DrKenilsNote';
 import GeneratingPlan from './GeneratingPlan';
@@ -36,6 +37,7 @@ const DietPlanner: React.FC = () => {
   const [fastingStartPeriod, setFastingStartPeriod] = useState<string>('AM');
   const [fastingEndHour, setFastingEndHour] = useState<string>('6');
   const [fastingEndPeriod, setFastingEndPeriod] = useState<string>('PM');
+  const [isThinkingMode, setIsThinkingMode] = useState<boolean>(false);
 
   const [dietPlan, setDietPlan] = useState<DietPlan | null>(null);
   const [drKenilsNote, setDrKenilsNote] = useState<DrKenilsNote | null>(null);
@@ -46,6 +48,10 @@ const DietPlanner: React.FC = () => {
   const [checkedMeals, setCheckedMeals] = useState<Record<string, boolean>>({});
   const [otherCalories, setOtherCalories] = useState<string>('');
   const [logSuccess, setLogSuccess] = useState<boolean>(false);
+
+  const [refiningMealIndex, setRefiningMealIndex] = useState<number | null>(null);
+  const [isRefining, setIsRefining] = useState<boolean>(false);
+  const refineMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     try {
@@ -83,6 +89,16 @@ const DietPlanner: React.FC = () => {
     };
     localStorage.setItem(USER_PREFERENCES_KEY, JSON.stringify(prefsToSave));
   }, [patientName, patientWeight, targetWeight, height, age, sex, activityLevel, preference, dietType, healthConditions, fastingStartHour, fastingStartPeriod, fastingEndHour, fastingEndPeriod, heightUnit, heightFt, heightIn]);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (refineMenuRef.current && !refineMenuRef.current.contains(event.target as Node)) {
+        setRefiningMealIndex(null);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const cmToFtIn = (cm: number) => {
     if (isNaN(cm) || cm <= 0) return { ft: '', in: '' };
@@ -191,7 +207,7 @@ const DietPlanner: React.FC = () => {
       const fastingStartTime = `${fastingStartHour}:00 ${fastingStartPeriod}`;
       const fastingEndTime = `${fastingEndHour}:00 ${fastingEndPeriod}`;
 
-      const plan = await generateDietPlan({ patientWeight, height, age, sex, activityLevel, preference, healthConditions, dietType, fastingStartTime, fastingEndTime });
+      const plan = await generateDietPlan({ patientWeight, height, age, sex, activityLevel, preference, healthConditions, dietType, fastingStartTime, fastingEndTime, isThinkingMode });
       setDietPlan(plan);
       const initialCheckedState = plan.meals.reduce((acc, meal) => {
         acc[meal.name] = true; // Default to all checked
@@ -298,6 +314,52 @@ const DietPlanner: React.FC = () => {
     setTimeout(() => setLogSuccess(false), 4000);
   };
 
+  const handleRefineMeal = async (mealIndex: number, refinementType: 'Suggest Alternative' | 'Make it Quicker' | 'Lower Calories') => {
+    if (!dietPlan || isRefining) return;
+    
+    const originalMeal = dietPlan.meals[mealIndex];
+    setIsRefining(true);
+    
+    try {
+        const refined = await refineMeal({
+            mealToRefine: originalMeal,
+            refinementType,
+            fullDietPlan: dietPlan
+        });
+
+        const updatedMeals = [...dietPlan.meals];
+        // Make refined meal inherit checkbox state if name is same
+        const oldCheckedState = checkedMeals[originalMeal.name];
+        updatedMeals[mealIndex] = refined;
+
+        const updatedCheckedMeals = { ...checkedMeals };
+        if (originalMeal.name !== refined.name) {
+            delete updatedCheckedMeals[originalMeal.name];
+        }
+        updatedCheckedMeals[refined.name] = oldCheckedState ?? true;
+        setCheckedMeals(updatedCheckedMeals);
+
+        const totalCalories = updatedMeals.reduce((sum, meal) => sum + meal.calories, 0);
+        const totalMacros = updatedMeals.reduce((acc, meal) => ({
+            protein: acc.protein + meal.macros.protein,
+            carbohydrates: acc.carbohydrates + meal.macros.carbohydrates,
+            fat: acc.fat + meal.macros.fat
+        }), { protein: 0, carbohydrates: 0, fat: 0 });
+
+        setDietPlan({
+            ...dietPlan,
+            meals: updatedMeals,
+            totalCalories,
+            totalMacros
+        });
+    } catch (err) {
+        console.error("Failed to refine meal:", err);
+        setError('Sorry, we couldn\'t refine the meal. Please try again.');
+    } finally {
+        setIsRefining(false);
+        setRefiningMealIndex(null);
+    }
+  };
 
   const getShareText = () => {
     if (!dietPlan) return '';
@@ -432,7 +494,7 @@ const DietPlanner: React.FC = () => {
           </div>
         )}
 
-        <div className="mb-8">
+        <div className="mb-6">
             <label className={formLabelClass}>Existing Health Conditions (optional)</label>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-x-4 gap-y-3 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
                 {Object.values(HealthCondition).map((condition) => (
@@ -443,6 +505,27 @@ const DietPlanner: React.FC = () => {
                 ))}
             </div>
         </div>
+        
+        <div className="mb-6 p-4 bg-orange-50 dark:bg-gray-700/50 rounded-lg flex items-center justify-center">
+            <label htmlFor="thinking-mode-toggle" className="flex items-center cursor-pointer">
+                <div className="relative">
+                <input 
+                    id="thinking-mode-toggle" 
+                    type="checkbox" 
+                    className="sr-only peer" 
+                    checked={isThinkingMode} 
+                    onChange={() => setIsThinkingMode(!isThinkingMode)}
+                />
+                <div className="block bg-gray-300 dark:bg-gray-600 w-14 h-8 rounded-full peer-checked:bg-orange-500 transition-colors"></div>
+                <div className="dot absolute left-1 top-1 bg-white w-6 h-6 rounded-full transition-transform peer-checked:translate-x-6"></div>
+                </div>
+                <div className="ml-4 text-gray-700 dark:text-gray-300">
+                <span className="font-semibold">Deep Analysis Mode</span>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Uses a more powerful AI for a highly detailed plan. (Slower)</p>
+                </div>
+            </label>
+        </div>
+
 
         <div className="flex flex-col sm:flex-row gap-4">
             <button onClick={handleGeneratePlan} disabled={isLoading} className="w-full bg-orange-500 text-white font-bold py-3 px-6 rounded-lg hover:bg-orange-600 transition-all duration-300 disabled:bg-orange-300 disabled:cursor-not-allowed flex items-center justify-center space-x-2 shadow-md hover:shadow-lg dark:hover:bg-orange-600 flex-grow active:scale-[0.98]">
@@ -491,28 +574,44 @@ const DietPlanner: React.FC = () => {
             {dietPlan.meals.map((meal, index) => {
               const isSpecial = meal.name.includes('ObeCure Special Meal');
               return (
-                <label 
-                    key={meal.name}
-                    style={{ animationDelay: `${index * 80}ms` }}
-                    className={`block p-4 rounded-lg border transition-all cursor-pointer opacity-0 animate-fade-in-up ${isSpecial ? 'bg-orange-100/80 dark:bg-orange-900/20 border-orange-300 dark:border-orange-800 shadow-md' : 'bg-gray-50 dark:bg-gray-700/50 border-gray-200 dark:border-gray-700'}`}>
-                    <div className="flex items-start justify-between">
-                        <div>
-                            <h3 className={`font-bold text-lg mb-1 flex items-center gap-2 ${isSpecial ? 'text-orange-700 dark:text-orange-400' : 'text-gray-700 dark:text-gray-300'}`}>
-                                {isSpecial && <StarIcon className="w-5 h-5 text-yellow-500" />}
-                                {meal.name}
-                            </h3>
-                            {meal.time && <p className="text-xs font-semibold text-orange-600 dark:text-orange-500 mb-2">Suggested Time: {meal.time}</p>}
-                            <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">{meal.recipe}</p>
+                <div key={`${meal.name}-${index}`} className="relative">
+                    <label 
+                        style={{ animationDelay: `${index * 80}ms` }}
+                        className={`block p-4 rounded-lg border transition-all cursor-pointer opacity-0 animate-fade-in-up h-full ${isSpecial ? 'bg-orange-100/80 dark:bg-orange-900/20 border-orange-300 dark:border-orange-800 shadow-md' : 'bg-gray-50 dark:bg-gray-700/50 border-gray-200 dark:border-gray-700'}`}>
+                        <div className="flex items-start justify-between">
+                            <div className="pr-12">
+                                <h3 className={`font-bold text-lg mb-1 flex items-center gap-2 ${isSpecial ? 'text-orange-700 dark:text-orange-400' : 'text-gray-700 dark:text-gray-300'}`}>
+                                    {isSpecial && <StarIcon className="w-5 h-5 text-yellow-500" />}
+                                    {meal.name}
+                                </h3>
+                                {meal.time && <p className="text-xs font-semibold text-orange-600 dark:text-orange-500 mb-2">Suggested Time: {meal.time}</p>}
+                                <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">{meal.recipe}</p>
+                            </div>
+                            <input type="checkbox" checked={!!checkedMeals[meal.name]} onChange={() => handleMealCheckChange(meal.name)} className="h-5 w-5 rounded border-gray-300 text-orange-500 focus:ring-orange-400 shrink-0 ml-4 mt-1"/>
                         </div>
-                        <input type="checkbox" checked={!!checkedMeals[meal.name]} onChange={() => handleMealCheckChange(meal.name)} className="h-5 w-5 rounded border-gray-300 text-orange-500 focus:ring-orange-400 shrink-0 ml-4 mt-1"/>
-                    </div>
-                    <div className="flex justify-between items-center text-sm mt-3 pt-2 border-t border-gray-200 dark:border-gray-600">
-                        <p className={`font-semibold ${isSpecial ? 'text-orange-600 dark:text-orange-400' : 'text-gray-600 dark:text-gray-300'}`}>{meal.calories} kcal</p>
-                        <p className="font-mono tracking-wide text-xs text-gray-500 dark:text-gray-400">
-                            P:{meal.macros.protein} C:{meal.macros.carbohydrates} F:{meal.macros.fat}
-                        </p>
-                    </div>
-              </label>
+                        <div className="flex justify-between items-center text-sm mt-3 pt-2 border-t border-gray-200 dark:border-gray-600">
+                            <p className={`font-semibold ${isSpecial ? 'text-orange-600 dark:text-orange-400' : 'text-gray-600 dark:text-gray-300'}`}>{meal.calories} kcal</p>
+                            <p className="font-mono tracking-wide text-xs text-gray-500 dark:text-gray-400">
+                                P:{meal.macros.protein} C:{meal.macros.carbohydrates} F:{meal.macros.fat}
+                            </p>
+                        </div>
+                  </label>
+                  <div className="absolute top-3 right-12">
+                    <button onClick={() => setRefiningMealIndex(refiningMealIndex === index ? null : index)} className="p-1 rounded-full text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors" aria-label="Refine meal">
+                      <MagicWandIcon className="w-5 h-5" />
+                    </button>
+                    {refiningMealIndex === index && (
+                      <div ref={refineMenuRef} className="absolute z-10 top-full right-0 mt-1 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-xl border dark:border-gray-700 animate-fade-in text-sm">
+                        <p className="font-semibold p-2 border-b dark:border-gray-700 text-gray-600 dark:text-gray-300">AI Refine:</p>
+                        {(['Suggest Alternative', 'Make it Quicker', 'Lower Calories'] as const).map(type => (
+                          <button key={type} onClick={() => handleRefineMeal(index, type)} disabled={isRefining} className="block w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 text-gray-700 dark:text-gray-200">
+                            {isRefining ? 'Refining...' : type}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
             )})}
           </div>
 
