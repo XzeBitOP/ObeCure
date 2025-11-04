@@ -25,7 +25,6 @@ const WhatsAppIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
   </svg>
 );
 
-// FIX: Create a specific type for numeric keys of ChartDataPoint to resolve type errors.
 type NumericChartDataPointKeys = 'weight' | 'bmi' | 'intake' | 'target' | 'sleep' | 'fastingDuration';
 
 const ProgressChart: React.FC<{ data: ChartDataPoint[] }> = ({ data }) => {
@@ -42,7 +41,6 @@ const ProgressChart: React.FC<{ data: ChartDataPoint[] }> = ({ data }) => {
     const targets = data.map(d => d.target).filter(v => v !== undefined) as number[];
     const allCalories = [...intakes, ...targets];
     
-    // FIX: Add explicit return type `[number, number]` to ensure TypeScript infers a tuple, not a generic array.
     const getDomain = (values: number[], pad: number, minSpread: number): [number, number] => {
         if (values.length === 0) return [0, minSpread];
         let min = Math.min(...values);
@@ -66,20 +64,16 @@ const ProgressChart: React.FC<{ data: ChartDataPoint[] }> = ({ data }) => {
   const xScale = (index: number) => padding.left + (index / (data.length > 1 ? data.length - 1 : 1)) * (width - padding.left - padding.right);
   const yScale = (val: number, domain: [number, number]) => height - padding.bottom - ((val - domain[0]) / (domain[1] - domain[0])) * (height - padding.top - padding.bottom);
 
-  // FIX: Use NumericChartDataPointKeys and correct the logic in reduce to avoid type errors and render lines correctly.
   const createPath = (key: NumericChartDataPointKeys, scale: (val: number) => number) =>
     data.map((d, i) => d[key] !== undefined ? { x: xScale(i), y: scale(d[key]!) } : null)
         .reduce((acc, point, i, arr) => {
             if (point) {
-                const prevPoint = i > 0 ? arr[i - 1] : null;
-                if (prevPoint) {
-                  acc += `L ${point.x} ${point.y}`;
-                } else {
-                  acc += `M ${point.x} ${point.y}`;
-                }
+                const isFirstInSegment = i === 0 || arr[i - 1] === null;
+                const command = isFirstInSegment ? 'M' : 'L';
+                acc += ` ${command} ${point.x} ${point.y}`;
             }
             return acc;
-        }, '');
+        }, '').trim();
         
   const weightPath = createPath('weight', (v) => yScale(v, weightDomain));
   const intakePath = createPath('intake', (v) => yScale(v, calorieDomain));

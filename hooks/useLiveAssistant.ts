@@ -1,6 +1,5 @@
 
 import { useState, useRef, useCallback } from 'react';
-// FIX: Remove `LiveSession` as it is not an exported member of the library.
 import { GoogleGenAI, LiveServerMessage, Modality, Blob } from '@google/genai';
 
 type Status = 'idle' | 'connecting' | 'active' | 'error';
@@ -58,7 +57,6 @@ const createBlob = (data: Float32Array): Blob => {
 export const useLiveAssistant = () => {
     const [status, setStatus] = useState<Status>('idle');
     const [error, setError] = useState<string | null>(null);
-    // FIX: Use `any` for the session type as `LiveSession` is not exported.
     const sessionPromiseRef = useRef<Promise<any> | null>(null);
     const mediaStreamRef = useRef<MediaStream | null>(null);
     const audioContextRef = useRef<AudioContext | null>(null);
