@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { DietPreference, DietPlan, Sex, ActivityLevel, DietType, HealthCondition, DrKenilsNote, ProgressEntry, DailyIntake, FastingEntry } from '../types';
-import { generateDietPlan } from '../services/gemini';
+import { generateOfflineDietPlan as generateDietPlan } from '../services/offlinePlanGenerator';
 import { StarIcon } from './icons/StarIcon';
 import { drKenilsNotes } from '../data/notes';
 import DrKenilsNoteComponent from './DrKenilsNote';
@@ -178,7 +178,7 @@ const DietPlanner: React.FC = () => {
     return null;
   }, [patientWeight, height, age]);
 
-  const handleGeneratePlan = async () => {
+  const handleGeneratePlan = () => {
     if (!patientWeight || !height || !age) {
         setError("Please fill in Weight, Height, and Age fields.");
         return;
@@ -187,77 +187,89 @@ const DietPlanner: React.FC = () => {
     setError(null);
     setDietPlan(null);
     setDrKenilsNote(null);
-    try {
-      const fastingStartTime = `${fastingStartHour}:00 ${fastingStartPeriod}`;
-      const fastingEndTime = `${fastingEndHour}:00 ${fastingEndPeriod}`;
+    
+    // The plan generation is now very fast, but we keep the loading state
+    // for a consistent UX and to handle any potential errors in the logic.
+    setTimeout(() => {
+        try {
+            const fastingStartTime = `${fastingStartHour}:00 ${fastingStartPeriod}`;
+            const fastingEndTime = `${fastingEndHour}:00 ${fastingEndPeriod}`;
 
-      const plan = await generateDietPlan({ patientWeight, height, age, sex, activityLevel, preference, healthConditions, dietType, fastingStartTime, fastingEndTime });
-      setDietPlan(plan);
-      const initialCheckedState = plan.meals.reduce((acc, meal) => {
-        acc[meal.name] = true; // Default to all checked
-        return acc;
-      }, {} as Record<string, boolean>);
-      setCheckedMeals(initialCheckedState);
-      setOtherCalories('');
-      setLogSuccess(false);
+            const plan = generateDietPlan({ patientWeight, height, age, sex, activityLevel, preference, healthConditions, dietType, fastingStartTime, fastingEndTime });
+            
+            if (!plan || plan.meals.length === 0) {
+              setError('Sorry, we couldn\'t find a suitable diet plan with the selected criteria. Please try different options.');
+              setIsLoading(false);
+              return;
+            }
 
-      const randomNote = drKenilsNotes[Math.floor(Math.random() * drKenilsNotes.length)];
-      setDrKenilsNote(randomNote);
+            setDietPlan(plan);
+            const initialCheckedState = plan.meals.reduce((acc, meal) => {
+                acc[meal.name] = true; // Default to all checked
+                return acc;
+            }, {} as Record<string, boolean>);
+            setCheckedMeals(initialCheckedState);
+            setOtherCalories('');
+            setLogSuccess(false);
 
-      const weightNum = parseFloat(patientWeight);
-      const heightNum = parseFloat(height);
-      if (weightNum > 0 && heightNum > 0) {
-        const bmi = calculateBmi(weightNum, heightNum);
-        const newProgressEntry: ProgressEntry = {
-          date: new Date().toISOString().split('T')[0],
-          weight: weightNum,
-          bmi: bmi,
-        };
-        const existingDataRaw = localStorage.getItem(PROGRESS_DATA_KEY);
-        let existingData: ProgressEntry[] = existingDataRaw ? JSON.parse(existingDataRaw) : [];
-        const todayEntryIndex = existingData.findIndex(entry => entry.date === newProgressEntry.date);
-        if (todayEntryIndex > -1) {
-          existingData[todayEntryIndex] = newProgressEntry;
-        } else {
-          existingData.push(newProgressEntry);
+            const randomNote = drKenilsNotes[Math.floor(Math.random() * drKenilsNotes.length)];
+            setDrKenilsNote(randomNote);
+
+            const weightNum = parseFloat(patientWeight);
+            const heightNum = parseFloat(height);
+            if (weightNum > 0 && heightNum > 0) {
+                const bmi = calculateBmi(weightNum, heightNum);
+                const newProgressEntry: ProgressEntry = {
+                date: new Date().toISOString().split('T')[0],
+                weight: weightNum,
+                bmi: bmi,
+                };
+                const existingDataRaw = localStorage.getItem(PROGRESS_DATA_KEY);
+                let existingData: ProgressEntry[] = existingDataRaw ? JSON.parse(existingDataRaw) : [];
+                const todayEntryIndex = existingData.findIndex(entry => entry.date === newProgressEntry.date);
+                if (todayEntryIndex > -1) {
+                existingData[todayEntryIndex] = newProgressEntry;
+                } else {
+                existingData.push(newProgressEntry);
+                }
+                localStorage.setItem(PROGRESS_DATA_KEY, JSON.stringify(existingData));
+            }
+
+            // Log Fasting Data
+            const to24Hour = (hour: number, period: string) => {
+                if (period === 'PM' && hour < 12) return hour + 12;
+                if (period === 'AM' && hour === 12) return 0; // Midnight
+                return hour;
+            };
+            const startHour24 = to24Hour(parseInt(fastingStartHour), fastingStartPeriod);
+            const endHour24 = to24Hour(parseInt(fastingEndHour), fastingEndPeriod);
+            let duration = endHour24 - startHour24;
+            if (duration < 0) duration += 24;
+            
+            const newFastingEntry: FastingEntry = {
+                date: new Date().toISOString().split('T')[0],
+                startTime: fastingStartTime,
+                endTime: fastingEndTime,
+                duration: duration,
+            };
+            const existingFastingRaw = localStorage.getItem(FASTING_DATA_KEY);
+            let existingFastingData: FastingEntry[] = existingFastingRaw ? JSON.parse(existingFastingRaw) : [];
+            const todayFastingIndex = existingFastingData.findIndex(entry => entry.date === newFastingEntry.date);
+            if (todayFastingIndex > -1) {
+                existingFastingData[todayFastingIndex] = newFastingEntry;
+            } else {
+                existingFastingData.push(newFastingEntry);
+            }
+            localStorage.setItem(FASTING_DATA_KEY, JSON.stringify(existingFastingData));
+
+
+        } catch (err) {
+            console.error(err);
+            setError('An unexpected error occurred while generating the plan. Please check your inputs.');
+        } finally {
+            setIsLoading(false);
         }
-        localStorage.setItem(PROGRESS_DATA_KEY, JSON.stringify(existingData));
-      }
-
-      // Log Fasting Data
-      const to24Hour = (hour: number, period: string) => {
-          if (period === 'PM' && hour < 12) return hour + 12;
-          if (period === 'AM' && hour === 12) return 0; // Midnight
-          return hour;
-      };
-      const startHour24 = to24Hour(parseInt(fastingStartHour), fastingStartPeriod);
-      const endHour24 = to24Hour(parseInt(fastingEndHour), fastingEndPeriod);
-      let duration = endHour24 - startHour24;
-      if (duration < 0) duration += 24;
-      
-      const newFastingEntry: FastingEntry = {
-          date: new Date().toISOString().split('T')[0],
-          startTime: fastingStartTime,
-          endTime: fastingEndTime,
-          duration: duration,
-      };
-      const existingFastingRaw = localStorage.getItem(FASTING_DATA_KEY);
-      let existingFastingData: FastingEntry[] = existingFastingRaw ? JSON.parse(existingFastingRaw) : [];
-      const todayFastingIndex = existingFastingData.findIndex(entry => entry.date === newFastingEntry.date);
-      if (todayFastingIndex > -1) {
-          existingFastingData[todayFastingIndex] = newFastingEntry;
-      } else {
-          existingFastingData.push(newFastingEntry);
-      }
-      localStorage.setItem(FASTING_DATA_KEY, JSON.stringify(existingFastingData));
-
-
-    } catch (err) {
-      console.error(err);
-      setError('Sorry, we couldn\'t generate a diet plan. The model may be unavailable. Please try again later.');
-    } finally {
-      setIsLoading(false);
-    }
+    }, 500); // A small delay to make the loading state visible
   };
 
   const handleMealCheckChange = (mealName: string) => {
@@ -492,7 +504,7 @@ const DietPlanner: React.FC = () => {
               const isSpecial = meal.name.includes('ObeCure Special Meal');
               return (
                 <label 
-                    key={meal.name}
+                    key={`${meal.name}-${index}`}
                     style={{ animationDelay: `${index * 80}ms` }}
                     className={`block p-4 rounded-lg border transition-all cursor-pointer opacity-0 animate-fade-in-up ${isSpecial ? 'bg-orange-100/80 dark:bg-orange-900/20 border-orange-300 dark:border-orange-800 shadow-md' : 'bg-gray-50 dark:bg-gray-700/50 border-gray-200 dark:border-gray-700'}`}>
                     <div className="flex items-start justify-between">
