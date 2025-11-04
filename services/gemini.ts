@@ -76,7 +76,6 @@ export interface GenerateDietPlanParams {
   dietType: DietType;
   fastingStartTime: string;
   fastingEndTime: string;
-  isThinkingMode: boolean;
 }
 
 const calculateCalorieTarget = (params: GenerateDietPlanParams): number => {
@@ -156,10 +155,9 @@ export const generateDietPlan = async (
     Provide the final output in the specified JSON format.
     `;
 
-  const model = params.isThinkingMode ? 'gemini-2.5-pro' : 'gemini-2.5-flash';
+  const model = 'gemini-2.5-flash';
   
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const config: any = {
+  const config = {
       responseMimeType: 'application/json',
       responseSchema: {
         type: Type.OBJECT,
@@ -218,11 +216,6 @@ export const generateDietPlan = async (
         required: ['meals', 'totalCalories', 'totalMacros'],
       },
   };
-
-  if (params.isThinkingMode) {
-    config.thinkingConfig = { thinkingBudget: 32768 };
-  }
-
 
   const response = await ai.models.generateContent({
     model: model,

@@ -37,7 +37,6 @@ const DietPlanner: React.FC = () => {
   const [fastingStartPeriod, setFastingStartPeriod] = useState<string>('AM');
   const [fastingEndHour, setFastingEndHour] = useState<string>('6');
   const [fastingEndPeriod, setFastingEndPeriod] = useState<string>('PM');
-  const [isThinkingMode, setIsThinkingMode] = useState<boolean>(false);
 
   const [dietPlan, setDietPlan] = useState<DietPlan | null>(null);
   const [drKenilsNote, setDrKenilsNote] = useState<DrKenilsNote | null>(null);
@@ -207,7 +206,7 @@ const DietPlanner: React.FC = () => {
       const fastingStartTime = `${fastingStartHour}:00 ${fastingStartPeriod}`;
       const fastingEndTime = `${fastingEndHour}:00 ${fastingEndPeriod}`;
 
-      const plan = await generateDietPlan({ patientWeight, height, age, sex, activityLevel, preference, healthConditions, dietType, fastingStartTime, fastingEndTime, isThinkingMode });
+      const plan = await generateDietPlan({ patientWeight, height, age, sex, activityLevel, preference, healthConditions, dietType, fastingStartTime, fastingEndTime });
       setDietPlan(plan);
       const initialCheckedState = plan.meals.reduce((acc, meal) => {
         acc[meal.name] = true; // Default to all checked
@@ -505,27 +504,6 @@ const DietPlanner: React.FC = () => {
                 ))}
             </div>
         </div>
-        
-        <div className="mb-6 p-4 bg-orange-50 dark:bg-gray-700/50 rounded-lg flex items-center justify-center">
-            <label htmlFor="thinking-mode-toggle" className="flex items-center cursor-pointer">
-                <div className="relative">
-                <input 
-                    id="thinking-mode-toggle" 
-                    type="checkbox" 
-                    className="sr-only peer" 
-                    checked={isThinkingMode} 
-                    onChange={() => setIsThinkingMode(!isThinkingMode)}
-                />
-                <div className="block bg-gray-300 dark:bg-gray-600 w-14 h-8 rounded-full peer-checked:bg-orange-500 transition-colors"></div>
-                <div className="dot absolute left-1 top-1 bg-white w-6 h-6 rounded-full transition-transform peer-checked:translate-x-6"></div>
-                </div>
-                <div className="ml-4 text-gray-700 dark:text-gray-300">
-                <span className="font-semibold">Deep Analysis Mode</span>
-                <p className="text-xs text-gray-500 dark:text-gray-400">Uses a more powerful AI for a highly detailed plan. (Slower)</p>
-                </div>
-            </label>
-        </div>
-
 
         <div className="flex flex-col sm:flex-row gap-4">
             <button onClick={handleGeneratePlan} disabled={isLoading} className="w-full bg-orange-500 text-white font-bold py-3 px-6 rounded-lg hover:bg-orange-600 transition-all duration-300 disabled:bg-orange-300 disabled:cursor-not-allowed flex items-center justify-center space-x-2 shadow-md hover:shadow-lg dark:hover:bg-orange-600 flex-grow active:scale-[0.98]">
