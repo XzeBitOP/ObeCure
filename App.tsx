@@ -4,6 +4,8 @@ import DietPlanner from './components/DietPlanner';
 import Workouts from './components/LiveAssistant';
 import DisclaimerModal from './components/DisclaimerModal';
 import Faq from './components/Faq';
+import { WebsiteIcon } from './components/icons/WebsiteIcon';
+import { InstagramIcon } from './components/icons/InstagramIcon';
 
 type View = 'planner' | 'workouts' | 'faq';
 
@@ -73,6 +75,25 @@ const App: React.FC = () => {
         {view === 'faq' && <Faq />}
       </main>
       <footer className="text-center p-4 text-xs text-gray-500 dark:text-gray-400">
+          <div className="mb-6">
+              <h3 className="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-4 font-handwriting">
+                  Connect with us
+              </h3>
+              <div className="flex justify-center items-center space-x-4 sm:space-x-6">
+                  <a href="https://www.xzecure.co.in" target="_blank" rel="noopener noreferrer" className="flex flex-col items-center text-gray-500 dark:text-gray-400 hover:text-orange-500 dark:hover:text-orange-400 transition-all duration-300 transform hover:scale-110 opacity-0 animate-fade-in-up" style={{animationDelay: '200ms'}}>
+                      <WebsiteIcon className="w-8 h-8"/>
+                      <span className="text-xs mt-1">Website</span>
+                  </a>
+                  <a href="https://www.instagram.com/xzecure" target="_blank" rel="noopener noreferrer" className="flex flex-col items-center text-gray-500 dark:text-gray-400 hover:text-orange-500 dark:hover:text-orange-400 transition-all duration-300 transform hover:scale-110 opacity-0 animate-fade-in-up" style={{animationDelay: '400ms'}}>
+                      <InstagramIcon className="w-8 h-8"/>
+                      <span className="text-xs mt-1">@xzecure</span>
+                  </a>
+                  <a href="https://www.instagram.com/askdr.xze" target="_blank" rel="noopener noreferrer" className="flex flex-col items-center text-gray-500 dark:text-gray-400 hover:text-orange-500 dark:hover:text-orange-400 transition-all duration-300 transform hover:scale-110 opacity-0 animate-fade-in-up" style={{animationDelay: '600ms'}}>
+                      <InstagramIcon className="w-8 h-8"/>
+                      <span className="text-xs mt-1">@askdr.xze</span>
+                  </a>
+              </div>
+          </div>
           <p>&copy; {new Date().getFullYear()} ObeCure. All rights reserved.</p>
           <p className="mt-1">Disclaimer: This is not medical advice. Consult a healthcare professional before starting any diet or workout plan.</p>
       </footer>

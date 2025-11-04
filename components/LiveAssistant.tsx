@@ -120,20 +120,20 @@ const Workouts: React.FC = () => {
     const combinedWorkout = useMemo(() => {
         if (!activeWorkoutPlan) return [];
         const { exercises, structure } = activeWorkoutPlan;
-        const fullWorkout: any[] = [{ name: 'Dynamic Warm-up', type: 'Preparation', duration: 180 }];
+        const fullWorkout: any[] = [{ name: 'Dynamic Warm-up', type: 'Preparation', duration: 180, description: 'Start with light cardio like marching in place, arm circles, and leg swings to prepare your body for exercise.' }];
 
         for (let i = 1; i <= structure.rounds; i++) {
             exercises.forEach((ex, index) => {
-                fullWorkout.push({ name: ex, type: `Round ${i}`, duration: structure.work });
+                fullWorkout.push({ name: ex.name, description: ex.description, type: `Round ${i}`, duration: structure.work });
                 if (index < exercises.length - 1) {
-                    fullWorkout.push({ name: 'Rest', type: 'Rest', duration: structure.rest });
+                    fullWorkout.push({ name: 'Rest', type: 'Rest', duration: structure.rest, description: 'Take a short break. Breathe deeply and drink some water if needed.' });
                 }
             });
             if (structure.roundRest && i < structure.rounds) {
-                fullWorkout.push({ name: 'Round Rest', type: 'Rest', duration: structure.roundRest });
+                fullWorkout.push({ name: 'Round Rest', type: 'Rest', duration: structure.roundRest, description: `End of Round ${i}. Take a longer break before the next round.` });
             }
         }
-        fullWorkout.push({ name: 'Cool-down Stretch', type: 'Recovery', duration: 180 });
+        fullWorkout.push({ name: 'Cool-down Stretch', type: 'Recovery', duration: 180, description: 'Finish with gentle stretches for major muscle groups. Hold each stretch for 20-30 seconds.' });
         return fullWorkout;
     }, [activeWorkoutPlan]);
 
@@ -261,10 +261,15 @@ const Workouts: React.FC = () => {
                     <div className="text-center">
                         <p className="text-sm font-semibold text-orange-500 uppercase tracking-wider">{isWorkoutFinished ? 'Workout Complete!' : currentExercise.type}</p>
                         <p className="text-2xl md:text-3xl font-bold my-1 text-gray-800 dark:text-gray-200">{currentExercise.name}</p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 -mb-2">(voice announcement is made every 5sec)</p>
                         <p className="text-7xl md:text-8xl font-mono font-extrabold text-gray-900 dark:text-gray-100 tabular-nums">
                             {Math.floor(secondsRemaining / 60).toString().padStart(2, '0')}:{(secondsRemaining % 60).toString().padStart(2, '0')}
                         </p>
+                        {currentExercise.description && (
+                            <p className="mt-2 text-sm text-gray-600 dark:text-gray-400 max-w-md mx-auto animate-fade-in">
+                                {currentExercise.description}
+                            </p>
+                        )}
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">(voice announcement is made every 5sec)</p>
                     </div>
                     <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5 mt-4">
                         <div className="bg-orange-500 h-2.5 rounded-full" style={{ width: `${progressPercentage}%` }}></div>
@@ -302,6 +307,15 @@ const Workouts: React.FC = () => {
                             {Math.floor(ex.duration / 60)}:{(ex.duration % 60).toString().padStart(2, '0')}
                             </p>
                         </div>
+                        {ex.description && (
+                            <p className={`text-sm mt-2 pt-2 border-t transition-all duration-300 ${
+                                index === currentExerciseIndex 
+                                ? 'text-gray-700 dark:text-gray-300 border-orange-200 dark:border-orange-800' 
+                                : 'text-gray-500 dark:text-gray-400 border-gray-200 dark:border-gray-600'
+                            }`}>
+                                {ex.description}
+                            </p>
+                        )}
                     </div>
                 ))}
                 </div>
