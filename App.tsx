@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Header from './components/Header';
 import DietPlanner from './components/DietPlanner';
-import Workouts from './components/LiveAssistant';
+import Workouts from './components/Workouts';
 import DisclaimerModal from './components/DisclaimerModal';
 import Faq from './components/Faq';
 
