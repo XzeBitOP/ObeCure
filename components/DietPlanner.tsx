@@ -22,8 +22,11 @@ const DietPlanner: React.FC = () => {
   const [patientName, setPatientName] = useState<string>('');
   const [patientWeight, setPatientWeight] = useState<string>('');
   const [targetWeight, setTargetWeight] = useState<string>('');
-  const [height, setHeight] = useState<string>('');
+  const [height, setHeight] = useState<string>(''); // Always in cm
   const [age, setAge] = useState<string>('');
+  const [heightUnit, setHeightUnit] = useState<'cm' | 'ft'>('cm');
+  const [heightFt, setHeightFt] = useState<string>('');
+  const [heightIn, setHeightIn] = useState<string>('');
   const [sex, setSex] = useState<Sex>(Sex.FEMALE);
   const [activityLevel, setActivityLevel] = useState<ActivityLevel>(ActivityLevel.LIGHTLY_ACTIVE);
   const [preference, setPreference] = useState<DietPreference>(DietPreference.VEGETARIAN);
@@ -63,6 +66,9 @@ const DietPlanner: React.FC = () => {
         setFastingStartPeriod(savedPrefs.fastingStartPeriod || 'AM');
         setFastingEndHour(savedPrefs.fastingEndHour || '6');
         setFastingEndPeriod(savedPrefs.fastingEndPeriod || 'PM');
+        setHeightUnit(savedPrefs.heightUnit || 'cm');
+        setHeightFt(savedPrefs.heightFt || '');
+        setHeightIn(savedPrefs.heightIn || '');
       }
     } catch (e) {
       console.error("Failed to parse user preferences from localStorage", e);
@@ -72,10 +78,64 @@ const DietPlanner: React.FC = () => {
   useEffect(() => {
     const prefsToSave = {
       patientName, patientWeight, targetWeight, height, age, sex, activityLevel, preference, dietType, healthConditions,
-      fastingStartHour, fastingStartPeriod, fastingEndHour, fastingEndPeriod
+      fastingStartHour, fastingStartPeriod, fastingEndHour, fastingEndPeriod,
+      heightUnit, heightFt, heightIn
     };
     localStorage.setItem(USER_PREFERENCES_KEY, JSON.stringify(prefsToSave));
-  }, [patientName, patientWeight, targetWeight, height, age, sex, activityLevel, preference, dietType, healthConditions, fastingStartHour, fastingStartPeriod, fastingEndHour, fastingEndPeriod]);
+  }, [patientName, patientWeight, targetWeight, height, age, sex, activityLevel, preference, dietType, healthConditions, fastingStartHour, fastingStartPeriod, fastingEndHour, fastingEndPeriod, heightUnit, heightFt, heightIn]);
+
+  const cmToFtIn = (cm: number) => {
+    if (isNaN(cm) || cm <= 0) return { ft: '', in: '' };
+    const totalInches = cm / 2.54;
+    let feet = Math.floor(totalInches / 12);
+    let inches = Math.round(totalInches % 12);
+    if (inches === 12) {
+        feet += 1;
+        inches = 0;
+    }
+    return { ft: String(feet), in: String(inches) };
+  };
+
+  const ftInToCm = (ft: number, inch: number) => {
+      if (isNaN(ft) && isNaN(inch)) return '';
+      const ftVal = isNaN(ft) ? 0 : ft;
+      const inVal = isNaN(inch) ? 0 : inch;
+      const totalInches = (ftVal * 12) + inVal;
+      if (totalInches === 0) return '';
+      return String(Math.round(totalInches * 2.54));
+  };
+
+  const handleHeightUnitChange = (unit: 'cm' | 'ft') => {
+      if (unit === heightUnit) return;
+      if (unit === 'ft') {
+          const cm = parseFloat(height);
+          const { ft, in: inch } = cmToFtIn(cm);
+          setHeightFt(ft);
+          setHeightIn(inch);
+      } else {
+          const ft = parseFloat(heightFt);
+          const inch = parseFloat(heightIn);
+          const cm = ftInToCm(ft, inch);
+          setHeight(cm);
+      }
+      setHeightUnit(unit);
+  };
+
+  const handleHeightCmChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      setHeight(e.target.value);
+  };
+
+  const handleHeightFtInChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const { id, value } = e.target;
+      const currentFt = id === 'heightFt' ? value : heightFt;
+      const currentIn = id === 'heightIn' ? value : heightIn;
+      
+      setHeightFt(currentFt);
+      setHeightIn(currentIn);
+
+      const cm = ftInToCm(parseFloat(currentFt), parseFloat(currentIn));
+      setHeight(cm);
+  };
 
   const handleConditionChange = (condition: HealthCondition) => {
     setHealthConditions(prev =>
@@ -286,8 +346,21 @@ const DietPlanner: React.FC = () => {
           </div>
 
           <div>
-            <label htmlFor="height" className={formLabelClass}>Height (cm)<span className="text-red-500">*</span></label>
-            <input id="height" type="number" value={height} onChange={(e) => setHeight(e.target.value)} placeholder="e.g., 165" required className={formInputClass}/>
+            <div className="flex justify-between items-center mb-2">
+                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300">Height<span className="text-red-500">*</span></label>
+                <div className="flex items-center text-xs font-semibold bg-gray-100 dark:bg-gray-700/50 rounded-full p-0.5 transition-all">
+                    <button onClick={() => handleHeightUnitChange('cm')} className={`px-3 py-1 rounded-full transition-all text-xs ${heightUnit === 'cm' ? 'bg-white dark:bg-gray-600 text-orange-600 dark:text-orange-400 shadow' : 'text-gray-500 dark:text-gray-400'}`}>cm</button>
+                    <button onClick={() => handleHeightUnitChange('ft')} className={`px-3 py-1 rounded-full transition-all text-xs ${heightUnit === 'ft' ? 'bg-white dark:bg-gray-600 text-orange-600 dark:text-orange-400 shadow' : 'text-gray-500 dark:text-gray-400'}`}>ft/in</button>
+                </div>
+            </div>
+            {heightUnit === 'cm' ? (
+                <input id="height" type="number" value={height} onChange={handleHeightCmChange} placeholder="e.g., 165" required className={formInputClass}/>
+            ) : (
+                <div className="flex gap-2">
+                    <input id="heightFt" type="number" value={heightFt} onChange={handleHeightFtInChange} placeholder="ft" required className={`${formInputClass} text-center`} />
+                    <input id="heightIn" type="number" value={heightIn} onChange={handleHeightFtInChange} placeholder="in" required className={`${formInputClass} text-center`} />
+                </div>
+            )}
           </div>
            <div>
             <label htmlFor="age" className={formLabelClass}>Age<span className="text-red-500">*</span></label>
