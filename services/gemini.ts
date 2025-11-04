@@ -78,10 +78,44 @@ export interface GenerateDietPlanParams {
   fastingEndTime: string;
 }
 
+const calculateCalorieTarget = (params: GenerateDietPlanParams): number => {
+    const weight = parseFloat(params.patientWeight);
+    const height = parseFloat(params.height);
+    const age = parseFloat(params.age);
+
+    if (isNaN(weight) || isNaN(height) || isNaN(age) || weight <= 0 || height <= 0 || age <= 0) {
+        return 2000;
+    }
+
+    // Mifflin-St Jeor equation for BMR
+    const s = params.sex === Sex.MALE ? 5 : -161;
+    const bmr = (10 * weight) + (6.25 * height) - (5 * age) + s;
+
+    // Activity factor
+    let activityFactor = 1.2; // Sedentary
+    switch (params.activityLevel) {
+        case ActivityLevel.LIGHTLY_ACTIVE:
+            activityFactor = 1.375;
+            break;
+        case ActivityLevel.MODERATELY_ACTIVE:
+            activityFactor = 1.55;
+            break;
+        case ActivityLevel.VERY_ACTIVE:
+            activityFactor = 1.725;
+            break;
+    }
+
+    const tdee = bmr * activityFactor;
+    const calorieTarget = tdee * 0.775; // ~22.5% deficit for weight loss
+    return Math.round(calorieTarget / 50) * 50; // Round to nearest 50
+};
+
 
 export const generateDietPlan = async (
   params: GenerateDietPlanParams
 ): Promise<DietPlan> => {
+  const calorieTarget = calculateCalorieTarget(params);
+  
   const prompt = `
     You are an expert nutritionist for an Indian obesity clinic called ObeCure.
     Your task is to create a simple, healthy, and balanced one-day Indian diet plan based on the user's specific details.
@@ -91,37 +125,27 @@ export const generateDietPlan = async (
     - Height: ${params.height} cm
     - Age: ${params.age} years
     - Sex: ${params.sex}
-    - Activity Level: ${params.activityLevel}
     - Dietary Preference: ${params.preference}
     - Diet Goal: ${params.dietType}
     - Existing Health Conditions: ${params.healthConditions.length > 0 ? params.healthConditions.join(', ') : 'None specified'}
     - Intermittent Fasting Window: Eat between ${params.fastingStartTime} and ${params.fastingEndTime}.
+    - **Target Daily Calorie Intake: Approximately ${calorieTarget} kcal.**
 
     INSTRUCTIONS:
 
-    1.  **Calculate Calorie Target:** First, calculate the user's Total Daily Energy Expenditure (TDEE).
-        -   Use the Mifflin-St Jeor equation for Basal Metabolic Rate (BMR):
-            BMR = (10 * weight in kg) + (6.25 * height in cm) - (5 * age in years) + s (where s is +5 for males and -161 for females).
-        -   Then, multiply BMR by the appropriate activity factor to get TDEE:
-            - Sedentary: 1.2
-            - Lightly active: 1.375
-            - Moderately active: 1.55
-            - Very active: 1.725
-        -   Your final diet plan should have a calorie target that is 20-25% lower than the calculated TDEE. This is the weight loss calorie goal. The total calories of all meals must be very close to this goal.
-
-    2.  **Create the Diet Plan:**
-        -   Generate a diet plan with Breakfast, Lunch, Dinner, and an optional Evening Snack.
+    1.  **Create the Diet Plan:**
+        -   Generate a diet plan with Breakfast, Lunch, Dinner, and an optional Evening Snack. The total calories for all meals combined must be very close to the target of ${calorieTarget} kcal.
         -   **Crucially, all meals must be scheduled within the user's eating window: ${params.fastingStartTime} to ${params.fastingEndTime}. Provide a suggested time for each meal in the 'time' field.**
         -   The plan must be tailored to the user's health conditions and diet goal. For example: for Diabetes, use low-GI foods; for Hypertension, lower sodium; for High Protein goal, increase protein sources.
         -   The recipes should use common, easily available Indian ingredients. Keep meals simple and easy to prepare.
 
-    3.  **Include ObeCure Special Meal:**
+    2.  **Include ObeCure Special Meal:**
         -   You MUST replace one of the main meals (Lunch or Dinner) with an "ObeCure Special Meal" chosen from the provided list below.
         -   Choose exactly ONE meal from this list. Do not invent a new one.
         -   The name of this meal in the final JSON output MUST be "ObeCure Special Meal".
         -   Use the calorie count, recipe, and estimate macros for the chosen meal, then adjust other meals to meet the daily targets.
 
-    4.  **Macronutrient Breakdown:**
+    3.  **Macronutrient Breakdown:**
         -   For each meal, provide an estimated breakdown of macronutrients (protein, carbohydrates, fat) in grams.
         -   The total macros for the day should reflect the user's Diet Goal (e.g., higher protein for 'High Protein', lower carbs for 'Low Carb').
 
@@ -172,7 +196,7 @@ export const generateDietPlan = async (
                     required: ['protein', 'carbohydrates', 'fat']
                 }
               },
-               required: ['name', 'recipe', 'calories', 'macros'],
+               required: ['name', 'time', 'recipe', 'calories', 'macros'],
             },
           },
           totalCalories: {
