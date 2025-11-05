@@ -36,7 +36,7 @@ const DisclaimerModal: React.FC<DisclaimerModalProps> = ({ isOpen, onClose }) =>
         </p>
         <button
           onClick={onClose}
-          className="w-full bg-orange-500 text-white font-bold py-3 px-6 rounded-lg hover:bg-orange-600 transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-orange-300 dark:focus:ring-orange-800 shadow-md hover:shadow-lg"
+          className="w-full bg-orange-500 text-white font-bold py-3 px-6 rounded-lg hover:bg-orange-600 transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-orange-300 dark:focus:ring-orange-800 shadow-md hover:shadow-lg active:scale-95"
           aria-label="Acknowledge and close disclaimer"
         >
           I Understand

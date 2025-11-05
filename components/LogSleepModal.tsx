@@ -144,13 +144,13 @@ const LogSleepModal: React.FC<LogSleepModalProps> = ({ isOpen, onClose, age }) =
           <button
             onClick={handleSave}
             disabled={!hours || saveSuccess}
-            className="w-full bg-orange-500 text-white font-bold py-3 px-6 rounded-lg hover:bg-orange-600 transition-all duration-300 disabled:bg-orange-300 disabled:cursor-not-allowed shadow-md hover:shadow-lg"
+            className="w-full bg-orange-500 text-white font-bold py-3 px-6 rounded-lg hover:bg-orange-600 transition-all duration-300 disabled:bg-orange-300 disabled:cursor-not-allowed shadow-md hover:shadow-lg active:scale-95"
           >
             {saveSuccess ? 'Saved!' : 'Save Sleep Data'}
           </button>
            <button
             onClick={onClose}
-            className="w-full bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 font-bold py-3 px-6 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500 transition-all"
+            className="w-full bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 font-bold py-3 px-6 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500 transition-all active:scale-95"
           >
             Cancel
           </button>

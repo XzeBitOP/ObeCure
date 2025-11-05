@@ -45,8 +45,6 @@ const App: React.FC = () => {
       }
     };
     
-    // The document.fonts.ready promise resolves once fonts are loaded.
-    // This is crucial to get the correct width of the buttons after custom fonts are applied, preventing an initial glitch.
     document.fonts.ready.then(updateBubble);
 
     window.addEventListener('resize', updateBubble);
@@ -55,8 +53,6 @@ const App: React.FC = () => {
 
 
   useEffect(() => {
-    // This effect fetches the user's age from local storage when the modal is about to open
-    // to provide accurate sleep advice.
     if (isLogSleepModalOpen) {
         try {
             const savedPrefsRaw = localStorage.getItem(USER_PREFERENCES_KEY);
@@ -112,7 +108,7 @@ const App: React.FC = () => {
           <button
             ref={plannerButtonRef}
             onClick={() => setView('planner')}
-            className={`relative z-10 w-1/3 py-2 px-4 rounded-full text-sm sm:text-base font-semibold transition-colors duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-orange-400 focus:ring-opacity-50 ${
+            className={`relative z-10 w-1/3 py-2 px-4 rounded-full text-sm sm:text-base font-semibold transition-all duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-orange-400 focus:ring-opacity-50 active:scale-95 ${
               view === 'planner'
                 ? 'text-orange-600 dark:text-orange-400'
                 : 'text-gray-600 dark:text-gray-400 hover:text-orange-500/70 dark:hover:text-orange-400/70'
@@ -123,7 +119,7 @@ const App: React.FC = () => {
           <button
             ref={workoutsButtonRef}
             onClick={() => setView('workouts')}
-            className={`relative z-10 w-1/3 py-2 px-4 rounded-full text-sm sm:text-base font-semibold transition-colors duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-orange-400 focus:ring-opacity-50 ${
+            className={`relative z-10 w-1/3 py-2 px-4 rounded-full text-sm sm:text-base font-semibold transition-all duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-orange-400 focus:ring-opacity-50 active:scale-95 ${
               view === 'workouts'
                 ? 'text-orange-600 dark:text-orange-400'
                 : 'text-gray-600 dark:text-gray-400 hover:text-orange-500/70 dark:hover:text-orange-400/70'
@@ -134,7 +130,7 @@ const App: React.FC = () => {
            <button
             ref={faqButtonRef}
             onClick={() => setView('faq')}
-            className={`relative z-10 w-1/3 py-2 px-4 rounded-full text-sm sm:text-base font-semibold transition-colors duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-orange-400 focus:ring-opacity-50 ${
+            className={`relative z-10 w-1/3 py-2 px-4 rounded-full text-sm sm:text-base font-semibold transition-all duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-orange-400 focus:ring-opacity-50 active:scale-95 ${
               view === 'faq'
                 ? 'text-orange-600 dark:text-orange-400'
                 : 'text-gray-600 dark:text-gray-400 hover:text-orange-500/70 dark:hover:text-orange-400/70'
@@ -160,19 +156,19 @@ const App: React.FC = () => {
                   Connect with us
               </h3>
               <div className="flex justify-center items-center space-x-4 sm:space-x-6">
-                  <a href="https://www.xzecure.co.in" target="_blank" rel="noopener noreferrer" className="flex flex-col items-center text-gray-500 dark:text-gray-400 hover:text-orange-500 dark:hover:text-orange-400 transition-all duration-300 transform hover:scale-110 opacity-0 animate-fade-in-up" style={{animationDelay: '200ms'}}>
+                  <a href="https://www.xzecure.co.in" target="_blank" rel="noopener noreferrer" className="flex flex-col items-center text-gray-500 dark:text-gray-400 hover:text-orange-500 dark:hover:text-orange-400 transition-all duration-300 transform hover:scale-110 active:scale-95 opacity-0 animate-fade-in-up" style={{animationDelay: '200ms'}}>
                       <WebsiteIcon className="w-8 h-8"/>
                       <span className="text-xs mt-1">Website</span>
                   </a>
-                  <a href="https://www.instagram.com/xzecure" target="_blank" rel="noopener noreferrer" className="flex flex-col items-center text-gray-500 dark:text-gray-400 hover:text-orange-500 dark:hover:text-orange-400 transition-all duration-300 transform hover:scale-110 opacity-0 animate-fade-in-up" style={{animationDelay: '400ms'}}>
+                  <a href="https://www.instagram.com/xzecure" target="_blank" rel="noopener noreferrer" className="flex flex-col items-center text-gray-500 dark:text-gray-400 hover:text-orange-500 dark:hover:text-orange-400 transition-all duration-300 transform hover:scale-110 active:scale-95 opacity-0 animate-fade-in-up" style={{animationDelay: '400ms'}}>
                       <InstagramIcon className="w-8 h-8"/>
                       <span className="text-xs mt-1">@xzecure</span>
                   </a>
-                  <a href="https://www.instagram.com/askdr.xze" target="_blank" rel="noopener noreferrer" className="flex flex-col items-center text-gray-500 dark:text-gray-400 hover:text-orange-500 dark:hover:text-orange-400 transition-all duration-300 transform hover:scale-110 opacity-0 animate-fade-in-up" style={{animationDelay: '600ms'}}>
+                  <a href="https://www.instagram.com/askdr.xze" target="_blank" rel="noopener noreferrer" className="flex flex-col items-center text-gray-500 dark:text-gray-400 hover:text-orange-500 dark:hover:text-orange-400 transition-all duration-300 transform hover:scale-110 active:scale-95 opacity-0 animate-fade-in-up" style={{animationDelay: '600ms'}}>
                       <InstagramIcon className="w-8 h-8"/>
                       <span className="text-xs mt-1">@askdr.xze</span>
                   </a>
-                  <a href="https://www.instagram.com/Xzeveda" target="_blank" rel="noopener noreferrer" className="flex flex-col items-center text-gray-500 dark:text-gray-400 hover:text-orange-500 dark:hover:text-orange-400 transition-all duration-300 transform hover:scale-110 opacity-0 animate-fade-in-up" style={{animationDelay: '800ms'}}>
+                  <a href="https://www.instagram.com/Xzeveda" target="_blank" rel="noopener noreferrer" className="flex flex-col items-center text-gray-500 dark:text-gray-400 hover:text-orange-500 dark:hover:text-orange-400 transition-all duration-300 transform hover:scale-110 active:scale-95 opacity-0 animate-fade-in-up" style={{animationDelay: '800ms'}}>
                       <InstagramIcon className="w-8 h-8"/>
                       <span className="text-xs mt-1">@Xzeveda</span>
                   </a>

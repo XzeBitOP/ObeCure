@@ -73,7 +73,7 @@ const ConditionSelector: React.FC<{ onConfirm: (conditions: HealthCondition[]) =
                 <input type="checkbox" checked={isNone} onChange={handleNoneChange} className="h-5 w-5 rounded border-gray-300 text-orange-500 focus:ring-orange-400"/>
                 <span className="font-semibold">None of the above (General Plan)</span>
             </label>
-            <button onClick={handleSubmit} disabled={selection.length === 0 && !isNone} className="mt-6 w-full bg-orange-500 text-white font-bold py-3 px-6 rounded-lg hover:bg-orange-600 transition-colors duration-300 disabled:bg-orange-300 disabled:cursor-not-allowed shadow-md">
+            <button onClick={handleSubmit} disabled={selection.length === 0 && !isNone} className="mt-6 w-full bg-orange-500 text-white font-bold py-3 px-6 rounded-lg hover:bg-orange-600 transition-all duration-300 disabled:bg-orange-300 disabled:cursor-not-allowed shadow-md active:scale-95">
                 Confirm & Start Workout
             </button>
         </div>
@@ -97,13 +97,13 @@ const StopWorkoutModal: React.FC<{
         <div className="flex flex-col sm:flex-row gap-4">
           <button
             onClick={onContinue}
-            className="w-full bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 font-bold py-3 px-6 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500 transition-all"
+            className="w-full bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 font-bold py-3 px-6 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500 transition-all active:scale-95"
           >
             Continue Workout
           </button>
           <button
             onClick={onEnd}
-            className="w-full bg-red-500 text-white font-bold py-3 px-6 rounded-lg hover:bg-red-600 transition-all"
+            className="w-full bg-red-500 text-white font-bold py-3 px-6 rounded-lg hover:bg-red-600 transition-all active:scale-95"
           >
             End & Log Workout
           </button>
@@ -344,7 +344,6 @@ const Workouts: React.FC = () => {
     const handleConfirmConditions = (conditions: HealthCondition[]) => {
         setSelectedConditions(conditions);
         setShowSelector(false);
-        // Also save to localStorage for next time
         const savedPrefsRaw = localStorage.getItem(USER_PREFERENCES_KEY);
         const savedPrefs = savedPrefsRaw ? JSON.parse(savedPrefsRaw) : {};
         savedPrefs.healthConditions = conditions;
@@ -375,7 +374,7 @@ const Workouts: React.FC = () => {
 
     const handleContinueWorkout = () => {
         setIsStopped(false);
-        handleStartPause(); // This will toggle isTimerActive to true and resume
+        handleStartPause();
     };
 
     const handleEndWorkout = () => {
@@ -441,7 +440,7 @@ const Workouts: React.FC = () => {
                         <div className="bg-orange-500 h-2.5 rounded-full" style={{ width: `${progressPercentage}%` }}></div>
                     </div>
                     <div className="flex justify-center items-center gap-6 mt-4">
-                        <button onClick={handleReset} aria-label="Reset Timer" className="text-gray-600 dark:text-gray-400 hover:text-orange-500 dark:hover:text-orange-400 transition-colors">
+                        <button onClick={handleReset} aria-label="Reset Timer" className="text-gray-600 dark:text-gray-400 hover:text-orange-500 dark:hover:text-orange-400 transition-all active:scale-95">
                             <ResetIcon className="w-8 h-8"/>
                         </button>
                         <button onClick={handleStartPause} aria-label={isTimerActive ? "Pause Timer" : "Start Timer"} className="bg-orange-500 text-white rounded-full p-4 shadow-lg hover:bg-orange-600 transition-transform transform hover:scale-105 active:scale-95">
@@ -449,11 +448,11 @@ const Workouts: React.FC = () => {
                         </button>
                         <div className="w-8 h-8 flex items-center justify-center">
                           {isWorkoutFinished ? (
-                              <button onClick={handleShare} aria-label="Share Workout" className="text-green-500 hover:text-green-600 transition-colors animate-fade-in">
+                              <button onClick={handleShare} aria-label="Share Workout" className="text-green-500 hover:text-green-600 transition-all active:scale-95 animate-fade-in">
                                   <WhatsAppIcon className="w-8 h-8" />
                               </button>
                           ) : (
-                              <button onClick={handleStop} disabled={elapsedDuration === 0 && !isTimerActive} aria-label="Stop Workout" className="text-gray-600 dark:text-gray-400 hover:text-red-500 dark:hover:text-red-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                              <button onClick={handleStop} disabled={elapsedDuration === 0 && !isTimerActive} aria-label="Stop Workout" className="text-gray-600 dark:text-gray-400 hover:text-red-500 dark:hover:text-red-400 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed">
                                 <StopIcon className="w-8 h-8" />
                               </button>
                           )}
@@ -475,7 +474,7 @@ const Workouts: React.FC = () => {
                                     {ex.type.startsWith('Round') && (
                                         <button 
                                             onClick={(e) => handleWatchTutorial(e, ex.name)}
-                                            className="text-gray-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-500 transition-colors"
+                                            className="text-gray-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-500 transition-colors active:scale-95"
                                             title={`Watch tutorial for ${ex.name}`}
                                             aria-label={`Watch tutorial for ${ex.name}`}
                                         >
@@ -506,7 +505,7 @@ const Workouts: React.FC = () => {
             <div className="mt-8 text-center">
                 <button 
                     onClick={() => setIsInfoModalOpen(true)}
-                    className="bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-bold py-3 px-8 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-all duration-300 shadow-md hover:shadow-lg active:scale-[0.98]"
+                    className="bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-bold py-3 px-8 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-all duration-300 shadow-md hover:shadow-lg active:scale-95"
                 >
                     Workout at your partner gym
                 </button>

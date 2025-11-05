@@ -25,7 +25,7 @@ const InfoModal: React.FC<InfoModalProps> = ({ isOpen, onClose, title, message }
         <p className="text-gray-600 dark:text-gray-400 mb-6">{message}</p>
         <button
           onClick={onClose}
-          className="w-full bg-orange-500 text-white font-bold py-3 px-6 rounded-lg hover:bg-orange-600 transition-all duration-300"
+          className="w-full bg-orange-500 text-white font-bold py-3 px-6 rounded-lg hover:bg-orange-600 transition-all duration-300 active:scale-95"
         >
           OK
         </button>

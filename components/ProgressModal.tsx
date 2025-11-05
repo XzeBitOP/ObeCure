@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { ProgressEntry, DailyIntake, SleepEntry, FastingEntry, WorkoutLogEntry } from '../types';
 
 const PROGRESS_DATA_KEY = 'obeCureProgressData';
@@ -26,7 +26,15 @@ const WhatsAppIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
 
 type NumericChartDataPointKeys = 'weight' | 'bmi' | 'intake' | 'target' | 'sleep' | 'fastingDuration';
 
+interface TooltipData {
+  x: number;
+  y: number;
+  data: ChartDataPoint;
+}
+
 const ProgressChart: React.FC<{ data: ChartDataPoint[] }> = ({ data }) => {
+  const [tooltip, setTooltip] = useState<TooltipData | null>(null);
+  const svgRef = useRef<SVGSVGElement>(null);
   const padding = { top: 20, right: 80, bottom: 40, left: 40 };
   const width = 500;
   const height = 300;
@@ -85,45 +93,77 @@ const ProgressChart: React.FC<{ data: ChartDataPoint[] }> = ({ data }) => {
   const yAxisCalorieTicks = Array.from({ length: 5 }, (_, i) => calorieDomain[0] + i * (calorieDomain[1] - calorieDomain[0]) / 4);
   const yAxisSharedTicks = Array.from({ length: 5 }, (_, i) => sharedDomain[0] + i * (sharedDomain[1] - sharedDomain[0]) / 4);
 
-  return (
-    <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-full text-xs text-gray-500 dark:text-gray-400">
-      {yAxisWeightTicks.map(tick => (<line key={`grid-${tick}`} x1={padding.left} y1={yScale(tick, weightDomain)} x2={width - padding.right} y2={yScale(tick, weightDomain)} className="stroke-gray-200 dark:stroke-gray-700" strokeDasharray="2,2"/>))}
-      
-      {/* Y-axis Weight & Calories (Left) */}
-      {yAxisWeightTicks.map(tick => (<g key={`y-weight-${tick}`}><text x={padding.left - 5} y={yScale(tick, weightDomain)} textAnchor="end" alignmentBaseline="middle" className="fill-current text-orange-500 font-semibold">{tick.toFixed(1)}</text></g>))}
-      {yAxisCalorieTicks.map(tick => (<g key={`y-cal-${tick}`}><text x={padding.left - 25} y={yScale(tick, calorieDomain)} textAnchor="end" alignmentBaseline="middle" className="fill-current text-indigo-500 font-semibold">{Math.round(tick)}</text></g>))}
-      <text transform={`translate(10, ${height / 2}) rotate(-90)`} textAnchor="middle" className="fill-current text-orange-500 font-bold">Weight (kg)</text>
-      <text transform={`translate(25, ${height / 2}) rotate(-90)`} textAnchor="middle" className="fill-current text-indigo-500 font-bold">Calories</text>
-      
-      {/* Y-axis Shared (Right) */}
-      {yAxisSharedTicks.map(tick => (<g key={`y-shared-${tick}`}><text x={width - padding.right + 5} y={yScale(tick, sharedDomain)} textAnchor="start" alignmentBaseline="middle" className="fill-current text-teal-500 font-semibold">{tick.toFixed(1)}</text></g>))}
-      <text transform={`translate(${width - 10}, ${height / 2}) rotate(90)`} textAnchor="middle" className="fill-current text-teal-500 font-bold">BMI</text>
-      <text transform={`translate(${width - 25}, ${height / 2}) rotate(90)`} textAnchor="middle" className="fill-current text-cyan-500 font-bold">Sleep</text>
-      <text transform={`translate(${width - 40}, ${height / 2}) rotate(90)`} textAnchor="middle" className="fill-current text-purple-500 font-bold">Fasting</text>
-      
-      {/* X-axis */}
-      {data.map((d, i) => {
-          if (data.length <= 1 || i % Math.max(1, Math.floor((data.length-1)/5)) === 0 || i === data.length - 1) {
-              return (<g key={`x-${i}`}><text x={xScale(i)} y={height - padding.bottom + 15} textAnchor="middle" className="fill-current">{new Date(d.date).toLocaleDateString('en-GB', { month: 'short', day: 'numeric' })}</text></g>)
-          } return null;
-      })}
-      
-      {/* Paths & Points */}
-      <path d={targetPath} strokeWidth="2" fill="none" className="stroke-indigo-300 dark:stroke-indigo-700" strokeDasharray="3,3"/>
-      <path d={intakePath} strokeWidth="2" fill="none" className="stroke-indigo-500"/>
-      <path d={weightPath} strokeWidth="2" fill="none" className="stroke-orange-500"/>
-      <path d={bmiPath} strokeWidth="2" fill="none" className="stroke-teal-500"/>
-      <path d={sleepPath} strokeWidth="2" fill="none" className="stroke-cyan-500"/>
-      <path d={fastingPath} strokeWidth="2" fill="none" className="stroke-purple-500"/>
+  const handleMouseMove = (event: React.MouseEvent<SVGSVGElement>) => {
+    if (!svgRef.current) return;
+    const svgPoint = svgRef.current.createSVGPoint();
+    svgPoint.x = event.clientX;
+    svgPoint.y = event.clientY;
+    const point = svgPoint.matrixTransform(svgRef.current.getScreenCTM()?.inverse());
+    
+    const index = Math.round(((point.x - padding.left) / (width - padding.left - padding.right)) * (data.length - 1));
+    
+    if(index >= 0 && index < data.length) {
+        const d = data[index];
+        const xPos = xScale(index);
+        const yPos = d.weight ? yScale(d.weight, weightDomain) : height / 2;
+        setTooltip({ x: xPos, y: yPos, data: d });
+    }
+  };
 
-      {data.map((d, i) => (<g key={`point-${i}`}>
-          {d.intake && <circle cx={xScale(i)} cy={yScale(d.intake, calorieDomain)} r="3" className="fill-indigo-500"/>}
-          {d.weight && <circle cx={xScale(i)} cy={yScale(d.weight, weightDomain)} r="3" className="fill-orange-500"/>}
-          {d.bmi && <circle cx={xScale(i)} cy={yScale(d.bmi, sharedDomain)} r="3" className="fill-teal-500"/>}
-          {d.sleep && <circle cx={xScale(i)} cy={yScale(d.sleep, sharedDomain)} r="3" className="fill-cyan-500"/>}
-          {d.fastingDuration && <circle cx={xScale(i)} cy={yScale(d.fastingDuration, sharedDomain)} r="3" className="fill-purple-500"/>}
-      </g>))}
-    </svg>
+  return (
+    <div className="relative w-full h-full">
+        <svg ref={svgRef} viewBox={`0 0 ${width} ${height}`} className="w-full h-full text-xs text-gray-500 dark:text-gray-400" onMouseMove={handleMouseMove} onMouseLeave={() => setTooltip(null)}>
+        <rect x="0" y="0" width={width} height={height} fill="transparent" />
+        {yAxisWeightTicks.map(tick => (<line key={`grid-${tick}`} x1={padding.left} y1={yScale(tick, weightDomain)} x2={width - padding.right} y2={yScale(tick, weightDomain)} className="stroke-gray-200 dark:stroke-gray-700" strokeDasharray="2,2"/>))}
+        {yAxisWeightTicks.map(tick => (<g key={`y-weight-${tick}`}><text x={padding.left - 5} y={yScale(tick, weightDomain)} textAnchor="end" alignmentBaseline="middle" className="fill-current text-orange-500 font-semibold">{tick.toFixed(1)}</text></g>))}
+        {yAxisCalorieTicks.map(tick => (<g key={`y-cal-${tick}`}><text x={padding.left - 25} y={yScale(tick, calorieDomain)} textAnchor="end" alignmentBaseline="middle" className="fill-current text-indigo-500 font-semibold">{Math.round(tick)}</text></g>))}
+        <text transform={`translate(10, ${height / 2}) rotate(-90)`} textAnchor="middle" className="fill-current text-orange-500 font-bold">Weight (kg)</text>
+        <text transform={`translate(25, ${height / 2}) rotate(-90)`} textAnchor="middle" className="fill-current text-indigo-500 font-bold">Calories</text>
+        {yAxisSharedTicks.map(tick => (<g key={`y-shared-${tick}`}><text x={width - padding.right + 5} y={yScale(tick, sharedDomain)} textAnchor="start" alignmentBaseline="middle" className="fill-current text-teal-500 font-semibold">{tick.toFixed(1)}</text></g>))}
+        <text transform={`translate(${width - 10}, ${height / 2}) rotate(90)`} textAnchor="middle" className="fill-current text-teal-500 font-bold">BMI</text>
+        <text transform={`translate(${width - 25}, ${height / 2}) rotate(90)`} textAnchor="middle" className="fill-current text-cyan-500 font-bold">Sleep</text>
+        <text transform={`translate(${width - 40}, ${height / 2}) rotate(90)`} textAnchor="middle" className="fill-current text-purple-500 font-bold">Fasting</text>
+        
+        {data.map((d, i) => {
+            if (data.length <= 1 || i % Math.max(1, Math.floor((data.length-1)/5)) === 0 || i === data.length - 1) {
+                return (<g key={`x-${i}`}><text x={xScale(i)} y={height - padding.bottom + 15} textAnchor="middle" className="fill-current">{new Date(d.date).toLocaleDateString('en-GB', { month: 'short', day: 'numeric' })}</text></g>)
+            } return null;
+        })}
+        
+        <path d={targetPath} strokeWidth="2" fill="none" className="stroke-indigo-300 dark:stroke-indigo-700" strokeDasharray="3,3"/>
+        <path d={intakePath} strokeWidth="2" fill="none" className="stroke-indigo-500"/>
+        <path d={weightPath} strokeWidth="2" fill="none" className="stroke-orange-500"/>
+        <path d={bmiPath} strokeWidth="2" fill="none" className="stroke-teal-500"/>
+        <path d={sleepPath} strokeWidth="2" fill="none" className="stroke-cyan-500"/>
+        <path d={fastingPath} strokeWidth="2" fill="none" className="stroke-purple-500"/>
+
+        {data.map((d, i) => (<g key={`point-${i}`}>
+            {d.intake && <circle cx={xScale(i)} cy={yScale(d.intake, calorieDomain)} r="3" className="fill-indigo-500"/>}
+            {d.weight && <circle cx={xScale(i)} cy={yScale(d.weight, weightDomain)} r="3" className="fill-orange-500"/>}
+            {d.bmi && <circle cx={xScale(i)} cy={yScale(d.bmi, sharedDomain)} r="3" className="fill-teal-500"/>}
+            {d.sleep && <circle cx={xScale(i)} cy={yScale(d.sleep, sharedDomain)} r="3" className="fill-cyan-500"/>}
+            {d.fastingDuration && <circle cx={xScale(i)} cy={yScale(d.fastingDuration, sharedDomain)} r="3" className="fill-purple-500"/>}
+        </g>))}
+        {tooltip && <line x1={tooltip.x} y1={padding.top} x2={tooltip.x} y2={height - padding.bottom} className="stroke-gray-400 dark:stroke-gray-500" strokeDasharray="3,3"/>}
+        </svg>
+        {tooltip && (
+            <div 
+                className="absolute p-2 text-xs bg-gray-800 dark:bg-gray-900 text-white rounded-md shadow-lg pointer-events-none transition-transform duration-100"
+                style={{
+                    left: `${tooltip.x + 10}px`,
+                    top: `${padding.top}px`,
+                    transform: tooltip.x > width / 2 ? 'translateX(-110%)' : 'translateX(0)',
+                }}
+            >
+                <div className="font-bold mb-1">{new Date(tooltip.data.date).toLocaleDateString('en-GB', { weekday: 'long', month: 'short', day: 'numeric' })}</div>
+                {tooltip.data.weight && <div><span className="text-orange-400">Weight:</span> {tooltip.data.weight} kg</div>}
+                {tooltip.data.bmi && <div><span className="text-teal-400">BMI:</span> {tooltip.data.bmi}</div>}
+                {tooltip.data.sleep && <div><span className="text-cyan-400">Sleep:</span> {tooltip.data.sleep} hrs</div>}
+                {tooltip.data.fastingDuration && <div><span className="text-purple-400">Fasting:</span> {tooltip.data.fastingDuration} hrs</div>}
+                {tooltip.data.intake && <div><span className="text-indigo-400">Intake:</span> {tooltip.data.intake} / {tooltip.data.target} kcal</div>}
+            </div>
+        )}
+    </div>
   );
 };
 
@@ -221,7 +261,7 @@ const ProgressModal: React.FC<{ isOpen: boolean; onClose: () => void; }> = ({ is
                       <div className="flex items-center gap-1"><span className="w-3 h-1 border-b-2 border-dashed border-indigo-400 dark:border-indigo-600"></span><span className="text-gray-700 dark:text-gray-300">Target</span></div>
                   </div>
               </div>
-              <a href={`https://wa.me/?text=${getShareText()}`} target="_blank" rel="noopener noreferrer" className="mt-6 w-full flex items-center justify-center space-x-2 bg-green-500 text-white text-base font-semibold px-4 py-3 rounded-lg hover:bg-green-600 transition-colors shadow-sm">
+              <a href={`https://wa.me/?text=${getShareText()}`} target="_blank" rel="noopener noreferrer" className="mt-6 w-full flex items-center justify-center space-x-2 bg-green-500 text-white text-base font-semibold px-4 py-3 rounded-lg hover:bg-green-600 transition-colors shadow-sm active:scale-95">
                   <WhatsAppIcon className="w-6 h-6" />
                   <span>Share My Progress</span>
               </a>

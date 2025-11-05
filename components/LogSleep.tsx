@@ -15,7 +15,7 @@ const LogSleep: React.FC<LogSleepProps> = ({ onLogSleepClick }) => {
         <div className="flex flex-col items-center">
             <button
                 onClick={onLogSleepClick}
-                className="relative w-12 h-12 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center text-gray-700 dark:text-gray-300 font-bold text-xs shadow-inner hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-400 dark:focus:ring-offset-gray-800"
+                className="relative w-12 h-12 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center text-gray-700 dark:text-gray-300 font-bold text-xs shadow-inner hover:bg-gray-300 dark:hover:bg-gray-600 transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-400 dark:focus:ring-offset-gray-800 active:scale-95"
                 aria-label="Log Sleep"
             >
                 <div className="absolute w-6 h-6 text-yellow-400 dark:text-yellow-300">
