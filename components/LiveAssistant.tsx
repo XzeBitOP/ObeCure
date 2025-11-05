@@ -97,7 +97,6 @@ const Workouts: React.FC = () => {
 
     const listRef = useRef<HTMLDivElement>(null);
     const timerWorkerRef = useRef<Worker | null>(null);
-    const speechUtteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
 
     useEffect(() => {
         const savedPrefsRaw = localStorage.getItem(USER_PREFERENCES_KEY);
@@ -142,6 +141,32 @@ const Workouts: React.FC = () => {
     const [secondsRemaining, setSecondsRemaining] = useState(combinedWorkout[0]?.duration || 0);
     const [isTimerActive, setIsTimerActive] = useState(false);
     const totalDuration = useMemo(() => combinedWorkout.reduce((sum, ex) => sum + ex.duration, 0), [combinedWorkout]);
+    
+    const exerciseIndexRef = useRef(currentExerciseIndex);
+    useEffect(() => {
+      exerciseIndexRef.current = currentExerciseIndex;
+    }, [currentExerciseIndex]);
+
+    const isTimerActiveRef = useRef(isTimerActive);
+    useEffect(() => {
+        isTimerActiveRef.current = isTimerActive;
+    }, [isTimerActive]);
+
+    const speak = (text: string, options?: { onEnd?: () => void }) => {
+        if (!('speechSynthesis' in window) || !text) {
+            options?.onEnd?.();
+            return;
+        }
+        if (speechSynthesis.speaking) {
+            speechSynthesis.cancel();
+        }
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.rate = 1.1;
+        if (options?.onEnd) {
+            utterance.onend = options.onEnd;
+        }
+        speechSynthesis.speak(utterance);
+    };
 
     useEffect(() => {
         if(combinedWorkout.length > 0) {
@@ -155,24 +180,40 @@ const Workouts: React.FC = () => {
         timerWorkerRef.current = worker;
 
         worker.onmessage = () => {
-        setSecondsRemaining(prev => {
-            if (prev <= 1) {
-            setCurrentExerciseIndex(currentIndex => {
-                const nextIndex = currentIndex + 1;
-                if (nextIndex < combinedWorkout.length) {
-                setSecondsRemaining(combinedWorkout[nextIndex].duration);
-                return nextIndex;
-                } else {
-                setIsTimerActive(false);
-                setIsWorkoutFinished(true);
-                worker.postMessage({ command: 'stop' });
-                return currentIndex;
+            setSecondsRemaining(prev => {
+                if (prev <= 1) {
+                    worker.postMessage({ command: 'stop' });
+                    const nextIndex = exerciseIndexRef.current + 1;
+                    
+                    if (nextIndex < combinedWorkout.length) {
+                        const nextExercise = combinedWorkout[nextIndex];
+                        setTimeout(() => { // 2 second break
+                            speak(`Next: ${nextExercise.name}`, { 
+                                onEnd: () => {
+                                    speak(nextExercise.description, { 
+                                        onEnd: () => {
+                                            setCurrentExerciseIndex(nextIndex);
+                                            setSecondsRemaining(nextExercise.duration);
+                                            if (isTimerActiveRef.current) {
+                                                worker.postMessage({ command: 'start' });
+                                            }
+                                        }
+                                    });
+                                }
+                            });
+                        }, 2000);
+                    } else {
+                        speak("Workout complete! Well done!", {
+                            onEnd: () => {
+                                setIsTimerActive(false);
+                                setIsWorkoutFinished(true);
+                            }
+                        });
+                    }
+                    return 0;
                 }
+                return prev - 1;
             });
-            return 0;
-            }
-            return prev - 1;
-        });
         };
         return () => worker.terminate();
     }, [combinedWorkout]);
@@ -182,19 +223,6 @@ const Workouts: React.FC = () => {
         if(currentItem) currentItem.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }, [currentExerciseIndex]);
 
-    useEffect(() => {
-        if (isTimerActive && secondsRemaining > 0 && secondsRemaining % 5 === 0) {
-            const minutes = Math.floor(secondsRemaining / 60);
-            const seconds = secondsRemaining % 60;
-            let message = `${minutes > 0 ? `${minutes} minute${minutes > 1 ? 's' : ''} ` : ''}${seconds > 0 || minutes === 0 ? `${seconds} seconds ` : ''}remaining`;
-            if ('speechSynthesis' in window) {
-                if (speechSynthesis.speaking) speechSynthesis.cancel();
-                speechUtteranceRef.current = new SpeechSynthesisUtterance(message);
-                speechUtteranceRef.current.rate = 1.1;
-                speechSynthesis.speak(speechUtteranceRef.current);
-            }
-        }
-    }, [secondsRemaining, isTimerActive]);
 
     useEffect(() => {
         if (isWorkoutFinished && activeWorkoutPlan) {
@@ -219,13 +247,27 @@ const Workouts: React.FC = () => {
 
     const handleStartPause = () => {
         if (isWorkoutFinished) return;
-        if (isTimerActive) {
+        
+        const nextIsActive = !isTimerActive;
+        setIsTimerActive(nextIsActive);
+
+        if (!nextIsActive) { // PAUSING
             timerWorkerRef.current?.postMessage({ command: 'stop' });
             if ('speechSynthesis' in window) speechSynthesis.cancel();
-        } else {
-            timerWorkerRef.current?.postMessage({ command: 'start' });
+        } else { // STARTING
+            const currentExercise = combinedWorkout[currentExerciseIndex];
+            speak(currentExercise.name, {
+                onEnd: () => {
+                    speak(currentExercise.description, {
+                        onEnd: () => {
+                            if (isTimerActiveRef.current) {
+                                timerWorkerRef.current?.postMessage({ command: 'start' });
+                            }
+                        }
+                    });
+                }
+            });
         }
-        setIsTimerActive(!isTimerActive);
     };
 
     const handleReset = () => {
@@ -291,7 +333,7 @@ const Workouts: React.FC = () => {
                                 {currentExercise.description}
                             </p>
                         )}
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">(voice announcement is made every 5sec)</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">(voice announcements will guide you)</p>
                     </div>
                     <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5 mt-4">
                         <div className="bg-orange-500 h-2.5 rounded-full" style={{ width: `${progressPercentage}%` }}></div>

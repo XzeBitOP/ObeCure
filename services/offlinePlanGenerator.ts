@@ -93,7 +93,13 @@ export const generateOfflineDietPlan = (
     // 1. Calculate Calorie Target
     const bmr = (10 * weightKg) + (6.25 * heightCm) - (5 * ageYrs) + (sex === Sex.MALE ? 5 : -161);
     const tdee = bmr * getActivityFactor(activityLevel);
-    const calorieTarget = tdee - 500; // Standard 500 calorie deficit for weight loss
+    
+    let calorieTarget: number;
+    if (dietType === DietType.WEIGHT_GAIN) {
+        calorieTarget = tdee + 400; // ~400 calorie surplus for weight gain
+    } else {
+        calorieTarget = tdee - 500; // Standard 500 calorie deficit for weight loss
+    }
 
     // 2. Filter meal database
     const recentlyUsed = getRecentlyUsedMeals();
@@ -107,9 +113,8 @@ export const generateOfflineDietPlan = (
     let availableMeals = MEAL_DATABASE.filter(isRelevant);
 
     // Prioritize meals based on Diet Goal
-    if (dietType === DietType.HIGH_PROTEIN) {
+    if (dietType === DietType.HIGH_PROTEIN || dietType === DietType.WEIGHT_GAIN) {
         const highProteinMeals = availableMeals.filter(isHighProtein);
-        // Only use this subset if it provides a reasonable number of options
         if (highProteinMeals.length >= 10) {
             availableMeals = highProteinMeals;
         }
@@ -130,42 +135,55 @@ export const generateOfflineDietPlan = (
     // 3. Select meals
     const planMeals: Meal[] = [];
     const usedMealIdsInPlan: string[] = [];
-    
-    // 3.1. MUST include one ObeCure Special Meal for Lunch or Dinner
-    const specialMeal = { ...OBE_CURE_SPECIAL_MEALS[Math.floor(Math.random() * OBE_CURE_SPECIAL_MEALS.length)] };
-    const specialMealSlot = Math.random() > 0.5 ? 'Lunch' : 'Dinner';
-    
-    planMeals.push({ ...specialMeal, time: specialMealSlot === 'Lunch' ? '01:00 PM' : '08:00 PM'});
-    
-    const mealSlots: MealType[] = ['Breakfast', 'Snack'];
-    if (specialMealSlot === 'Lunch') {
-        mealSlots.push('Dinner');
-    } else {
-        mealSlots.push('Lunch');
+    let remainingCalories = calorieTarget;
+
+    const mealSlotsToFill: (MealType | 'Special')[] = dietType === DietType.WEIGHT_GAIN 
+        ? ['Breakfast', 'Snack', 'Lunch', 'Snack', 'Dinner'] 
+        : ['Breakfast', 'Special', 'Dinner', 'Snack']; // Special replaces Lunch or Dinner
+
+    if (dietType !== DietType.WEIGHT_GAIN) {
+        // Randomly decide if the special meal is Lunch or Dinner
+        if (Math.random() > 0.5) {
+           mealSlotsToFill[1] = 'Lunch';
+           mealSlotsToFill.splice(2, 0, 'Special');
+        }
     }
 
-    const calorieDistribution = {
-        Breakfast: 0.25,
-        Lunch: 0.35,
-        Dinner: 0.30,
-        Snack: 0.10,
-    };
+    let snackCount = 0;
+    for (const slot of mealSlotsToFill) {
+        if (slot === 'Special') {
+            const specialMeal = { ...OBE_CURE_SPECIAL_MEALS[Math.floor(Math.random() * OBE_CURE_SPECIAL_MEALS.length)] };
+            const time = mealSlotsToFill.includes('Lunch') ? '08:00 PM' : '01:00 PM'; // Assign to the slot that's missing
+            planMeals.push({ ...specialMeal, time });
+            remainingCalories -= specialMeal.calories;
+            continue;
+        }
 
-    // 3.2 Select other meals
-    for (const slot of mealSlots) {
-        const slotCalorieTarget = calorieTarget * calorieDistribution[slot];
+        const numRemainingSlots = mealSlotsToFill.length - planMeals.length;
+        const slotCalorieTarget = remainingCalories / (numRemainingSlots > 0 ? numRemainingSlots : 1);
+        
         const slotMeals = filteredForVariety.filter(m => m.mealType === slot && !usedMealIdsInPlan.includes(m.id));
-        const bestMeal = findBestMeal(slotMeals, slotCalorieTarget, 150);
+        const bestMeal = findBestMeal(slotMeals, slotCalorieTarget, dietType === DietType.WEIGHT_GAIN ? 200 : 150);
 
         if (bestMeal) {
+            let time: string;
+            if (slot === 'Snack') {
+                time = snackCount === 0 ? '04:00 PM' : '11:00 AM';
+                snackCount++;
+            } else {
+                const timeMap: { [key in MealType]?: string } = { Breakfast: '09:00 AM', Lunch: '01:00 PM', Dinner: '08:00 PM' };
+                time = timeMap[slot] || 'N/A';
+            }
+
             planMeals.push({
                 name: bestMeal.name,
                 recipe: bestMeal.recipe,
                 calories: bestMeal.calories,
                 macros: bestMeal.macros,
-                time: slot === 'Breakfast' ? '09:00 AM' : slot === 'Snack' ? '04:00 PM' : '01:00 PM', // Simplified time
+                time,
             });
             usedMealIdsInPlan.push(bestMeal.id);
+            remainingCalories -= bestMeal.calories;
         }
     }
 
@@ -180,7 +198,7 @@ export const generateOfflineDietPlan = (
     }), { protein: 0, carbohydrates: 0, fat: 0 });
 
     // Sort meals by time for display
-    const mealTimeOrder: Record<string, number> = { '09:00 AM': 1, '01:00 PM': 2, '04:00 PM': 3, '08:00 PM': 4 };
+    const mealTimeOrder: Record<string, number> = { '09:00 AM': 1, '11:00 AM': 2, '01:00 PM': 3, '04:00 PM': 4, '08:00 PM': 5 };
     planMeals.sort((a, b) => mealTimeOrder[a.time || ''] - mealTimeOrder[b.time || '']);
     
     saveRecentlyUsedMeals(usedMealIdsInPlan);

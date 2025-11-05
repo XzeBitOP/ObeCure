@@ -21,6 +21,7 @@ export enum DietType {
   BALANCED = 'Balanced',
   HIGH_PROTEIN = 'High Protein',
   LOW_CARB = 'Low Carb',
+  WEIGHT_GAIN = 'Weight Gain',
 }
 
 export enum HealthCondition {

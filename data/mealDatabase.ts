@@ -931,4 +931,305 @@ export const MEAL_DATABASE: OfflineMeal[] = [
     dietPreference: [DietPreference.VEGETARIAN],
     healthTags: [HealthCondition.HYPERTENSION, HealthCondition.KNEE_PAIN],
   },
+  // START: Weight Gain Meals
+  {
+    id: 'WG_B01',
+    name: 'Aloo Paratha with Butter',
+    recipe: '2 medium aloo parathas cooked with ghee, topped with a dollop of butter. Served with 150g full-fat curd.',
+    calories: 550,
+    macros: { protein: 15, carbohydrates: 65, fat: 25 },
+    mealType: 'Breakfast',
+    dietPreference: [DietPreference.VEGETARIAN],
+    healthTags: []
+  },
+  {
+    id: 'WG_B02',
+    name: 'Peanut Butter Banana Smoothie',
+    recipe: 'Blend 1 large banana, 2 tbsp peanut butter, 200ml full-fat milk, and 1 scoop of whey protein.',
+    calories: 600,
+    macros: { protein: 35, carbohydrates: 60, fat: 25 },
+    mealType: 'Breakfast',
+    dietPreference: [DietPreference.VEGETARIAN],
+    healthTags: []
+  },
+  {
+    id: 'WG_B03',
+    name: 'Full-fat Milk Oats with Nuts',
+    recipe: '60g oats cooked with 250ml full-fat milk, topped with 15 almonds, 5 walnuts, and 1 tbsp honey.',
+    calories: 650,
+    macros: { protein: 22, carbohydrates: 75, fat: 30 },
+    mealType: 'Breakfast',
+    dietPreference: [DietPreference.VEGETARIAN],
+    healthTags: []
+  },
+  {
+    id: 'WG_B04',
+    name: 'Paneer Paratha with Ghee',
+    recipe: '2 large parathas stuffed with 100g of paneer, cooked with ghee. Served with a side of pickle and curd.',
+    calories: 620,
+    macros: { protein: 25, carbohydrates: 60, fat: 30 },
+    mealType: 'Breakfast',
+    dietPreference: [DietPreference.VEGETARIAN],
+    healthTags: []
+  },
+  {
+    id: 'WG_B05',
+    name: 'Masala French Toast',
+    recipe: '4 slices of bread dipped in a 3-egg mixture with spices, pan-fried with butter.',
+    calories: 580,
+    macros: { protein: 28, carbohydrates: 50, fat: 28 },
+    mealType: 'Breakfast',
+    dietPreference: [DietPreference.MEAT_ALLOWED],
+    healthTags: []
+  },
+  {
+    id: 'WG_L01',
+    name: 'Chicken Biryani',
+    recipe: 'A large plate of chicken biryani (150g chicken, 1.5 cups rice) with a side of raita.',
+    calories: 700,
+    macros: { protein: 40, carbohydrates: 80, fat: 25 },
+    mealType: 'Lunch',
+    dietPreference: [DietPreference.MEAT_ALLOWED],
+    healthTags: []
+  },
+  {
+    id: 'WG_L02',
+    name: 'Paneer Pulao with Raita',
+    recipe: '1.5 cups of rice pulao cooked with 100g of paneer, peas, and cashews. Served with vegetable raita.',
+    calories: 650,
+    macros: { protein: 25, carbohydrates: 85, fat: 22 },
+    mealType: 'Lunch',
+    dietPreference: [DietPreference.VEGETARIAN],
+    healthTags: []
+  },
+  {
+    id: 'WG_L03',
+    name: 'Mutton Curry with Rice',
+    recipe: '150g of mutton in a rich gravy, served with 1.5 cups of steamed white rice.',
+    calories: 750,
+    macros: { protein: 35, carbohydrates: 70, fat: 35 },
+    mealType: 'Lunch',
+    dietPreference: [DietPreference.MEAT_ALLOWED],
+    healthTags: []
+  },
+  {
+    id: 'WG_L04',
+    name: 'Shahi Paneer with Naan',
+    recipe: '150g paneer in a creamy, cashew-based gravy. Served with 2 butter naans.',
+    calories: 800,
+    macros: { protein: 30, carbohydrates: 90, fat: 38 },
+    mealType: 'Lunch',
+    dietPreference: [DietPreference.VEGETARIAN],
+    healthTags: []
+  },
+  {
+    id: 'WG_L05',
+    name: 'Fish Fry with Dal Rice',
+    recipe: '150g of fried fish (e.g., surmai) with 1 cup of dal and 1.5 cups of rice.',
+    calories: 680,
+    macros: { protein: 35, carbohydrates: 75, fat: 28 },
+    mealType: 'Lunch',
+    dietPreference: [DietPreference.MEAT_ALLOWED],
+    healthTags: []
+  },
+  {
+    id: 'WG_L06',
+    name: 'Rajma Masala with Ghee Rice',
+    recipe: '1.5 cups of rajma curry with 1.5 cups of rice cooked with a tablespoon of ghee.',
+    calories: 600,
+    macros: { protein: 20, carbohydrates: 100, fat: 15 },
+    mealType: 'Lunch',
+    dietPreference: [DietPreference.VEGETARIAN, DietPreference.VEGAN],
+    healthTags: []
+  },
+  {
+    id: 'WG_L07',
+    name: 'Egg Fried Rice',
+    recipe: '2 cups of fried rice with 3 scrambled eggs, vegetables, and soy sauce.',
+    calories: 620,
+    macros: { protein: 25, carbohydrates: 90, fat: 18 },
+    mealType: 'Lunch',
+    dietPreference: [DietPreference.MEAT_ALLOWED],
+    healthTags: []
+  },
+  {
+    id: 'WG_D01',
+    name: 'Dal Makhani with Ghee Roti',
+    recipe: 'A large bowl of creamy dal makhani with 3 rotis generously spread with ghee.',
+    calories: 700,
+    macros: { protein: 25, carbohydrates: 80, fat: 30 },
+    mealType: 'Dinner',
+    dietPreference: [DietPreference.VEGETARIAN],
+    healthTags: []
+  },
+  {
+    id: 'WG_D02',
+    name: 'Butter Chicken with Naan',
+    recipe: '150g of chicken in a rich, creamy tomato gravy, served with 2 butter naans.',
+    calories: 850,
+    macros: { protein: 45, carbohydrates: 85, fat: 35 },
+    mealType: 'Dinner',
+    dietPreference: [DietPreference.MEAT_ALLOWED],
+    healthTags: []
+  },
+  {
+    id: 'WG_D03',
+    name: 'Malai Kofta with Jeera Rice',
+    recipe: '3-4 paneer and potato koftas in a creamy gravy, with 1 cup of jeera rice.',
+    calories: 720,
+    macros: { protein: 20, carbohydrates: 85, fat: 35 },
+    mealType: 'Dinner',
+    dietPreference: [DietPreference.VEGETARIAN],
+    healthTags: []
+  },
+  {
+    id: 'WG_D04',
+    name: 'Khichdi with Ghee & Potato Fry',
+    recipe: '2 cups of rice and dal khichdi with 2 tbsp of ghee, with a side of spicy potato fry.',
+    calories: 600,
+    macros: { protein: 18, carbohydrates: 95, fat: 18 },
+    mealType: 'Dinner',
+    dietPreference: [DietPreference.VEGETARIAN],
+    healthTags: []
+  },
+  {
+    id: 'WG_D05',
+    name: 'Tofu Peanut Curry with Noodles',
+    recipe: '150g tofu in a coconut-peanut gravy, served over 1.5 cups of noodles.',
+    calories: 680,
+    macros: { protein: 30, carbohydrates: 70, fat: 32 },
+    mealType: 'Dinner',
+    dietPreference: [DietPreference.VEGAN, DietPreference.VEGETARIAN],
+    healthTags: []
+  },
+  {
+    id: 'WG_S01',
+    name: 'Full-fat Yogurt with Nuts & Honey',
+    recipe: '200g full-fat Greek yogurt with a handful of mixed nuts (almonds, walnuts) and 1 tbsp honey.',
+    calories: 450,
+    macros: { protein: 20, carbohydrates: 30, fat: 28 },
+    mealType: 'Snack',
+    dietPreference: [DietPreference.VEGETARIAN],
+    healthTags: []
+  },
+  {
+    id: 'WG_S02',
+    name: 'Peanut Chaat',
+    recipe: '1 cup of boiled peanuts mixed with chopped onion, tomato, chaat masala, and lemon juice.',
+    calories: 400,
+    macros: { protein: 18, carbohydrates: 30, fat: 25 },
+    mealType: 'Snack',
+    dietPreference: [DietPreference.VEGETARIAN, DietPreference.VEGAN],
+    healthTags: []
+  },
+  {
+    id: 'WG_S03',
+    name: 'Paneer & Cheese Sandwich',
+    recipe: '2 slices of white bread with 50g of paneer bhurji and a slice of cheese, grilled with butter.',
+    calories: 480,
+    macros: { protein: 20, carbohydrates: 40, fat: 26 },
+    mealType: 'Snack',
+    dietPreference: [DietPreference.VEGETARIAN],
+    healthTags: []
+  },
+  {
+    id: 'WG_S04',
+    name: 'Banana & Nut Butter Toast',
+    recipe: '2 slices of whole wheat toast, each topped with 1 tbsp of almond butter and one sliced banana.',
+    calories: 420,
+    macros: { protein: 12, carbohydrates: 55, fat: 18 },
+    mealType: 'Snack',
+    dietPreference: [DietPreference.VEGETARIAN, DietPreference.VEGAN],
+    healthTags: []
+  },
+  {
+    id: 'WG_S05',
+    name: 'Chicken Sandwich',
+    recipe: '2 slices of bread with a filling of 100g shredded chicken mixed with mayonnaise.',
+    calories: 450,
+    macros: { protein: 25, carbohydrates: 40, fat: 20 },
+    mealType: 'Snack',
+    dietPreference: [DietPreference.MEAT_ALLOWED],
+    healthTags: []
+  },
+  {
+    id: 'WG_S06',
+    name: 'Sattu Drink',
+    recipe: '4 tbsp of sattu flour mixed in 250ml water with salt, cumin, and lemon juice.',
+    calories: 250,
+    macros: { protein: 15, carbohydrates: 40, fat: 3 },
+    mealType: 'Snack',
+    dietPreference: [DietPreference.VEGETARIAN, DietPreference.VEGAN],
+    healthTags: []
+  },
+  {
+    id: 'WG_S07',
+    name: 'Sweet Lassi',
+    recipe: 'A tall glass of lassi made with 200g full-fat yogurt, sugar, and a little water.',
+    calories: 350,
+    macros: { protein: 12, carbohydrates: 45, fat: 14 },
+    mealType: 'Snack',
+    dietPreference: [DietPreference.VEGETARIAN],
+    healthTags: []
+  },
+  {
+    id: 'WG_S08',
+    name: 'Avocado Chocolate Mousse',
+    recipe: 'Blend 1 whole avocado, 2 tbsp cocoa powder, 2 tbsp maple syrup, and a splash of milk.',
+    calories: 400,
+    macros: { protein: 8, carbohydrates: 35, fat: 28 },
+    mealType: 'Snack',
+    dietPreference: [DietPreference.VEGETARIAN, DietPreference.VEGAN],
+    healthTags: []
+  },
+  {
+    id: 'WG_B06',
+    name: 'Cheesy Masala Omelette',
+    recipe: 'A 3-egg omelette with onions, tomatoes, and 30g of cheddar cheese. Served with 2 slices of buttered toast.',
+    calories: 600,
+    macros: { protein: 30, carbohydrates: 40, fat: 35 },
+    mealType: 'Breakfast',
+    dietPreference: [DietPreference.MEAT_ALLOWED],
+    healthTags: []
+  },
+  {
+    id: 'WG_L08',
+    name: 'Chana Masala with Bhature',
+    recipe: 'A large bowl of chickpea curry (chana masala) served with 2 large fried bhature.',
+    calories: 750,
+    macros: { protein: 20, carbohydrates: 100, fat: 30 },
+    mealType: 'Lunch',
+    dietPreference: [DietPreference.VEGETARIAN],
+    healthTags: []
+  },
+  {
+    id: 'WG_D06',
+    name: 'Keema Pav',
+    recipe: 'A bowl of spicy minced mutton (150g) served with 2 buttered pav buns.',
+    calories: 680,
+    macros: { protein: 30, carbohydrates: 50, fat: 40 },
+    mealType: 'Dinner',
+    dietPreference: [DietPreference.MEAT_ALLOWED],
+    healthTags: []
+  },
+  {
+    id: 'WG_S09',
+    name: 'Dates & Nuts Laddu',
+    recipe: '2 laddus made from dates, almonds, cashews, and a little ghee.',
+    calories: 300,
+    macros: { protein: 8, carbohydrates: 35, fat: 16 },
+    mealType: 'Snack',
+    dietPreference: [DietPreference.VEGETARIAN, DietPreference.VEGAN],
+    healthTags: []
+  },
+  {
+    id: 'WG_S10',
+    name: 'Mango Milkshake',
+    recipe: 'A large glass of milkshake made with 1 ripe mango, 250ml full-fat milk, and sugar.',
+    calories: 400,
+    macros: { protein: 10, carbohydrates: 65, fat: 12 },
+    mealType: 'Snack',
+    dietPreference: [DietPreference.VEGETARIAN],
+    healthTags: []
+  },
 ];

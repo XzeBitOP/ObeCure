@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { DietPreference, DietPlan, Sex, ActivityLevel, DietType, HealthCondition, DrKenilsNote, ProgressEntry, DailyIntake, FastingEntry } from '../types';
 import { generateOfflineDietPlan as generateDietPlan } from '../services/offlinePlanGenerator';
 import { StarIcon } from './icons/StarIcon';
@@ -46,6 +46,17 @@ const DietPlanner: React.FC = () => {
   const [checkedMeals, setCheckedMeals] = useState<Record<string, boolean>>({});
   const [otherCalories, setOtherCalories] = useState<string>('');
   const [logSuccess, setLogSuccess] = useState<boolean>(false);
+  
+  const resultsRef = useRef<HTMLDivElement>(null);
+
+  const plannerTitle = useMemo(() => {
+    const firstName = patientName.trim().split(' ')[0];
+    if (firstName) {
+        const possessive = firstName.toLowerCase().endsWith('s') ? "'" : "'s";
+        return `${firstName}${possessive} Personalized Diet Planner`;
+    }
+    return 'Personalized Diet Planner';
+  }, [patientName]);
 
   useEffect(() => {
     try {
@@ -83,6 +94,14 @@ const DietPlanner: React.FC = () => {
     };
     localStorage.setItem(USER_PREFERENCES_KEY, JSON.stringify(prefsToSave));
   }, [patientName, patientWeight, targetWeight, height, age, sex, activityLevel, preference, dietType, healthConditions, fastingStartHour, fastingStartPeriod, fastingEndHour, fastingEndPeriod, heightUnit, heightFt, heightIn]);
+
+  useEffect(() => {
+    if (isLoading) {
+      setTimeout(() => {
+        resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 100);
+    }
+  }, [isLoading]);
 
   const cmToFtIn = (cm: number) => {
     if (isNaN(cm) || cm <= 0) return { ft: '', in: '' };
@@ -338,7 +357,7 @@ const DietPlanner: React.FC = () => {
   return (
     <div className="animate-fade-in">
       <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700">
-        <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-200 sm:text-4xl text-center">Personalized Diet Planner</h1>
+        <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-200 sm:text-4xl text-center">{plannerTitle}</h1>
         <p className="mt-2 text-gray-600 dark:text-gray-400 mb-8 text-center max-w-prose mx-auto">
             Enter your details and let our AI create a customized Indian diet plan just for you.
         </p>
@@ -470,82 +489,84 @@ const DietPlanner: React.FC = () => {
       
       {isProgressModalOpen && <ProgressModal isOpen={isProgressModalOpen} onClose={() => setIsProgressModalOpen(false)} />}
 
-      {error && (
-        <div className="mt-6 p-4 bg-red-100 text-red-700 rounded-lg w-full text-sm">
-          <strong>Error:</strong> {error}
-        </div>
-      )}
+      <div ref={resultsRef} className="scroll-mt-20">
+        {error && (
+          <div className="mt-6 p-4 bg-red-100 text-red-700 rounded-lg w-full text-sm">
+            <strong>Error:</strong> {error}
+          </div>
+        )}
 
-      {isLoading && <GeneratingPlan />}
+        {isLoading && <GeneratingPlan />}
 
-      {dietPlan && !isLoading && (
-        <div className="mt-8 bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 animate-fade-in">
-            <div className="flex justify-between items-start mb-4 border-b border-gray-200 dark:border-gray-700 pb-4">
-                <div>
-                    <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-200">Your Custom Diet Plan</h2>
-                     <div className="mt-2 text-sm text-gray-600 dark:text-gray-400 space-y-1">
-                          {patientName && <p><strong>Patient:</strong> {patientName}</p>}
-                          {patientWeight && <p><strong>Weight:</strong> {patientWeight} kg</p>}
-                          <p><strong>Eating Window:</strong> {`${fastingStartHour}:00 ${fastingStartPeriod}`} - {`${fastingEndHour}:00 ${fastingEndPeriod}`}</p>
-                      </div>
-                    <p className="mt-2 font-semibold text-orange-600">{dietPlan.totalCalories} kcal / day</p>
-                    <p className="text-xs font-mono tracking-wide text-gray-500 dark:text-gray-400">
-                        P: {dietPlan.totalMacros.protein}g | C: {dietPlan.totalMacros.carbohydrates}g | F: {dietPlan.totalMacros.fat}g
-                    </p>
-                </div>
-                 <a href={`https://wa.me/?text=${getShareText()}`} target="_blank" rel="noopener noreferrer" className="flex items-center space-x-2 bg-green-500 text-white text-sm font-semibold px-4 py-2 rounded-full hover:bg-green-600 transition-colors shadow-sm shrink-0">
-                    <WhatsAppIcon className="w-5 h-5" />
-                    <span>Share</span>
-                </a>
-            </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {dietPlan.meals.map((meal, index) => {
-              const isSpecial = meal.name.includes('ObeCure Special Meal');
-              return (
-                <label 
-                    key={`${meal.name}-${index}`}
-                    style={{ animationDelay: `${index * 80}ms` }}
-                    className={`block p-4 rounded-lg border transition-all cursor-pointer opacity-0 animate-fade-in-up ${isSpecial ? 'bg-orange-100/80 dark:bg-orange-900/20 border-orange-300 dark:border-orange-800 shadow-md' : 'bg-gray-50 dark:bg-gray-700/50 border-gray-200 dark:border-gray-700'}`}>
-                    <div className="flex items-start justify-between">
-                        <div>
-                            <h3 className={`font-bold text-lg mb-1 flex items-center gap-2 ${isSpecial ? 'text-orange-700 dark:text-orange-400' : 'text-gray-700 dark:text-gray-300'}`}>
-                                {isSpecial && <StarIcon className="w-5 h-5 text-yellow-500" />}
-                                {meal.name}
-                            </h3>
-                            {meal.time && <p className="text-xs font-semibold text-orange-600 dark:text-orange-500 mb-2">Suggested Time: {meal.time}</p>}
-                            <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">{meal.recipe}</p>
+        {dietPlan && !isLoading && (
+          <div className="mt-8 bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 animate-fade-in">
+              <div className="flex justify-between items-start mb-4 border-b border-gray-200 dark:border-gray-700 pb-4">
+                  <div>
+                      <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-200">Your Custom Diet Plan</h2>
+                       <div className="mt-2 text-sm text-gray-600 dark:text-gray-400 space-y-1">
+                            {patientName && <p><strong>Patient:</strong> {patientName}</p>}
+                            {patientWeight && <p><strong>Weight:</strong> {patientWeight} kg</p>}
+                            <p><strong>Eating Window:</strong> {`${fastingStartHour}:00 ${fastingStartPeriod}`} - {`${fastingEndHour}:00 ${fastingEndPeriod}`}</p>
                         </div>
-                        <input type="checkbox" checked={!!checkedMeals[meal.name]} onChange={() => handleMealCheckChange(meal.name)} className="h-5 w-5 rounded border-gray-300 text-orange-500 focus:ring-orange-400 shrink-0 ml-4 mt-1"/>
-                    </div>
-                    <div className="flex justify-between items-center text-sm mt-3 pt-2 border-t border-gray-200 dark:border-gray-600">
-                        <p className={`font-semibold ${isSpecial ? 'text-orange-600 dark:text-orange-400' : 'text-gray-600 dark:text-gray-300'}`}>{meal.calories} kcal</p>
-                        <p className="font-mono tracking-wide text-xs text-gray-500 dark:text-gray-400">
-                            P:{meal.macros.protein} C:{meal.macros.carbohydrates} F:{meal.macros.fat}
-                        </p>
-                    </div>
-              </label>
-            )})}
-          </div>
-
-          <div className="mt-6 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-            <h3 className="font-bold text-gray-700 dark:text-gray-300 mb-2">Log Other Intake</h3>
-            <div className="flex flex-col sm:flex-row gap-4 items-center">
-              <input type="number" value={otherCalories} onChange={(e) => setOtherCalories(e.target.value)} placeholder="Calories from other food" className={`${formInputClass} flex-grow`}/>
-              <button onClick={handleLogIntake} className="w-full sm:w-auto bg-green-500 text-white font-bold py-3 px-6 rounded-lg hover:bg-green-600 transition-colors duration-300 shadow-md">
-                Log Today's Intake
-              </button>
+                      <p className="mt-2 font-semibold text-orange-600">{dietPlan.totalCalories} kcal / day</p>
+                      <p className="text-xs font-mono tracking-wide text-gray-500 dark:text-gray-400">
+                          P: {dietPlan.totalMacros.protein}g | C: {dietPlan.totalMacros.carbohydrates}g | F: {dietPlan.totalMacros.fat}g
+                      </p>
+                  </div>
+                   <a href={`https://wa.me/?text=${getShareText()}`} target="_blank" rel="noopener noreferrer" className="flex items-center space-x-2 bg-green-500 text-white text-sm font-semibold px-4 py-2 rounded-full hover:bg-green-600 transition-colors shadow-sm shrink-0">
+                      <WhatsAppIcon className="w-5 h-5" />
+                      <span>Share</span>
+                  </a>
+              </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {dietPlan.meals.map((meal, index) => {
+                const isSpecial = meal.name.includes('ObeCure Special Meal');
+                return (
+                  <label 
+                      key={`${meal.name}-${index}`}
+                      style={{ animationDelay: `${index * 80}ms` }}
+                      className={`block p-4 rounded-lg border transition-all cursor-pointer opacity-0 animate-fade-in-up ${isSpecial ? 'bg-orange-100/80 dark:bg-orange-900/20 border-orange-300 dark:border-orange-800 shadow-md' : 'bg-gray-50 dark:bg-gray-700/50 border-gray-200 dark:border-gray-700'}`}>
+                      <div className="flex items-start justify-between">
+                          <div>
+                              <h3 className={`font-bold text-lg mb-1 flex items-center gap-2 ${isSpecial ? 'text-orange-700 dark:text-orange-400' : 'text-gray-700 dark:text-gray-300'}`}>
+                                  {isSpecial && <StarIcon className="w-5 h-5 text-yellow-500" />}
+                                  {meal.name}
+                              </h3>
+                              {meal.time && <p className="text-xs font-semibold text-orange-600 dark:text-orange-500 mb-2">Suggested Time: {meal.time}</p>}
+                              <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">{meal.recipe}</p>
+                          </div>
+                          <input type="checkbox" checked={!!checkedMeals[meal.name]} onChange={() => handleMealCheckChange(meal.name)} className="h-5 w-5 rounded border-gray-300 text-orange-500 focus:ring-orange-400 shrink-0 ml-4 mt-1"/>
+                      </div>
+                      <div className="flex justify-between items-center text-sm mt-3 pt-2 border-t border-gray-200 dark:border-gray-600">
+                          <p className={`font-semibold ${isSpecial ? 'text-orange-600 dark:text-orange-400' : 'text-gray-600 dark:text-gray-300'}`}>{meal.calories} kcal</p>
+                          <p className="font-mono tracking-wide text-xs text-gray-500 dark:text-gray-400">
+                              P:{meal.macros.protein} C:{meal.macros.carbohydrates} F:{meal.macros.fat}
+                          </p>
+                      </div>
+                </label>
+              )})}
             </div>
-             {logSuccess && (
-                <p className="text-sm text-green-600 dark:text-green-400 mt-2 text-center sm:text-left animate-fade-in">
-                  Successfully logged today's intake! Check your progress.
-                </p>
-             )}
-          </div>
 
-          {drKenilsNote && <DrKenilsNoteComponent note={drKenilsNote} />}
-        </div>
-      )}
+            <div className="mt-6 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+              <h3 className="font-bold text-gray-700 dark:text-gray-300 mb-2">Log Other Intake</h3>
+              <div className="flex flex-col sm:flex-row gap-4 items-center">
+                <input type="number" value={otherCalories} onChange={(e) => setOtherCalories(e.target.value)} placeholder="Calories from other food" className={`${formInputClass} flex-grow`}/>
+                <button onClick={handleLogIntake} className="w-full sm:w-auto bg-green-500 text-white font-bold py-3 px-6 rounded-lg hover:bg-green-600 transition-colors duration-300 shadow-md">
+                  Log Today's Intake
+                </button>
+              </div>
+               {logSuccess && (
+                  <p className="text-sm text-green-600 dark:text-green-400 mt-2 text-center sm:text-left animate-fade-in">
+                    Successfully logged today's intake! Check your progress.
+                  </p>
+               )}
+            </div>
+
+            {drKenilsNote && <DrKenilsNoteComponent note={drKenilsNote} />}
+          </div>
+        )}
+      </div>
     </div>
   );
 };

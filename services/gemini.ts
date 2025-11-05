@@ -107,17 +107,19 @@ export const generateDietPlan = async (
             - Lightly active: 1.375
             - Moderately active: 1.55
             - Very active: 1.725
-        -   Your final diet plan should have a calorie target that is 20-25% lower than the calculated TDEE. This is the weight loss calorie goal. The total calories of all meals must be very close to this goal.
+        -   **For Weight Loss goals ('Balanced', 'High Protein', 'Low Carb'):** Your final diet plan should have a calorie target that is 20-25% lower than the calculated TDEE.
+        -   **For 'Weight Gain' goal:** Your final diet plan should have a calorie target that is 300-500 calories HIGHER than the calculated TDEE. Aim for a protein intake of 1.6-1.8g per kg of body weight.
 
     2.  **Create the Diet Plan:**
-        -   Generate a diet plan with Breakfast, Lunch, Dinner, and an optional Evening Snack.
+        -   Generate a diet plan. For weight loss, use Breakfast, Lunch, Dinner, and an optional Evening Snack. **For 'Weight Gain', you MUST include two snacks (e.g., Mid-Morning and Evening).**
         -   **Crucially, all meals must be scheduled within the user's eating window: ${params.fastingStartTime} to ${params.fastingEndTime}. Provide a suggested time for each meal in the 'time' field.**
-        -   The plan must be tailored to the user's health conditions and diet goal. For example: for Diabetes, use low-GI foods; for Hypertension, lower sodium; for High Protein goal, increase protein sources.
+        -   The plan must be tailored to the user's health conditions and diet goal. For example: for Diabetes, use low-GI foods; for Hypertension, lower sodium; for High Protein goal, increase protein sources; **for Weight Gain, select calorie-dense and protein-rich foods like nuts, seeds, paneer, chicken, full-fat dairy, and healthy oils.**
         -   The recipes should use common, easily available Indian ingredients. Keep meals simple and easy to prepare.
 
     3.  **Include ObeCure Special Meal:**
-        -   You MUST replace one of the main meals (Lunch or Dinner) with an "ObeCure Special Meal" chosen from the provided list below.
-        -   Choose exactly ONE meal from this list. Do not invent a new one.
+        -   **This instruction applies ONLY to weight loss goals (Balanced, High Protein, Low Carb).**
+        -   For weight loss goals, you MUST replace one of the main meals (Lunch or Dinner) with an "ObeCure Special Meal" chosen from the provided list below.
+        -   **For the 'Weight Gain' goal, IGNORE this instruction and the list below. Create all meals using general healthy, calorie-dense foods.**
         -   The name of this meal in the final JSON output MUST be "ObeCure Special Meal".
         -   Use the calorie count, recipe, and estimate macros for the chosen meal, then adjust other meals to meet the daily targets.
 
@@ -125,7 +127,7 @@ export const generateDietPlan = async (
         -   For each meal, provide an estimated breakdown of macronutrients (protein, carbohydrates, fat) in grams.
         -   The total macros for the day should reflect the user's Diet Goal (e.g., higher protein for 'High Protein', lower carbs for 'Low Carb').
 
-    **List of ObeCure Special Meals:**
+    **List of ObeCure Special Meals (FOR WEIGHT LOSS ONLY):**
     ${OBE_CURE_SPECIAL_MEALS}
 
     Provide the final output in the specified JSON format.
