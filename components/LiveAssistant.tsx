@@ -5,6 +5,7 @@ import { StopIcon } from './icons/StopIcon';
 import SuccessToast from './SuccessToast';
 import { motivationalQuotes } from '../data/quotes';
 import { YouTubeIcon } from './icons/YouTubeIcon';
+import InfoModal from './InfoModal';
 
 const USER_PREFERENCES_KEY = 'obeCureUserPreferences';
 const WORKOUT_LOG_KEY = 'obeCureWorkoutLog';
@@ -87,7 +88,7 @@ const StopWorkoutModal: React.FC<{
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4 animate-fade-in">
+    <div className="fixed inset-0 bg-black bg-opacity-60 z-[60] flex justify-center items-center p-4 animate-fade-in">
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl p-6 sm:p-8 w-full max-w-md border border-gray-200 dark:border-gray-700 transform animate-fade-in-up">
         <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-4">Stop Workout?</h2>
         <p className="text-gray-600 dark:text-gray-400 mb-6">
@@ -134,6 +135,7 @@ const Workouts: React.FC = () => {
     const [isStopped, setIsStopped] = useState(false);
     const [loggedDuration, setLoggedDuration] = useState<number | null>(null);
     const [toastInfo, setToastInfo] = useState<{ title: string; message: string; quote: string; } | null>(null);
+    const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
 
 
     const listRef = useRef<HTMLDivElement>(null);
@@ -396,6 +398,12 @@ const Workouts: React.FC = () => {
 
     return (
         <div className="animate-fade-in space-y-8">
+            <InfoModal 
+                isOpen={isInfoModalOpen} 
+                onClose={() => setIsInfoModalOpen(false)} 
+                title="Partner Gyms" 
+                message="No partnership near your location." 
+            />
             {toastInfo && (
                 <SuccessToast
                     title={toastInfo.title}
@@ -495,6 +503,14 @@ const Workouts: React.FC = () => {
                 </div>
             </div>
             <UniversalTips />
+            <div className="mt-8 text-center">
+                <button 
+                    onClick={() => setIsInfoModalOpen(true)}
+                    className="bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-bold py-3 px-8 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-all duration-300 shadow-md hover:shadow-lg active:scale-[0.98]"
+                >
+                    Workout at your partner gym
+                </button>
+            </div>
         </div>
     );
 };

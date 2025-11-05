@@ -1,7 +1,4 @@
-import React, { useState, useMemo } from 'react';
-import LogSleepModal from './LogSleepModal';
-
-const USER_PREFERENCES_KEY = 'obeCureUserPreferences';
+import React from 'react';
 
 const MoonIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" className="h-full w-full" viewBox="0 0 20 20" fill="currentColor">
@@ -9,27 +6,15 @@ const MoonIcon = () => (
     </svg>
 );
 
+interface LogSleepProps {
+    onLogSleepClick: () => void;
+}
 
-const LogSleep: React.FC = () => {
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    
-    const userAge = useMemo(() => {
-        try {
-            const savedPrefsRaw = localStorage.getItem(USER_PREFERENCES_KEY);
-            if (savedPrefsRaw) {
-                const savedPrefs = JSON.parse(savedPrefsRaw);
-                return parseInt(savedPrefs.age, 10) || 0;
-            }
-        } catch (e) {
-            console.error("Failed to parse user preferences for age", e);
-        }
-        return 0;
-    }, [isModalOpen]);
-
+const LogSleep: React.FC<LogSleepProps> = ({ onLogSleepClick }) => {
     return (
         <div className="flex flex-col items-center">
             <button
-                onClick={() => setIsModalOpen(true)}
+                onClick={onLogSleepClick}
                 className="relative w-12 h-12 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center text-gray-700 dark:text-gray-300 font-bold text-xs shadow-inner hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-400 dark:focus:ring-offset-gray-800"
                 aria-label="Log Sleep"
             >
@@ -39,12 +24,6 @@ const LogSleep: React.FC = () => {
                 <span className="relative z-10 font-bold text-gray-800 dark:text-gray-200">Zzz</span>
             </button>
             <span className="text-xs font-medium text-gray-600 dark:text-gray-400 mt-1">Log Sleep</span>
-
-            <LogSleepModal
-                isOpen={isModalOpen}
-                onClose={() => setIsModalOpen(false)}
-                age={userAge}
-            />
         </div>
     );
 };

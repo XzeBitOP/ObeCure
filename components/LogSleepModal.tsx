@@ -97,7 +97,7 @@ const LogSleepModal: React.FC<LogSleepModalProps> = ({ isOpen, onClose, age }) =
 
   return (
     <div 
-      className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4 animate-fade-in"
+      className="fixed inset-0 bg-black bg-opacity-60 z-[60] flex justify-center items-center p-4 animate-fade-in"
       onClick={onClose}
     >
       <div 
@@ -140,13 +140,21 @@ const LogSleepModal: React.FC<LogSleepModalProps> = ({ isOpen, onClose, age }) =
             </p>
         )}
         
-        <button
-          onClick={handleSave}
-          disabled={!hours || saveSuccess}
-          className="mt-6 w-full bg-orange-500 text-white font-bold py-3 px-6 rounded-lg hover:bg-orange-600 transition-all duration-300 disabled:bg-orange-300 disabled:cursor-not-allowed shadow-md hover:shadow-lg"
-        >
-          {saveSuccess ? 'Saved!' : 'Save Sleep Data'}
-        </button>
+        <div className="mt-6 flex flex-col sm:flex-row-reverse gap-3">
+          <button
+            onClick={handleSave}
+            disabled={!hours || saveSuccess}
+            className="w-full bg-orange-500 text-white font-bold py-3 px-6 rounded-lg hover:bg-orange-600 transition-all duration-300 disabled:bg-orange-300 disabled:cursor-not-allowed shadow-md hover:shadow-lg"
+          >
+            {saveSuccess ? 'Saved!' : 'Save Sleep Data'}
+          </button>
+           <button
+            onClick={onClose}
+            className="w-full bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 font-bold py-3 px-6 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500 transition-all"
+          >
+            Cancel
+          </button>
+        </div>
       </div>
     </div>
   );

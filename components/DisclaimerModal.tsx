@@ -12,7 +12,7 @@ const DisclaimerModal: React.FC<DisclaimerModalProps> = ({ isOpen, onClose }) =>
 
   return (
     <div 
-      className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4 animate-fade-in"
+      className="fixed inset-0 bg-black bg-opacity-60 z-[60] flex justify-center items-center p-4 animate-fade-in"
       aria-labelledby="disclaimer-title"
       role="dialog"
       aria-modal="true"

@@ -6,18 +6,25 @@ import DisclaimerModal from './components/DisclaimerModal';
 import Faq from './components/Faq';
 import { WebsiteIcon } from './components/icons/WebsiteIcon';
 import { InstagramIcon } from './components/icons/InstagramIcon';
+import LogSleepModal from './components/LogSleepModal';
+import ProgressModal from './components/ProgressModal';
 
 type View = 'planner' | 'workouts' | 'faq';
+
+const USER_PREFERENCES_KEY = 'obeCureUserPreferences';
 
 const App: React.FC = () => {
   const [view, setView] = useState<View>('planner');
   const [showDisclaimer, setShowDisclaimer] = useState<boolean>(true);
+  const [isLogSleepModalOpen, setIsLogSleepModalOpen] = useState(false);
+  const [isProgressModalOpen, setIsProgressModalOpen] = useState(false);
+  const [userAge, setUserAge] = useState(0);
 
   const navRef = useRef<HTMLDivElement>(null);
   const plannerButtonRef = useRef<HTMLButtonElement>(null);
   const workoutsButtonRef = useRef<HTMLButtonElement>(null);
   const faqButtonRef = useRef<HTMLButtonElement>(null);
-  const [bubbleStyle, setBubbleStyle] = useState({});
+  const [bubbleStyle, setBubbleStyle] = useState({ opacity: 0 });
 
   useLayoutEffect(() => {
     const updateBubble = () => {
@@ -28,18 +35,43 @@ const App: React.FC = () => {
 
       if (targetButton?.current) {
         const { offsetLeft, offsetWidth } = targetButton.current;
-        setBubbleStyle({
-          left: `${offsetLeft}px`,
-          width: `${offsetWidth}px`,
-        });
+        if (offsetWidth > 0) { // Prevent setting style if button not rendered correctly
+          setBubbleStyle({
+            left: `${offsetLeft}px`,
+            width: `${offsetWidth}px`,
+            opacity: 1,
+          });
+        }
       }
     };
+    
+    // The document.fonts.ready promise resolves once fonts are loaded.
+    // This is crucial to get the correct width of the buttons after custom fonts are applied, preventing an initial glitch.
+    document.fonts.ready.then(updateBubble);
 
-    updateBubble();
     window.addEventListener('resize', updateBubble);
     return () => window.removeEventListener('resize', updateBubble);
   }, [view]);
 
+
+  useEffect(() => {
+    // This effect fetches the user's age from local storage when the modal is about to open
+    // to provide accurate sleep advice.
+    if (isLogSleepModalOpen) {
+        try {
+            const savedPrefsRaw = localStorage.getItem(USER_PREFERENCES_KEY);
+            if (savedPrefsRaw) {
+                const savedPrefs = JSON.parse(savedPrefsRaw);
+                setUserAge(parseInt(savedPrefs.age, 10) || 0);
+            } else {
+                setUserAge(0);
+            }
+        } catch (e) {
+            console.error("Failed to parse user preferences for age", e);
+            setUserAge(0);
+        }
+    }
+  }, [isLogSleepModalOpen]);
 
   useEffect(() => {
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
@@ -63,7 +95,13 @@ const App: React.FC = () => {
   return (
     <div className="min-h-screen bg-orange-50/50 dark:bg-gray-900 text-gray-800 dark:text-gray-200 transition-colors duration-300">
       <DisclaimerModal isOpen={showDisclaimer} onClose={handleCloseDisclaimer} />
-      <Header />
+      <LogSleepModal
+        isOpen={isLogSleepModalOpen}
+        onClose={() => setIsLogSleepModalOpen(false)}
+        age={userAge}
+      />
+      <ProgressModal isOpen={isProgressModalOpen} onClose={() => setIsProgressModalOpen(false)} />
+      <Header onLogSleepClick={() => setIsLogSleepModalOpen(true)} />
       <main className="p-4 sm:p-6 md:p-8 max-w-5xl mx-auto">
         <div ref={navRef} className="relative flex justify-center mb-8 bg-orange-100/80 dark:bg-gray-800 rounded-full p-1 max-w-md sm:max-w-lg mx-auto shadow-inner">
           <div
@@ -106,15 +144,15 @@ const App: React.FC = () => {
           </button>
         </div>
 
-        {view === 'planner' && <DietPlanner />}
+        {view === 'planner' && <DietPlanner onShowProgress={() => setIsProgressModalOpen(true)} />}
         {view === 'workouts' && <Workouts />}
         {view === 'faq' && <Faq />}
       </main>
       <footer className="text-center p-4 text-xs text-gray-500 dark:text-gray-400">
-          <div className="bg-gray-800 dark:bg-black py-3 mb-6 overflow-hidden">
-            <p className="animate-marquee text-white text-sm font-semibold whitespace-nowrap">
-              <span className="text-amber-400">Doctor certified</span> Wellness supplement and <span className="text-amber-400">Ayurvedic product</span> coming soon...&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-              <span className="text-amber-400">Doctor certified</span> Wellness supplement and <span className="text-amber-400">Ayurvedic product</span> coming soon...&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+          <div className="bg-gradient-to-r from-orange-500 via-amber-400 to-orange-500 dark:from-orange-600 dark:via-amber-500 dark:to-orange-600 py-3 mb-6 overflow-hidden rounded-lg shadow-lg animate-gradient-pulse">
+            <p className="animate-marquee text-white text-sm font-semibold whitespace-nowrap [text-shadow:_0_1px_2px_rgb(0_0_0_/_40%)]">
+              <span className="font-bold text-yellow-200">Doctor certified</span> Wellness supplement and <span className="font-bold text-yellow-200">Ayurvedic product</span> coming soon...&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+              <span className="font-bold text-yellow-200">Doctor certified</span> Wellness supplement and <span className="font-bold text-yellow-200">Ayurvedic product</span> coming soon...&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
             </p>
           </div>
           <div className="mb-6">

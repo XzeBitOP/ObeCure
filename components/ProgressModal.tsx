@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo } from 'react';
 import { ProgressEntry, DailyIntake, SleepEntry, FastingEntry, WorkoutLogEntry } from '../types';
 
@@ -200,7 +199,7 @@ const ProgressModal: React.FC<{ isOpen: boolean; onClose: () => void; }> = ({ is
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4 animate-fade-in" role="dialog" aria-modal="true" onClick={onClose}>
+    <div className="fixed inset-0 bg-black bg-opacity-60 z-[60] flex justify-center items-center p-4 animate-fade-in" role="dialog" aria-modal="true" onClick={onClose}>
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl p-6 sm:p-8 w-full max-w-3xl border border-gray-200 dark:border-gray-700 transform animate-fade-in-up" onClick={(e) => e.stopPropagation()}>
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-200">Your Progress</h2>

@@ -69,6 +69,15 @@
       .animate-marquee {
         animation: marquee 20s linear infinite;
       }
+      @keyframes animated-gradient {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
+      }
+      .animate-gradient-pulse {
+        background-size: 200% 200%;
+        animation: animated-gradient 8s ease-in-out infinite;
+      }
     </style>
   <script type="importmap">
 {

@@ -26,15 +26,18 @@ const ObeCureLogo: React.FC = () => {
     );
 };
 
+interface HeaderProps {
+  onLogSleepClick: () => void;
+}
 
-const Header: React.FC = () => {
+const Header: React.FC<HeaderProps> = ({ onLogSleepClick }) => {
   return (
     <header className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-md sticky top-0 z-10 shadow-sm">
       <div className="max-w-5xl mx-auto py-4 px-4 sm:px-6 md:px-8 flex justify-between items-center">
          <ObeCureLogo />
          <div className="flex items-center space-x-4">
             <p className="hidden sm:block font-medium text-gray-600 dark:text-gray-300">Your Path to a Healthier You</p>
-            <LogSleep />
+            <LogSleep onLogSleepClick={onLogSleepClick} />
          </div>
       </div>
     </header>
