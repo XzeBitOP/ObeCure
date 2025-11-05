@@ -6,6 +6,8 @@ import { drKenilsNotes } from '../data/notes';
 import DrKenilsNoteComponent from './DrKenilsNote';
 import GeneratingPlan from './GeneratingPlan';
 import ProgressModal from './ProgressModal';
+import SuccessToast from './SuccessToast';
+import { motivationalQuotes } from '../data/quotes';
 
 const USER_PREFERENCES_KEY = 'obeCureUserPreferences';
 const PROGRESS_DATA_KEY = 'obeCureProgressData';
@@ -45,7 +47,7 @@ const DietPlanner: React.FC = () => {
 
   const [checkedMeals, setCheckedMeals] = useState<Record<string, boolean>>({});
   const [otherCalories, setOtherCalories] = useState<string>('');
-  const [logSuccess, setLogSuccess] = useState<boolean>(false);
+  const [toastInfo, setToastInfo] = useState<{ title: string; message: string; quote: string; } | null>(null);
   
   const resultsRef = useRef<HTMLDivElement>(null);
 
@@ -229,7 +231,6 @@ const DietPlanner: React.FC = () => {
             }, {} as Record<string, boolean>);
             setCheckedMeals(initialCheckedState);
             setOtherCalories('');
-            setLogSuccess(false);
 
             const randomNote = drKenilsNotes[Math.floor(Math.random() * drKenilsNotes.length)];
             setDrKenilsNote(randomNote);
@@ -325,8 +326,12 @@ const DietPlanner: React.FC = () => {
     }
 
     localStorage.setItem(DAILY_INTAKE_KEY, JSON.stringify(existingData));
-    setLogSuccess(true);
-    setTimeout(() => setLogSuccess(false), 4000);
+    const randomQuote = motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)];
+    setToastInfo({
+        title: "Intake Logged!",
+        message: "You've successfully logged your meals for today. Great job!",
+        quote: randomQuote
+    });
   };
 
 
@@ -356,6 +361,14 @@ const DietPlanner: React.FC = () => {
 
   return (
     <div className="animate-fade-in">
+       {toastInfo && (
+          <SuccessToast
+            title={toastInfo.title}
+            message={toastInfo.message}
+            quote={toastInfo.quote}
+            onClose={() => setToastInfo(null)}
+          />
+        )}
       <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700">
         <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-200 sm:text-4xl text-center">{plannerTitle}</h1>
         <p className="mt-2 text-gray-600 dark:text-gray-400 mb-8 text-center max-w-prose mx-auto">
@@ -556,11 +569,6 @@ const DietPlanner: React.FC = () => {
                   Log Today's Intake
                 </button>
               </div>
-               {logSuccess && (
-                  <p className="text-sm text-green-600 dark:text-green-400 mt-2 text-center sm:text-left animate-fade-in">
-                    Successfully logged today's intake! Check your progress.
-                  </p>
-               )}
             </div>
 
             {drKenilsNote && <DrKenilsNoteComponent note={drKenilsNote} />}

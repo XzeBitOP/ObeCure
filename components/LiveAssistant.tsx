@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { HealthCondition, WorkoutLogEntry } from '../types';
 import { getWorkoutPlanForConditions, WorkoutPlan } from '../data/workouts';
 import { StopIcon } from './icons/StopIcon';
+import SuccessToast from './SuccessToast';
+import { motivationalQuotes } from '../data/quotes';
 
 const USER_PREFERENCES_KEY = 'obeCureUserPreferences';
 const WORKOUT_LOG_KEY = 'obeCureWorkoutLog';
@@ -130,6 +132,8 @@ const Workouts: React.FC = () => {
     const [isWorkoutFinished, setIsWorkoutFinished] = useState(false);
     const [isStopped, setIsStopped] = useState(false);
     const [loggedDuration, setLoggedDuration] = useState<number | null>(null);
+    const [toastInfo, setToastInfo] = useState<{ title: string; message: string; quote: string; } | null>(null);
+
 
     const listRef = useRef<HTMLDivElement>(null);
     const timerWorkerRef = useRef<Worker | null>(null);
@@ -264,11 +268,12 @@ const Workouts: React.FC = () => {
         if (isWorkoutFinished && activeWorkoutPlan) {
             const durationInSeconds = loggedDuration ?? totalDuration;
             if (durationInSeconds <= 0) return;
+            const durationInMinutes = Math.round(durationInSeconds / 60);
 
             const newLogEntry: WorkoutLogEntry = {
                 date: new Date().toISOString().split('T')[0],
                 name: activeWorkoutPlan.name,
-                duration: Math.round(durationInSeconds / 60)
+                duration: durationInMinutes
             };
             try {
                 const existingLogsRaw = localStorage.getItem(WORKOUT_LOG_KEY);
@@ -281,6 +286,13 @@ const Workouts: React.FC = () => {
             } catch (e) {
                 console.error("Failed to save workout log", e);
             }
+
+            const randomQuote = motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)];
+            setToastInfo({
+                title: "Workout Logged!",
+                message: `You completed ${durationInMinutes} minutes of ${activeWorkoutPlan.name}. Fantastic effort!`,
+                quote: randomQuote,
+            });
         }
     }, [isWorkoutFinished, activeWorkoutPlan, totalDuration, loggedDuration]);
 
@@ -317,6 +329,7 @@ const Workouts: React.FC = () => {
         setCurrentExerciseIndex(0);
         setSecondsRemaining(combinedWorkout[0]?.duration || 0);
         setLoggedDuration(null);
+        setToastInfo(null);
     };
 
     const handleShare = () => {
@@ -375,6 +388,14 @@ const Workouts: React.FC = () => {
 
     return (
         <div className="animate-fade-in space-y-8">
+            {toastInfo && (
+                <SuccessToast
+                    title={toastInfo.title}
+                    message={toastInfo.message}
+                    quote={toastInfo.quote}
+                    onClose={() => setToastInfo(null)}
+                />
+            )}
             <StopWorkoutModal
                 isOpen={isStopped}
                 onContinue={handleContinueWorkout}
