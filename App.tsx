@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import Header from './components/Header';
 import DietPlanner from './components/DietPlanner';
 import Workouts from './components/LiveAssistant';
@@ -12,6 +12,34 @@ type View = 'planner' | 'workouts' | 'faq';
 const App: React.FC = () => {
   const [view, setView] = useState<View>('planner');
   const [showDisclaimer, setShowDisclaimer] = useState<boolean>(true);
+
+  const navRef = useRef<HTMLDivElement>(null);
+  const plannerButtonRef = useRef<HTMLButtonElement>(null);
+  const workoutsButtonRef = useRef<HTMLButtonElement>(null);
+  const faqButtonRef = useRef<HTMLButtonElement>(null);
+  const [bubbleStyle, setBubbleStyle] = useState({});
+
+  useLayoutEffect(() => {
+    const updateBubble = () => {
+      let targetButton: React.RefObject<HTMLButtonElement> | null = null;
+      if (view === 'planner') targetButton = plannerButtonRef;
+      else if (view === 'workouts') targetButton = workoutsButtonRef;
+      else if (view === 'faq') targetButton = faqButtonRef;
+
+      if (targetButton?.current) {
+        const { offsetLeft, offsetWidth } = targetButton.current;
+        setBubbleStyle({
+          left: `${offsetLeft}px`,
+          width: `${offsetWidth}px`,
+        });
+      }
+    };
+
+    updateBubble();
+    window.addEventListener('resize', updateBubble);
+    return () => window.removeEventListener('resize', updateBubble);
+  }, [view]);
+
 
   useEffect(() => {
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
@@ -37,33 +65,41 @@ const App: React.FC = () => {
       <DisclaimerModal isOpen={showDisclaimer} onClose={handleCloseDisclaimer} />
       <Header />
       <main className="p-4 sm:p-6 md:p-8 max-w-5xl mx-auto">
-        <div className="flex justify-center mb-8 bg-orange-100/80 dark:bg-gray-800 rounded-full p-1 max-w-md sm:max-w-lg mx-auto shadow-inner">
+        <div ref={navRef} className="relative flex justify-center mb-8 bg-orange-100/80 dark:bg-gray-800 rounded-full p-1 max-w-md sm:max-w-lg mx-auto shadow-inner">
+          <div
+            className="absolute top-1 bottom-1 bg-white dark:bg-gray-700 rounded-full shadow transition-all duration-300 ease-in-out"
+            style={bubbleStyle}
+            role="presentation"
+          ></div>
           <button
+            ref={plannerButtonRef}
             onClick={() => setView('planner')}
-            className={`w-1/3 py-2 px-4 rounded-full text-sm sm:text-base font-semibold transition-all duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-orange-400 focus:ring-opacity-50 active:scale-[0.97] ${
+            className={`relative z-10 w-1/3 py-2 px-4 rounded-full text-sm sm:text-base font-semibold transition-colors duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-orange-400 focus:ring-opacity-50 ${
               view === 'planner'
-                ? 'bg-white dark:bg-gray-700 text-orange-600 dark:text-orange-400 shadow'
-                : 'bg-transparent text-gray-600 dark:text-gray-400 hover:bg-orange-200/50 dark:hover:bg-gray-700/50'
+                ? 'text-orange-600 dark:text-orange-400'
+                : 'text-gray-600 dark:text-gray-400 hover:text-orange-500/70 dark:hover:text-orange-400/70'
             }`}
           >
             Diet Planner
           </button>
           <button
+            ref={workoutsButtonRef}
             onClick={() => setView('workouts')}
-            className={`w-1/3 py-2 px-4 rounded-full text-sm sm:text-base font-semibold transition-all duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-orange-400 focus:ring-opacity-50 active:scale-[0.97] ${
+            className={`relative z-10 w-1/3 py-2 px-4 rounded-full text-sm sm:text-base font-semibold transition-colors duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-orange-400 focus:ring-opacity-50 ${
               view === 'workouts'
-                ? 'bg-white dark:bg-gray-700 text-orange-600 dark:text-orange-400 shadow'
-                : 'bg-transparent text-gray-600 dark:text-gray-400 hover:bg-orange-200/50 dark:hover:bg-gray-700/50'
+                ? 'text-orange-600 dark:text-orange-400'
+                : 'text-gray-600 dark:text-gray-400 hover:text-orange-500/70 dark:hover:text-orange-400/70'
             }`}
           >
             Workouts
           </button>
            <button
+            ref={faqButtonRef}
             onClick={() => setView('faq')}
-            className={`w-1/3 py-2 px-4 rounded-full text-sm sm:text-base font-semibold transition-all duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-orange-400 focus:ring-opacity-50 active:scale-[0.97] ${
+            className={`relative z-10 w-1/3 py-2 px-4 rounded-full text-sm sm:text-base font-semibold transition-colors duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-orange-400 focus:ring-opacity-50 ${
               view === 'faq'
-                ? 'bg-white dark:bg-gray-700 text-orange-600 dark:text-orange-400 shadow'
-                : 'bg-transparent text-gray-600 dark:text-gray-400 hover:bg-orange-200/50 dark:hover:bg-gray-700/50'
+                ? 'text-orange-600 dark:text-orange-400'
+                : 'text-gray-600 dark:text-gray-400 hover:text-orange-500/70 dark:hover:text-orange-400/70'
             }`}
           >
             MindFit FAQ'S
