@@ -8,6 +8,7 @@ import { WebsiteIcon } from './components/icons/WebsiteIcon';
 import { InstagramIcon } from './components/icons/InstagramIcon';
 import LogSleepModal from './components/LogSleepModal';
 import ProgressModal from './components/ProgressModal';
+import ExpirationNotice from './components/ExpirationNotice';
 
 type View = 'planner' | 'workouts' | 'faq';
 
@@ -90,6 +91,7 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-orange-50/50 dark:bg-gray-900 text-gray-800 dark:text-gray-200 transition-colors duration-300">
+      <ExpirationNotice />
       <DisclaimerModal isOpen={showDisclaimer} onClose={handleCloseDisclaimer} />
       <LogSleepModal
         isOpen={isLogSleepModalOpen}
