@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { HealthCondition, WorkoutLogEntry } from '../types';
 import { getWorkoutPlanForConditions, WorkoutPlan } from '../data/workouts';
+import { StopIcon } from './icons/StopIcon';
 
 const USER_PREFERENCES_KEY = 'obeCureUserPreferences';
 const WORKOUT_LOG_KEY = 'obeCureWorkoutLog';
@@ -75,6 +76,39 @@ const ConditionSelector: React.FC<{ onConfirm: (conditions: HealthCondition[]) =
     );
 };
 
+const StopWorkoutModal: React.FC<{
+  isOpen: boolean;
+  onContinue: () => void;
+  onEnd: () => void;
+}> = ({ isOpen, onContinue, onEnd }) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4 animate-fade-in">
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl p-6 sm:p-8 w-full max-w-md border border-gray-200 dark:border-gray-700 transform animate-fade-in-up">
+        <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-4">Stop Workout?</h2>
+        <p className="text-gray-600 dark:text-gray-400 mb-6">
+          Do you want to end your workout? Your progress so far will be logged.
+        </p>
+        <div className="flex flex-col sm:flex-row gap-4">
+          <button
+            onClick={onContinue}
+            className="w-full bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 font-bold py-3 px-6 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500 transition-all"
+          >
+            Continue Workout
+          </button>
+          <button
+            onClick={onEnd}
+            className="w-full bg-red-500 text-white font-bold py-3 px-6 rounded-lg hover:bg-red-600 transition-all"
+          >
+            End & Log Workout
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const UniversalTips: React.FC = () => (
     <div className="mt-8 bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700">
         <h3 className="text-xl font-bold text-gray-800 dark:text-gray-200 mb-4 text-center">Universal Tips for Fat Loss</h3>
@@ -94,6 +128,8 @@ const Workouts: React.FC = () => {
     const [selectedConditions, setSelectedConditions] = useState<HealthCondition[] | undefined>(undefined);
     const [showSelector, setShowSelector] = useState(false);
     const [isWorkoutFinished, setIsWorkoutFinished] = useState(false);
+    const [isStopped, setIsStopped] = useState(false);
+    const [loggedDuration, setLoggedDuration] = useState<number | null>(null);
 
     const listRef = useRef<HTMLDivElement>(null);
     const timerWorkerRef = useRef<Worker | null>(null);
@@ -226,10 +262,13 @@ const Workouts: React.FC = () => {
 
     useEffect(() => {
         if (isWorkoutFinished && activeWorkoutPlan) {
+            const durationInSeconds = loggedDuration ?? totalDuration;
+            if (durationInSeconds <= 0) return;
+
             const newLogEntry: WorkoutLogEntry = {
                 date: new Date().toISOString().split('T')[0],
                 name: activeWorkoutPlan.name,
-                duration: Math.round(totalDuration / 60)
+                duration: Math.round(durationInSeconds / 60)
             };
             try {
                 const existingLogsRaw = localStorage.getItem(WORKOUT_LOG_KEY);
@@ -243,7 +282,7 @@ const Workouts: React.FC = () => {
                 console.error("Failed to save workout log", e);
             }
         }
-    }, [isWorkoutFinished, activeWorkoutPlan, totalDuration]);
+    }, [isWorkoutFinished, activeWorkoutPlan, totalDuration, loggedDuration]);
 
     const handleStartPause = () => {
         if (isWorkoutFinished) return;
@@ -277,6 +316,7 @@ const Workouts: React.FC = () => {
         setIsWorkoutFinished(false);
         setCurrentExerciseIndex(0);
         setSecondsRemaining(combinedWorkout[0]?.duration || 0);
+        setLoggedDuration(null);
     };
 
     const handleShare = () => {
@@ -300,6 +340,26 @@ const Workouts: React.FC = () => {
         return combinedWorkout.slice(0, currentExerciseIndex).reduce((sum, ex) => sum + ex.duration, 0) + (currentExercise?.duration - secondsRemaining);
     }, [currentExerciseIndex, secondsRemaining, combinedWorkout, currentExercise]);
     const progressPercentage = (elapsedDuration / totalDuration) * 100;
+
+    const handleStop = () => {
+        if (isTimerActive) {
+            timerWorkerRef.current?.postMessage({ command: 'stop' });
+            if ('speechSynthesis' in window) speechSynthesis.cancel();
+            setIsTimerActive(false);
+        }
+        setIsStopped(true);
+    };
+
+    const handleContinueWorkout = () => {
+        setIsStopped(false);
+        handleStartPause(); // This will toggle isTimerActive to true and resume
+    };
+
+    const handleEndWorkout = () => {
+        setIsStopped(false);
+        setLoggedDuration(elapsedDuration);
+        setIsWorkoutFinished(true);
+    };
     
     if (showSelector) {
         return <ConditionSelector onConfirm={handleConfirmConditions} />;
@@ -315,6 +375,11 @@ const Workouts: React.FC = () => {
 
     return (
         <div className="animate-fade-in space-y-8">
+            <StopWorkoutModal
+                isOpen={isStopped}
+                onContinue={handleContinueWorkout}
+                onEnd={handleEndWorkout}
+            />
             <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700">
                 <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-200 sm:text-4xl text-center">{activeWorkoutPlan.name}</h1>
                 <div className="mt-2 text-gray-600 dark:text-gray-400 mb-6 text-center max-w-prose mx-auto flex justify-center flex-wrap gap-x-4">
@@ -345,10 +410,14 @@ const Workouts: React.FC = () => {
                         <button onClick={handleStartPause} aria-label={isTimerActive ? "Pause Timer" : "Start Timer"} className="bg-orange-500 text-white rounded-full p-4 shadow-lg hover:bg-orange-600 transition-transform transform hover:scale-105 active:scale-95">
                         {isTimerActive ? <PauseIcon className="w-10 h-10"/> : <PlayIcon className="w-10 h-10"/>}
                         </button>
-                        <div className="w-8 h-8">
-                          {isWorkoutFinished && (
+                        <div className="w-8 h-8 flex items-center justify-center">
+                          {isWorkoutFinished ? (
                               <button onClick={handleShare} aria-label="Share Workout" className="text-green-500 hover:text-green-600 transition-colors animate-fade-in">
                                   <WhatsAppIcon className="w-8 h-8" />
+                              </button>
+                          ) : (
+                              <button onClick={handleStop} disabled={elapsedDuration === 0 && !isTimerActive} aria-label="Stop Workout" className="text-gray-600 dark:text-gray-400 hover:text-red-500 dark:hover:text-red-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                                <StopIcon className="w-8 h-8" />
                               </button>
                           )}
                         </div>
