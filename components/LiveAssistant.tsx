@@ -162,8 +162,8 @@ const Workouts: React.FC = () => {
 
     const combinedWorkout = useMemo(() => {
         if (!activeWorkoutPlan) return [];
-        const { exercises, structure } = activeWorkoutPlan;
-        const fullWorkout: any[] = [{ name: 'Dynamic Warm-up', type: 'Preparation', duration: 180, description: 'Start with light cardio like marching in place, arm circles, and leg swings to prepare your body for exercise.' }];
+        const { exercises, structure, warmupDuration, cooldownDuration } = activeWorkoutPlan;
+        const fullWorkout: any[] = [{ name: 'Dynamic Warm-up', type: 'Preparation', duration: warmupDuration || 180, description: 'Start with light cardio like marching in place, arm circles, and leg swings to prepare your body for exercise.' }];
 
         for (let i = 1; i <= structure.rounds; i++) {
             exercises.forEach((ex, index) => {
@@ -176,7 +176,7 @@ const Workouts: React.FC = () => {
                 fullWorkout.push({ name: 'Round Rest', type: 'Rest', duration: structure.roundRest, description: `End of Round ${i}. Take a longer break before the next round.` });
             }
         }
-        fullWorkout.push({ name: 'Cool-down Stretch', type: 'Recovery', duration: 180, description: 'Finish with gentle stretches for major muscle groups. Hold each stretch for 20-30 seconds.' });
+        fullWorkout.push({ name: 'Cool-down Stretch', type: 'Recovery', duration: cooldownDuration || 180, description: 'Finish with gentle stretches for major muscle groups. Hold each stretch for 20-30 seconds.' });
         return fullWorkout;
     }, [activeWorkoutPlan]);
 
