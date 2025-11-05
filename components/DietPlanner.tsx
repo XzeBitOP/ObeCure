@@ -44,6 +44,8 @@ const DietPlanner: React.FC = () => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [isProgressModalOpen, setIsProgressModalOpen] = useState(false);
+  const [estimatedDuration, setEstimatedDuration] = useState<number | null>(null);
+
 
   const [checkedMeals, setCheckedMeals] = useState<Record<string, boolean>>({});
   const [otherCalories, setOtherCalories] = useState<string>('');
@@ -104,6 +106,48 @@ const DietPlanner: React.FC = () => {
       }, 100);
     }
   }, [isLoading]);
+
+   useEffect(() => {
+    const weightNum = parseFloat(patientWeight);
+    const targetNum = parseFloat(targetWeight);
+    const heightNum = parseFloat(height);
+    const ageNum = parseFloat(age);
+
+    if (weightNum > 0 && targetNum > 0 && weightNum > targetNum && heightNum > 0 && ageNum > 0 && dietType !== DietType.WEIGHT_GAIN) {
+        // 1. Calculate BMR (Basal Metabolic Rate) using Mifflin-St Jeor equation
+        const bmr = (10 * weightNum) + (6.25 * heightNum) - (5 * ageNum) + (sex === Sex.MALE ? 5 : -161);
+        
+        // 2. Determine activity factor
+        const getActivityFactor = (level: ActivityLevel): number => {
+            switch (level) {
+                case ActivityLevel.SEDENTARY: return 1.2;
+                case ActivityLevel.LIGHTLY_ACTIVE: return 1.375;
+                case ActivityLevel.MODERATELY_ACTIVE: return 1.55;
+                case ActivityLevel.VERY_ACTIVE: return 1.725;
+                default: return 1.375;
+            }
+        };
+
+        // 3. Calculate TDEE (Total Daily Energy Expenditure)
+        const tdee = bmr * getActivityFactor(activityLevel);
+        
+        // 4. The diet plan aims for a sustainable deficit from TDEE for weight loss.
+        // This is typically around 500 calories for a healthy rate of ~0.5kg/week loss.
+        const dailyDeficit = 500;
+
+        const weightToLose = weightNum - targetNum;
+        const totalDeficitNeeded = weightToLose * 7700;
+
+        if (dailyDeficit > 0) {
+            const days = Math.round(totalDeficitNeeded / dailyDeficit);
+            setEstimatedDuration(days);
+        } else {
+            setEstimatedDuration(null);
+        }
+    } else {
+        setEstimatedDuration(null);
+    }
+  }, [patientWeight, targetWeight, height, age, sex, activityLevel, dietType]);
 
   const cmToFtIn = (cm: number) => {
     if (isNaN(cm) || cm <= 0) return { ft: '', in: '' };
@@ -372,7 +416,7 @@ const DietPlanner: React.FC = () => {
       <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700">
         <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-200 sm:text-4xl text-center">{plannerTitle}</h1>
         <p className="mt-2 text-gray-600 dark:text-gray-400 mb-8 text-center max-w-prose mx-auto">
-            Enter your details and let our AI create a customized Indian diet plan just for you.
+            Enter your details to receive a customized Indian diet plan, crafted by our clinical experts for your health goals.
         </p>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
@@ -466,15 +510,27 @@ const DietPlanner: React.FC = () => {
             </div>
         </div>
 
-        {bmiResult && (
-          <div className={`my-6 p-4 rounded-lg text-center transition-all duration-300 animate-fade-in ${bmiResult.color}`}>
-            <p className="font-bold text-lg">
-              Your BMI: <span className="text-2xl">{bmiResult.value}</span>
-            </p>
-            <p className="font-semibold">{bmiResult.category}</p>
-            {bmiResult.risk && <p className="text-sm mt-1">{bmiResult.risk}</p>}
-          </div>
-        )}
+        <div className="my-6 space-y-4">
+            {bmiResult && (
+                <div className={`p-4 rounded-lg text-center transition-all duration-300 animate-fade-in ${bmiResult.color}`}>
+                    <p className="font-bold text-lg">
+                    Your BMI: <span className="text-2xl">{bmiResult.value}</span>
+                    </p>
+                    <p className="font-semibold">{bmiResult.category}</p>
+                    {bmiResult.risk && <p className="text-sm mt-1">{bmiResult.risk}</p>}
+                </div>
+            )}
+
+            {estimatedDuration !== null && (
+                <div className="p-4 rounded-lg text-center transition-all duration-300 animate-fade-in bg-orange-100 text-orange-800 dark:bg-orange-900/50 dark:text-orange-300">
+                    <p className="font-bold text-lg">
+                        Target can be achieved approximately in <span className="text-2xl">{estimatedDuration}</span> Days
+                    </p>
+                    <p className="text-xs mt-1">(Estimate based on your profile and a consistent daily calorie deficit.)</p>
+                </div>
+            )}
+        </div>
+
 
         <div className="mb-8">
             <label className={formLabelClass}>Existing Health Conditions (optional)</label>
