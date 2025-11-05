@@ -4,6 +4,7 @@ import { getWorkoutPlanForConditions, WorkoutPlan } from '../data/workouts';
 import { StopIcon } from './icons/StopIcon';
 import SuccessToast from './SuccessToast';
 import { motivationalQuotes } from '../data/quotes';
+import { YouTubeIcon } from './icons/YouTubeIcon';
 
 const USER_PREFERENCES_KEY = 'obeCureUserPreferences';
 const WORKOUT_LOG_KEY = 'obeCureWorkoutLog';
@@ -348,6 +349,13 @@ const Workouts: React.FC = () => {
         localStorage.setItem(USER_PREFERENCES_KEY, JSON.stringify(savedPrefs));
     };
 
+    const handleWatchTutorial = (e: React.MouseEvent, exerciseName: string) => {
+        e.stopPropagation();
+        const query = `${exerciseName} tutorial`;
+        const url = `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`;
+        window.open(url, '_blank', 'noopener,noreferrer');
+    };
+
     const currentExercise = combinedWorkout[currentExerciseIndex];
     const elapsedDuration = useMemo(() => {
         return combinedWorkout.slice(0, currentExerciseIndex).reduce((sum, ex) => sum + ex.duration, 0) + (currentExercise?.duration - secondsRemaining);
@@ -454,7 +462,19 @@ const Workouts: React.FC = () => {
                     }`}>
                         <div className="flex justify-between items-center">
                             <div>
-                                <p className={`font-semibold ${index === currentExerciseIndex ? 'text-orange-800 dark:text-orange-300' : 'text-gray-800 dark:text-gray-200'}`}>{ex.name}</p>
+                                <div className="flex items-center gap-2">
+                                    <p className={`font-semibold ${index === currentExerciseIndex ? 'text-orange-800 dark:text-orange-300' : 'text-gray-800 dark:text-gray-200'}`}>{ex.name}</p>
+                                    {ex.type.startsWith('Round') && (
+                                        <button 
+                                            onClick={(e) => handleWatchTutorial(e, ex.name)}
+                                            className="text-gray-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-500 transition-colors"
+                                            title={`Watch tutorial for ${ex.name}`}
+                                            aria-label={`Watch tutorial for ${ex.name}`}
+                                        >
+                                            <YouTubeIcon className="w-6 h-6" />
+                                        </button>
+                                    )}
+                                </div>
                                 <p className={`text-xs ${index === currentExerciseIndex ? 'text-orange-600 dark:text-orange-400' : 'text-gray-500 dark:text-gray-400'}`}>{ex.type}</p>
                             </div>
                             <p className={`font-mono font-semibold ${index === currentExerciseIndex ? 'text-orange-700 dark:text-orange-300' : 'text-gray-700 dark:text-gray-300'}`}>
