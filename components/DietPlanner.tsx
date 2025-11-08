@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { DietPreference, DietPlan, Sex, ActivityLevel, DietType, HealthCondition, DrKenilsNote, ProgressEntry, DailyIntake, FastingEntry } from '../types';
-import { generateOfflineDietPlan as generateDietPlan } from '../services/offlinePlanGenerator';
+import { DietPreference, DietPlan, Sex, ActivityLevel, DietType, HealthCondition, DrKenilsNote, ProgressEntry, DailyIntake, FastingEntry, Meal, WaterEntry } from '../types';
+import { generateOfflineDietPlan as generateDietPlan, findSwapMeal } from '../services/offlinePlanGenerator';
 import { StarIcon } from './icons/StarIcon';
 import { drKenilsNotes } from '../data/notes';
 import DrKenilsNoteComponent from './DrKenilsNote';
@@ -12,24 +12,26 @@ import { BreakfastIcon } from './icons/BreakfastIcon';
 import { LunchIcon } from './icons/LunchIcon';
 import { DinnerIcon } from './icons/DinnerIcon';
 import { SnackIcon } from './icons/SnackIcon';
+import { WhatsAppIcon } from './icons/WhatsAppIcon';
+import { SwapIcon } from './icons/SwapIcon';
+import { OBE_CURE_SPECIAL_MEALS } from '../data/specialMeals';
+import { WaterIcon } from './icons/WaterIcon';
 
 
 const USER_PREFERENCES_KEY = 'obeCureUserPreferences';
 const PROGRESS_DATA_KEY = 'obeCureProgressData';
 const DAILY_INTAKE_KEY = 'obeCureDailyIntake';
 const FASTING_DATA_KEY = 'obeCureFastingData';
+const WATER_INTAKE_KEY = 'obeCureWaterIntake';
 
-const WhatsAppIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
-    <svg viewBox="0 0 24 24" fill="currentColor" {...props}>
-        <path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.79.52 3.48 1.45 4.93L2 22l5.3-1.52c1.38.84 2.96 1.33 4.61 1.33h.11c5.46 0 9.91-4.45 9.91-9.91S17.5 2 12.04 2zM12.04 20.35h-.09c-1.49 0-2.93-.42-4.17-1.2l-.3-.18-3.11.9.92-3.03-.2-.32c-.86-1.35-1.32-2.94-1.32-4.61 0-4.6 3.73-8.33 8.33-8.33s8.33 3.73 8.33 8.33-3.73 8.35-8.33 8.35zm4.4-5.37c-.24-.12-1.42-.7-1.64-.78-.22-.08-.38-.12-.54.12-.16.24-.62.78-.76.94-.14.16-.28.18-.52.06-.24-.12-1.01-.37-1.92-1.18-.71-.64-1.19-1.43-1.33-1.67-.14-.24-.02-.37.1-.49.11-.11.24-.28.36-.42.12-.14.16-.24.24-.4.08-.16.04-.3-.02-.42s-.54-1.29-.74-1.77c-.2-.48-.4-.41-.54-.42-.14 0-.3 0-.46 0s-.42.06-.64.3c-.22.24-.86.84-1.06 2.04-.2 1.2.22 2.37.5 3.19.28.82 1.39 2.66 3.36 3.74 1.97 1.08 2.63 1.2 3.53 1.04.9-.16 1.52-.76 1.73-1.44.22-.68.22-1.25.16-1.44-.06-.19-.22-.3-.46-.42z"></path>
-    </svg>
-);
+
 
 interface DietPlannerProps {
-  onShowProgress: () => void;
+  isSubscribed: boolean;
+  onOpenSubscriptionModal: () => void;
 }
 
-const DietPlanner: React.FC<DietPlannerProps> = ({ onShowProgress }) => {
+const DietPlanner: React.FC<DietPlannerProps> = ({ isSubscribed, onOpenSubscriptionModal }) => {
   const [step, setStep] = useState(1);
   const [patientName, setPatientName] = useState<string>('');
   const [patientWeight, setPatientWeight] = useState<string>('');
@@ -57,6 +59,7 @@ const DietPlanner: React.FC<DietPlannerProps> = ({ onShowProgress }) => {
 
   const [checkedMeals, setCheckedMeals] = useState<Record<string, boolean>>({});
   const [otherCalories, setOtherCalories] = useState<string>('');
+  const [waterGlasses, setWaterGlasses] = useState<number>(0);
   const [toastInfo, setToastInfo] = useState<{ title: string; message: string; quote: string; } | null>(null);
   const [isLogging, setIsLogging] = useState(false);
   const [logSuccess, setLogSuccess] = useState(false);
@@ -95,6 +98,18 @@ const DietPlanner: React.FC<DietPlannerProps> = ({ onShowProgress }) => {
         setHeightFt(savedPrefs.heightFt || '');
         setHeightIn(savedPrefs.heightIn || '');
       }
+      
+      // Load today's water intake
+      const waterDataRaw = localStorage.getItem(WATER_INTAKE_KEY);
+      if (waterDataRaw) {
+          const waterData: WaterEntry[] = JSON.parse(waterDataRaw);
+          const today = new Date().toISOString().split('T')[0];
+          const todayEntry = waterData.find(e => e.date === today);
+          if (todayEntry) {
+              setWaterGlasses(todayEntry.glasses);
+          }
+      }
+
     } catch (e) {
       console.error("Failed to parse user preferences from localStorage", e);
     }
@@ -225,7 +240,7 @@ const DietPlanner: React.FC<DietPlannerProps> = ({ onShowProgress }) => {
     } else if (bmi >= 25.0 && bmi <= 29.9) {
       return { value: bmi, category: 'Obese I', color: 'bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300', risk: 'High risk for diabetes, hypertension' };
     } else {
-      return { value: bmi, category: 'Obese II', color: 'bg-red-200 text-red-900 dark:bg-red-900/60 dark:text-red-200 ring-2 ring-red-500 animate-pulse', risk: 'High risk for diabetes, hypertension' };
+      return { value: bmi, category: 'Obese II', color: 'bg-red-200 text-red-900 dark:bg-red-900/60 ring-2 ring-red-500 animate-pulse', risk: 'High risk for diabetes, hypertension' };
     }
   };
 
@@ -241,10 +256,16 @@ const DietPlanner: React.FC<DietPlannerProps> = ({ onShowProgress }) => {
   }, [patientWeight, height, age, step]);
 
   const handleGeneratePlan = () => {
+    if (!isSubscribed) {
+        onOpenSubscriptionModal();
+        return;
+    }
+
     setIsLoading(true);
     setError(null);
     setDietPlan(null);
     setDrKenilsNote(null);
+
     setTimeout(() => {
         try {
             const fastingStartTime = `${fastingStartHour}:00 ${fastingStartPeriod}`;
@@ -290,6 +311,7 @@ const DietPlanner: React.FC<DietPlannerProps> = ({ onShowProgress }) => {
             const todayFastingIndex = existingFastingData.findIndex(entry => entry.date === newFastingEntry.date);
             if (todayFastingIndex > -1) { existingFastingData[todayFastingIndex] = newFastingEntry; } else { existingFastingData.push(newFastingEntry); }
             localStorage.setItem(FASTING_DATA_KEY, JSON.stringify(existingFastingData));
+
         } catch (err) {
             console.error(err);
             setError('An unexpected error occurred while generating the plan. Please check your inputs.');
@@ -301,6 +323,26 @@ const DietPlanner: React.FC<DietPlannerProps> = ({ onShowProgress }) => {
 
   const handleMealCheckChange = (mealName: string) => {
     setCheckedMeals(prev => ({ ...prev, [mealName]: !prev[mealName] }));
+  };
+  
+  const handleWaterChange = (amount: number) => {
+    setWaterGlasses(prev => {
+        const newAmount = Math.max(0, prev + amount);
+        const today = new Date().toISOString().split('T')[0];
+        try {
+            const waterDataRaw = localStorage.getItem(WATER_INTAKE_KEY);
+            let waterData: WaterEntry[] = waterDataRaw ? JSON.parse(waterDataRaw) : [];
+            const todayIndex = waterData.findIndex(e => e.date === today);
+            if (todayIndex > -1) {
+                waterData[todayIndex].glasses = newAmount;
+            } else {
+                waterData.push({ date: today, glasses: newAmount });
+            }
+            localStorage.setItem(WATER_INTAKE_KEY, JSON.stringify(waterData));
+        } catch(e) { console.error("Could not save water intake.", e); }
+        
+        return newAmount;
+    });
   };
 
   const handleLogIntake = () => {
@@ -331,6 +373,47 @@ const DietPlanner: React.FC<DietPlannerProps> = ({ onShowProgress }) => {
         }, 2000);
     }, 1000);
   };
+
+    const handleSwapMeal = (mealIndexToSwap: number) => {
+        if (!dietPlan) return;
+
+        const mealToSwap = dietPlan.meals[mealIndexToSwap];
+        let newMeal: Meal | null = null;
+
+        if (mealToSwap.name === 'ObeCure Special Meal') {
+            const otherSpecialMeals = OBE_CURE_SPECIAL_MEALS.filter(m => m.recipe !== mealToSwap.recipe);
+            if (otherSpecialMeals.length > 0) {
+                const randomSpecialMeal = otherSpecialMeals[Math.floor(Math.random() * otherSpecialMeals.length)];
+                newMeal = {
+                    ...randomSpecialMeal,
+                    time: mealToSwap.time,
+                    mealType: mealToSwap.mealType,
+                };
+            }
+        } else {
+            newMeal = findSwapMeal(mealToSwap, dietPlan.meals, { preference, healthConditions, dietType, mealType: mealToSwap.mealType });
+        }
+
+        if (newMeal) {
+            const newMeals = [...dietPlan.meals];
+            newMeals[mealIndexToSwap] = newMeal;
+
+            const newTotalCalories = newMeals.reduce((sum, meal) => sum + meal.calories, 0);
+            const newTotalMacros = newMeals.reduce((totals, meal) => ({
+                protein: totals.protein + meal.macros.protein,
+                carbohydrates: totals.carbohydrates + meal.macros.carbohydrates,
+                fat: totals.fat + meal.macros.fat,
+            }), { protein: 0, carbohydrates: 0, fat: 0 });
+            
+            setDietPlan({
+                meals: newMeals,
+                totalCalories: newTotalCalories,
+                totalMacros: newTotalMacros
+            });
+        } else {
+             setToastInfo({ title: "No Swap Found", message: "Could not find a suitable alternative meal for your criteria. Try again later!", quote: "Variety is the spice of life, but consistency is the main course." });
+        }
+    };
 
   const getShareText = () => {
     if (!dietPlan) return '';
@@ -390,7 +473,7 @@ const DietPlanner: React.FC<DietPlannerProps> = ({ onShowProgress }) => {
           />
         )}
       <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700">
-        <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-200 sm:text-4xl text-center">{plannerTitle}</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 dark:text-gray-200 text-center">{plannerTitle}</h1>
         <p className="mt-2 text-gray-600 dark:text-gray-400 mb-8 text-center max-w-prose mx-auto">
             {step === 1 && "Let's start with your basic information to create your profile."}
             {step === 2 && "Now, tell us about your health goals and any existing conditions."}
@@ -517,14 +600,14 @@ const DietPlanner: React.FC<DietPlannerProps> = ({ onShowProgress }) => {
                 <div className="md:col-span-2 space-y-4">
                     {bmiResult && (
                         <div className={`p-4 rounded-lg text-center transition-all duration-300 animate-fade-in ${bmiResult.color}`}>
-                            <p className="font-bold text-lg"> Your BMI: <span className="text-2xl">{bmiResult.value}</span> </p>
+                            <p className="font-bold text-base sm:text-lg"> Your BMI: <span className="text-xl sm:text-2xl">{bmiResult.value}</span> </p>
                             <p className="font-semibold">{bmiResult.category}</p>
                             {bmiResult.risk && <p className="text-sm mt-1">{bmiResult.risk}</p>}
                         </div>
                     )}
                     {estimatedDuration !== null && (
                         <div className="p-4 rounded-lg text-center transition-all duration-300 animate-fade-in bg-orange-100 text-orange-800 dark:bg-orange-900/50 dark:text-orange-300">
-                            <p className="font-bold text-lg"> Target can be achieved approximately in <span className="text-2xl">{estimatedDuration}</span> Days </p>
+                            <p className="font-bold text-base sm:text-lg"> Target can be achieved in ~ <span className="text-xl sm:text-2xl">{estimatedDuration}</span> Days </p>
                             <p className="text-xs mt-1">(Estimate based on your profile and a consistent daily calorie deficit.)</p>
                         </div>
                     )}
@@ -547,9 +630,6 @@ const DietPlanner: React.FC<DietPlannerProps> = ({ onShowProgress }) => {
                     <><svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg><span>Generating...</span></>
                 ) : ( <span>Generate Diet Plan</span> )}
                 </button>
-                <button onClick={onShowProgress} className="w-full sm:w-auto bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-bold py-3 px-6 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-all duration-300 flex items-center justify-center space-x-2 shadow-md hover:shadow-lg active:scale-95">
-                    <span>Show My Progress</span>
-                </button>
             </div>
           )}
           
@@ -571,7 +651,7 @@ const DietPlanner: React.FC<DietPlannerProps> = ({ onShowProgress }) => {
 
         {dietPlan && !isLoading && (
           <div className="mt-8 bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 animate-fade-in">
-              <div className="flex justify-between items-start mb-4 border-b border-gray-200 dark:border-gray-700 pb-4">
+              <div className="flex flex-col sm:flex-row justify-between items-start mb-4 border-b border-gray-200 dark:border-gray-700 pb-4 gap-4">
                   <div>
                       <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-200">Your Custom Diet Plan</h2>
                        <div className="mt-2 text-sm text-gray-600 dark:text-gray-400 space-y-1">
@@ -584,10 +664,16 @@ const DietPlanner: React.FC<DietPlannerProps> = ({ onShowProgress }) => {
                           P: {dietPlan.totalMacros.protein}g | C: {dietPlan.totalMacros.carbohydrates}g | F: {dietPlan.totalMacros.fat}g
                       </p>
                   </div>
-                   <a href={`https://wa.me/?text=${getShareText()}`} target="_blank" rel="noopener noreferrer" className="flex items-center space-x-2 bg-green-500 text-white text-sm font-semibold px-4 py-2 rounded-full hover:bg-green-600 transition-colors shadow-sm shrink-0 active:scale-95">
-                      <WhatsAppIcon className="w-5 h-5" />
-                      <span>Share</span>
-                  </a>
+                  <div className="flex flex-col sm:flex-row gap-2 items-center w-full sm:w-auto">
+                        <a href="https://www.zomato.com/ahmedabad/badster-burgers-3-mani-nagar/order" target="_blank" rel="noopener noreferrer" className="flex items-center justify-center space-x-2 bg-blue-500 text-white text-sm font-semibold px-4 py-2 rounded-full hover:bg-blue-600 transition-colors shadow-sm shrink-0 active:scale-95 w-full sm:w-auto">
+                            <span>🥗</span>
+                            <span>Order Salads Online</span>
+                        </a>
+                        <a href={`https://wa.me/?text=${getShareText()}`} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center space-x-2 bg-green-500 text-white text-sm font-semibold px-4 py-2 rounded-full hover:bg-green-600 transition-colors shadow-sm shrink-0 active:scale-95 w-full sm:w-auto">
+                            <WhatsAppIcon className="w-5 h-5" />
+                            <span>Share</span>
+                        </a>
+                   </div>
               </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -596,11 +682,11 @@ const DietPlanner: React.FC<DietPlannerProps> = ({ onShowProgress }) => {
                 const MealIcon = getMealIcon(meal.time);
                 return (
                   <label 
-                      key={`${meal.name}-${index}`}
+                      key={`${meal.name}-${meal.recipe}`}
                       style={{ animationDelay: `${index * 80}ms` }}
-                      className={`block p-4 rounded-lg border transition-all cursor-pointer opacity-0 animate-fade-in-up ${isSpecial ? 'bg-orange-100/80 dark:bg-orange-900/20 border-orange-300 dark:border-orange-800 shadow-md' : 'bg-gray-50 dark:bg-gray-700/50 border-gray-200 dark:border-gray-700'}`}>
+                      className={`relative block p-4 rounded-lg border transition-all cursor-pointer opacity-0 animate-fade-in-up ${isSpecial ? 'bg-orange-100/80 dark:bg-orange-900/20 border-orange-300 dark:border-orange-800 shadow-md' : 'bg-gray-50 dark:bg-gray-700/50 border-gray-200 dark:border-gray-700'}`}>
                       <div className="flex items-start justify-between">
-                          <div>
+                          <div className="pr-16">
                               <h3 className={`font-bold text-lg mb-1 flex items-center gap-2 ${isSpecial ? 'text-orange-700 dark:text-orange-400' : 'text-gray-700 dark:text-gray-300'}`}>
                                   {isSpecial ? <StarIcon className="w-5 h-5 text-yellow-500" /> : <MealIcon className="w-5 h-5" />}
                                   {meal.name}
@@ -610,6 +696,13 @@ const DietPlanner: React.FC<DietPlannerProps> = ({ onShowProgress }) => {
                           </div>
                           <input type="checkbox" checked={!!checkedMeals[meal.name]} onChange={() => handleMealCheckChange(meal.name)} className="h-5 w-5 rounded border-gray-300 text-orange-500 focus:ring-orange-400 shrink-0 ml-4 mt-1"/>
                       </div>
+                      <button 
+                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleSwapMeal(index); }}
+                          className="absolute top-1/2 -translate-y-1/2 right-3 p-2 rounded-full bg-orange-500 text-white hover:bg-orange-600 transition-all shadow-md active:scale-95"
+                          title="Swap this meal"
+                      >
+                          <SwapIcon className="w-5 h-5" />
+                      </button>
                       <div className="flex justify-between items-center text-sm mt-3 pt-2 border-t border-gray-200 dark:border-gray-600">
                           <p className={`font-semibold ${isSpecial ? 'text-orange-600 dark:text-orange-400' : 'text-gray-600 dark:text-gray-300'}`}>{meal.calories} kcal</p>
                           <p className="font-mono tracking-wide text-xs text-gray-500 dark:text-gray-400">
@@ -620,20 +713,33 @@ const DietPlanner: React.FC<DietPlannerProps> = ({ onShowProgress }) => {
               )})}
             </div>
 
-            <div className="mt-6 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-              <h3 className="font-bold text-gray-700 dark:text-gray-300 mb-2">Log Other Intake</h3>
-              <div className="flex flex-col sm:flex-row gap-4 items-center">
-                <input type="number" value={otherCalories} onChange={(e) => setOtherCalories(e.target.value)} placeholder="Calories from other food" className={`${formInputClass} flex-grow`}/>
-                <button onClick={handleLogIntake} disabled={isLogging || logSuccess} className={`w-full sm:w-auto font-bold py-3 px-6 rounded-lg transition-all duration-300 shadow-md flex items-center justify-center h-[50px] ${logSuccess ? 'bg-green-500 text-white' : 'bg-green-500 text-white hover:bg-green-600'} disabled:opacity-70 disabled:cursor-not-allowed`}>
-                    {isLogging ? (
-                        <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                    ) : logSuccess ? (
-                        <CheckIcon className="h-6 w-6 text-white"/>
-                    ) : (
-                        "Log Today's Intake"
-                    )}
-                </button>
-              </div>
+            <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                  <h3 className="font-bold text-gray-700 dark:text-gray-300 mb-2">Today's Hydration</h3>
+                  <div className="flex items-center justify-between gap-4">
+                    <button onClick={() => handleWaterChange(-1)} disabled={waterGlasses <= 0} className="w-12 h-12 rounded-full bg-gray-200 dark:bg-gray-600 text-2xl font-bold text-gray-700 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-500 transition disabled:opacity-50 active:scale-95">-</button>
+                    <div className="text-center">
+                        <WaterIcon className="w-8 h-8 mx-auto text-blue-500"/>
+                        <p className="text-xl font-bold text-gray-800 dark:text-gray-200">{waterGlasses} <span className="text-sm font-medium">/ 8 glasses</span></p>
+                    </div>
+                    <button onClick={() => handleWaterChange(1)} className="w-12 h-12 rounded-full bg-gray-200 dark:bg-gray-600 text-2xl font-bold text-gray-700 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-500 transition active:scale-95">+</button>
+                  </div>
+                </div>
+                <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                  <h3 className="font-bold text-gray-700 dark:text-gray-300 mb-2">Log Other Intake</h3>
+                  <div className="flex flex-col sm:flex-row gap-4 items-center">
+                    <input type="number" value={otherCalories} onChange={(e) => setOtherCalories(e.target.value)} placeholder="Calories from other food" className={`${formInputClass} flex-grow`}/>
+                    <button onClick={handleLogIntake} disabled={isLogging || logSuccess} className={`w-full sm:w-auto font-bold py-3 px-6 rounded-lg transition-all duration-300 shadow-md flex items-center justify-center h-[50px] ${logSuccess ? 'bg-green-500 text-white' : 'bg-green-500 text-white hover:bg-green-600'} disabled:opacity-70 disabled:cursor-not-allowed`}>
+                        {isLogging ? (
+                            <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                        ) : logSuccess ? (
+                            <CheckIcon className="h-6 w-6 text-white"/>
+                        ) : (
+                            "Log Today's Intake"
+                        )}
+                    </button>
+                  </div>
+                </div>
             </div>
 
             {drKenilsNote && <DrKenilsNoteComponent note={drKenilsNote} />}

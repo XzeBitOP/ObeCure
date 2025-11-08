@@ -1,5 +1,5 @@
-import { DietPlan, DietPreference, Sex, ActivityLevel, DietType, HealthCondition, Meal } from '../types';
-import { MEAL_DATABASE, OfflineMeal, MealType } from '../data/mealDatabase';
+import { DietPlan, DietPreference, Sex, ActivityLevel, DietType, HealthCondition, Meal, MealType } from '../types';
+import { MEAL_DATABASE, OfflineMeal } from '../data/mealDatabase';
 import { OBE_CURE_SPECIAL_MEALS } from '../data/specialMeals';
 
 const RECENTLY_USED_MEALS_KEY = 'obeCureRecentlyUsedMeals';
@@ -66,16 +66,15 @@ const findBestMeal = (
     return smallestDiff <= variance ? bestFit : availableMeals[Math.floor(Math.random() * availableMeals.length)];
 };
 
-const isHighProtein = (meal: OfflineMeal): boolean => {
+const isHighProtein = (meal: OfflineMeal | Meal): boolean => {
     // Protein calories should be >= 25% of total calories
     return (meal.macros.protein * 4) >= (meal.calories * 0.25);
 };
 
-const isLowCarb = (meal: OfflineMeal): boolean => {
+const isLowCarb = (meal: OfflineMeal | Meal): boolean => {
     // Carb calories should be <= 25% of total calories
     return (meal.macros.carbohydrates * 4) <= (meal.calories * 0.25);
 };
-
 
 export const generateOfflineDietPlan = (
   params: GenerateDietPlanParams
@@ -154,7 +153,8 @@ export const generateOfflineDietPlan = (
         if (slot === 'Special') {
             const specialMeal = { ...OBE_CURE_SPECIAL_MEALS[Math.floor(Math.random() * OBE_CURE_SPECIAL_MEALS.length)] };
             const time = mealSlotsToFill.includes('Lunch') ? '08:00 PM' : '01:00 PM'; // Assign to the slot that's missing
-            planMeals.push({ ...specialMeal, time });
+            const mealType: MealType = time === '01:00 PM' ? 'Lunch' : 'Dinner';
+            planMeals.push({ ...specialMeal, time, mealType });
             remainingCalories -= specialMeal.calories;
             continue;
         }
@@ -181,6 +181,7 @@ export const generateOfflineDietPlan = (
                 calories: bestMeal.calories,
                 macros: bestMeal.macros,
                 time,
+                mealType: bestMeal.mealType
             });
             usedMealIdsInPlan.push(bestMeal.id);
             remainingCalories -= bestMeal.calories;
@@ -208,4 +209,44 @@ export const generateOfflineDietPlan = (
         totalCalories,
         totalMacros,
     };
+};
+
+export const findSwapMeal = (
+    mealToReplace: Meal,
+    currentPlanMeals: Meal[],
+    params: { preference: DietPreference, healthConditions: HealthCondition[], dietType: DietType, mealType: MealType }
+): Meal | null => {
+    const { preference, healthConditions, dietType, mealType } = params;
+
+    const isRelevant = (meal: OfflineMeal): boolean => {
+        const dietMatch = meal.dietPreference.includes(preference);
+        const healthMatch = healthConditions.length === 0 || healthConditions.every(c => meal.healthTags.includes(c));
+        return dietMatch && healthMatch;
+    };
+
+    let availableMeals = MEAL_DATABASE.filter(m => m.mealType === mealType && isRelevant(m));
+
+    const currentMealRecipes = currentPlanMeals.map(m => m.recipe);
+    availableMeals = availableMeals.filter(m => !currentMealRecipes.includes(m.recipe));
+
+    if (availableMeals.length === 0) return null;
+
+    if (dietType === DietType.HIGH_PROTEIN) {
+        const highProteinSwaps = availableMeals.filter(isHighProtein);
+        if (highProteinSwaps.length > 0) availableMeals = highProteinSwaps;
+    } else if (dietType === DietType.LOW_CARB) {
+        const lowCarbSwaps = availableMeals.filter(isLowCarb);
+        if (lowCarbSwaps.length > 0) availableMeals = lowCarbSwaps;
+    }
+    
+    const bestFit = findBestMeal(availableMeals, mealToReplace.calories, 100);
+
+    if (bestFit) {
+        return {
+            ...bestFit,
+            time: mealToReplace.time
+        };
+    }
+    
+    return null;
 };

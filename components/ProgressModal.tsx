@@ -1,11 +1,14 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { ProgressEntry, DailyIntake, SleepEntry, FastingEntry, WorkoutLogEntry } from '../types';
+import { ProgressEntry, DailyIntake, SleepEntry, FastingEntry, WorkoutLogEntry, WaterEntry } from '../types';
+import { WhatsAppIcon } from './icons/WhatsAppIcon';
+import WeeklyReportView from './WeeklyReportView';
 
 const PROGRESS_DATA_KEY = 'obeCureProgressData';
 const DAILY_INTAKE_KEY = 'obeCureDailyIntake';
 const SLEEP_DATA_KEY = 'obeCureSleepData';
 const FASTING_DATA_KEY = 'obeCureFastingData';
 const WORKOUT_LOG_KEY = 'obeCureWorkoutLog';
+const WATER_INTAKE_KEY = 'obeCureWaterIntake';
 
 
 interface ChartDataPoint {
@@ -16,15 +19,10 @@ interface ChartDataPoint {
   target?: number;
   sleep?: number;
   fastingDuration?: number;
+  water?: number;
 }
 
-const WhatsAppIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
-  <svg viewBox="0 0 24 24" fill="currentColor" {...props}>
-    <path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.79.52 3.48 1.45 4.93L2 22l5.3-1.52c1.38.84 2.96 1.33 4.61 1.33h.11c5.46 0 9.91-4.45 9.91-9.91S17.5 2 12.04 2zM12.04 20.35h-.09c-1.49 0-2.93-.42-4.17-1.2l-.3-.18-3.11.9.92-3.03-.2-.32c-.86-1.35-1.32-2.94-1.32-4.61 0-4.6 3.73-8.33 8.33-8.33s8.33 3.73 8.33 8.33-3.73 8.35-8.33 8.35zm4.4-5.37c-.24-.12-1.42-.7-1.64-.78-.22-.08-.38-.12-.54.12-.16.24-.62.78-.76.94-.14.16-.28.18-.52.06-.24-.12-1.01-.37-1.92-1.18-.71-.64-1.19-1.43-1.33-1.67-.14-.24-.02-.37.1-.49.11-.11.24-.28.36-.42.12-.14.16-.24.24-.4.08-.16.04-.3-.02-.42s-.54-1.29-.74-1.77c-.2-.48-.4-.41-.54-.42-.14 0-.3 0-.46 0s-.42.06-.64.3c-.22.24-.86.84-1.06 2.04-.2 1.2.22 2.37.5 3.19.28.82 1.39 2.66 3.36 3.74 1.97 1.08 2.63 1.2 3.53 1.04.9-.16 1.52-.76 1.73-1.44.22-.68.22-1.25.16-1.44-.06-.19-.22-.3-.46-.42z"></path>
-  </svg>
-);
-
-type NumericChartDataPointKeys = 'weight' | 'bmi' | 'intake' | 'target' | 'sleep' | 'fastingDuration';
+type NumericChartDataPointKeys = 'weight' | 'bmi' | 'intake' | 'target' | 'sleep' | 'fastingDuration' | 'water';
 
 interface TooltipData {
   x: number;
@@ -35,7 +33,7 @@ interface TooltipData {
 const ProgressChart: React.FC<{ data: ChartDataPoint[] }> = ({ data }) => {
   const [tooltip, setTooltip] = useState<TooltipData | null>(null);
   const svgRef = useRef<SVGSVGElement>(null);
-  const padding = { top: 20, right: 80, bottom: 40, left: 40 };
+  const padding = { top: 20, right: 50, bottom: 40, left: 50 };
   const width = 500;
   const height = 300;
 
@@ -44,6 +42,7 @@ const ProgressChart: React.FC<{ data: ChartDataPoint[] }> = ({ data }) => {
     const bmis = data.map(d => d.bmi).filter(v => v !== undefined) as number[];
     const sleeps = data.map(d => d.sleep).filter(v => v !== undefined) as number[];
     const fasts = data.map(d => d.fastingDuration).filter(v => v !== undefined) as number[];
+    const waters = data.map(d => d.water).filter(v => v !== undefined) as number[];
     const intakes = data.map(d => d.intake).filter(v => v !== undefined) as number[];
     const targets = data.map(d => d.target).filter(v => v !== undefined) as number[];
     const allCalories = [...intakes, ...targets];
@@ -63,7 +62,7 @@ const ProgressChart: React.FC<{ data: ChartDataPoint[] }> = ({ data }) => {
     return {
         weightDomain: getDomain(weights, 2, 10),
         calorieDomain: getDomain(allCalories, 200, 1000),
-        sharedDomain: getDomain([...bmis, ...sleeps, ...fasts], 2, 10),
+        sharedDomain: getDomain([...bmis, ...sleeps, ...fasts, ...waters], 2, 10),
         xDomain: [0, data.length - 1],
     };
   }, [data]);
@@ -88,6 +87,7 @@ const ProgressChart: React.FC<{ data: ChartDataPoint[] }> = ({ data }) => {
   const bmiPath = createPath('bmi', (v) => yScale(v, sharedDomain));
   const sleepPath = createPath('sleep', (v) => yScale(v, sharedDomain));
   const fastingPath = createPath('fastingDuration', (v) => yScale(v, sharedDomain));
+  const waterPath = createPath('water', (v) => yScale(v, sharedDomain));
 
   const yAxisWeightTicks = Array.from({ length: 5 }, (_, i) => weightDomain[0] + i * (weightDomain[1] - weightDomain[0]) / 4);
   const yAxisCalorieTicks = Array.from({ length: 5 }, (_, i) => calorieDomain[0] + i * (calorieDomain[1] - calorieDomain[0]) / 4);
@@ -117,12 +117,7 @@ const ProgressChart: React.FC<{ data: ChartDataPoint[] }> = ({ data }) => {
         {yAxisWeightTicks.map(tick => (<line key={`grid-${tick}`} x1={padding.left} y1={yScale(tick, weightDomain)} x2={width - padding.right} y2={yScale(tick, weightDomain)} className="stroke-gray-200 dark:stroke-gray-700" strokeDasharray="2,2"/>))}
         {yAxisWeightTicks.map(tick => (<g key={`y-weight-${tick}`}><text x={padding.left - 5} y={yScale(tick, weightDomain)} textAnchor="end" alignmentBaseline="middle" className="fill-current text-orange-500 font-semibold">{tick.toFixed(1)}</text></g>))}
         {yAxisCalorieTicks.map(tick => (<g key={`y-cal-${tick}`}><text x={padding.left - 25} y={yScale(tick, calorieDomain)} textAnchor="end" alignmentBaseline="middle" className="fill-current text-indigo-500 font-semibold">{Math.round(tick)}</text></g>))}
-        <text transform={`translate(10, ${height / 2}) rotate(-90)`} textAnchor="middle" className="fill-current text-orange-500 font-bold">Weight (kg)</text>
-        <text transform={`translate(25, ${height / 2}) rotate(-90)`} textAnchor="middle" className="fill-current text-indigo-500 font-bold">Calories</text>
         {yAxisSharedTicks.map(tick => (<g key={`y-shared-${tick}`}><text x={width - padding.right + 5} y={yScale(tick, sharedDomain)} textAnchor="start" alignmentBaseline="middle" className="fill-current text-teal-500 font-semibold">{tick.toFixed(1)}</text></g>))}
-        <text transform={`translate(${width - 10}, ${height / 2}) rotate(90)`} textAnchor="middle" className="fill-current text-teal-500 font-bold">BMI</text>
-        <text transform={`translate(${width - 25}, ${height / 2}) rotate(90)`} textAnchor="middle" className="fill-current text-cyan-500 font-bold">Sleep</text>
-        <text transform={`translate(${width - 40}, ${height / 2}) rotate(90)`} textAnchor="middle" className="fill-current text-purple-500 font-bold">Fasting</text>
         
         {data.map((d, i) => {
             if (data.length <= 1 || i % Math.max(1, Math.floor((data.length-1)/5)) === 0 || i === data.length - 1) {
@@ -136,6 +131,7 @@ const ProgressChart: React.FC<{ data: ChartDataPoint[] }> = ({ data }) => {
         <path d={bmiPath} strokeWidth="2" fill="none" className="stroke-teal-500"/>
         <path d={sleepPath} strokeWidth="2" fill="none" className="stroke-cyan-500"/>
         <path d={fastingPath} strokeWidth="2" fill="none" className="stroke-purple-500"/>
+        <path d={waterPath} strokeWidth="2" fill="none" className="stroke-blue-500"/>
 
         {data.map((d, i) => (<g key={`point-${i}`}>
             {d.intake && <circle cx={xScale(i)} cy={yScale(d.intake, calorieDomain)} r="3" className="fill-indigo-500"/>}
@@ -143,24 +139,29 @@ const ProgressChart: React.FC<{ data: ChartDataPoint[] }> = ({ data }) => {
             {d.bmi && <circle cx={xScale(i)} cy={yScale(d.bmi, sharedDomain)} r="3" className="fill-teal-500"/>}
             {d.sleep && <circle cx={xScale(i)} cy={yScale(d.sleep, sharedDomain)} r="3" className="fill-cyan-500"/>}
             {d.fastingDuration && <circle cx={xScale(i)} cy={yScale(d.fastingDuration, sharedDomain)} r="3" className="fill-purple-500"/>}
+            {d.water && <circle cx={xScale(i)} cy={yScale(d.water, sharedDomain)} r="3" className="fill-blue-500"/>}
         </g>))}
         {tooltip && <line x1={tooltip.x} y1={padding.top} x2={tooltip.x} y2={height - padding.bottom} className="stroke-gray-400 dark:stroke-gray-500" strokeDasharray="3,3"/>}
         </svg>
         {tooltip && (
             <div 
-                className="absolute p-2 text-xs bg-gray-800 dark:bg-gray-900 text-white rounded-md shadow-lg pointer-events-none transition-transform duration-100"
+                className="absolute p-3 text-xs bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-100 rounded-lg shadow-xl pointer-events-none transition-transform duration-100"
                 style={{
                     left: `${tooltip.x + 10}px`,
                     top: `${padding.top}px`,
                     transform: tooltip.x > width / 2 ? 'translateX(-110%)' : 'translateX(0)',
                 }}
             >
-                <div className="font-bold mb-1">{new Date(tooltip.data.date).toLocaleDateString('en-GB', { weekday: 'long', month: 'short', day: 'numeric' })}</div>
-                {tooltip.data.weight && <div><span className="text-orange-400">Weight:</span> {tooltip.data.weight} kg</div>}
-                {tooltip.data.bmi && <div><span className="text-teal-400">BMI:</span> {tooltip.data.bmi}</div>}
-                {tooltip.data.sleep && <div><span className="text-cyan-400">Sleep:</span> {tooltip.data.sleep} hrs</div>}
-                {tooltip.data.fastingDuration && <div><span className="text-purple-400">Fasting:</span> {tooltip.data.fastingDuration} hrs</div>}
-                {tooltip.data.intake && <div><span className="text-indigo-400">Intake:</span> {tooltip.data.intake} / {tooltip.data.target} kcal</div>}
+                <div className="font-bold mb-2 border-b border-gray-300 dark:border-gray-600 pb-1">{new Date(tooltip.data.date).toLocaleDateString('en-GB', { weekday: 'short', month: 'short', day: 'numeric' })}</div>
+                <div className="space-y-1">
+                    {tooltip.data.weight && <div className="flex justify-between items-center gap-2"><span className="font-semibold text-orange-500">Weight:</span> <span>{tooltip.data.weight} kg</span></div>}
+                    {tooltip.data.bmi && <div className="flex justify-between items-center gap-2"><span className="font-semibold text-teal-500">BMI:</span> <span>{tooltip.data.bmi}</span></div>}
+                    {tooltip.data.sleep && <div className="flex justify-between items-center gap-2"><span className="font-semibold text-cyan-500">Sleep:</span> <span>{tooltip.data.sleep} hrs</span></div>}
+                    {tooltip.data.fastingDuration && <div className="flex justify-between items-center gap-2"><span className="font-semibold text-purple-500">Fasting:</span> <span>{tooltip.data.fastingDuration} hrs</span></div>}
+                    {tooltip.data.water && <div className="flex justify-between items-center gap-2"><span className="font-semibold text-blue-500">Water:</span> <span>{tooltip.data.water} glasses</span></div>}
+                    {tooltip.data.intake && <div className="flex justify-between items-center gap-2"><span className="font-semibold text-indigo-500">Intake:</span> <span>{tooltip.data.intake} kcal</span></div>}
+                    {tooltip.data.target && <div className="flex justify-between items-center gap-2"><span className="font-semibold text-indigo-400">Target:</span> <span>{tooltip.data.target} kcal</span></div>}
+                </div>
             </div>
         )}
     </div>
@@ -174,9 +175,12 @@ const ProgressModal: React.FC<{ isOpen: boolean; onClose: () => void; }> = ({ is
   const [sleepData, setSleepData] = useState<SleepEntry[]>([]);
   const [fastingData, setFastingData] = useState<FastingEntry[]>([]);
   const [workoutLogs, setWorkoutLogs] = useState<WorkoutLogEntry[]>([]);
+  const [waterData, setWaterData] = useState<WaterEntry[]>([]);
+  const [showWeeklyReport, setShowWeeklyReport] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
+      setShowWeeklyReport(false); // Reset to chart view on open
       try {
         const progressRaw = localStorage.getItem(PROGRESS_DATA_KEY);
         setProgressData(progressRaw ? JSON.parse(progressRaw) : []);
@@ -188,6 +192,8 @@ const ProgressModal: React.FC<{ isOpen: boolean; onClose: () => void; }> = ({ is
         setFastingData(fastingRaw ? JSON.parse(fastingRaw) : []);
         const workoutLogsRaw = localStorage.getItem(WORKOUT_LOG_KEY);
         setWorkoutLogs(workoutLogsRaw ? JSON.parse(workoutLogsRaw) : []);
+        const waterRaw = localStorage.getItem(WATER_INTAKE_KEY);
+        setWaterData(waterRaw ? JSON.parse(waterRaw) : []);
       } catch (e) {
         console.error("Failed to parse progress data", e);
       }
@@ -208,8 +214,11 @@ const ProgressModal: React.FC<{ isOpen: boolean; onClose: () => void; }> = ({ is
     fastingData.forEach(d => {
         combined[d.date] = { ...combined[d.date], date: d.date, fastingDuration: d.duration };
     });
+    waterData.forEach(d => {
+        combined[d.date] = { ...combined[d.date], date: d.date, water: d.glasses };
+    });
     return Object.values(combined).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-  }, [progressData, intakeData, sleepData, fastingData]);
+  }, [progressData, intakeData, sleepData, fastingData, waterData]);
 
   const getShareText = () => {
     if (progressData.length < 1) return encodeURIComponent("I'm starting my health journey with ObeCure!");
@@ -242,32 +251,51 @@ const ProgressModal: React.FC<{ isOpen: boolean; onClose: () => void; }> = ({ is
     <div className="fixed inset-0 bg-black bg-opacity-60 z-[60] flex justify-center items-center p-4 animate-fade-in" role="dialog" aria-modal="true" onClick={onClose}>
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl p-6 sm:p-8 w-full max-w-3xl border border-gray-200 dark:border-gray-700 transform animate-fade-in-up" onClick={(e) => e.stopPropagation()}>
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-200">Your Progress</h2>
+          <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-200">
+            {showWeeklyReport ? 'Your Weekly Report' : 'Your Progress History'}
+          </h2>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition text-2xl">&times;</button>
         </div>
         
         {chartData.length > 0 || workoutLogs.length > 0 ? (
           <>
-            {chartData.length > 0 && (
-              <>
-              <div className="w-full h-64 md:h-80 bg-gray-50 dark:bg-gray-900/50 rounded-lg p-2 relative">
-                  <ProgressChart data={chartData}/>
-                  <div className="absolute top-2 left-2 flex flex-wrap gap-x-3 gap-y-1 text-xs font-semibold">
-                      <div className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-orange-500"></span><span className="text-gray-700 dark:text-gray-300">Weight</span></div>
-                      <div className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-teal-500"></span><span className="text-gray-700 dark:text-gray-300">BMI</span></div>
-                      <div className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-cyan-500"></span><span className="text-gray-700 dark:text-gray-300">Sleep</span></div>
-                      <div className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-purple-500"></span><span className="text-gray-700 dark:text-gray-300">Fasting (hrs)</span></div>
-                      <div className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-indigo-500"></span><span className="text-gray-700 dark:text-gray-300">Intake</span></div>
-                      <div className="flex items-center gap-1"><span className="w-3 h-1 border-b-2 border-dashed border-indigo-400 dark:border-indigo-600"></span><span className="text-gray-700 dark:text-gray-300">Target</span></div>
-                  </div>
-              </div>
-              <a href={`https://wa.me/?text=${getShareText()}`} target="_blank" rel="noopener noreferrer" className="mt-6 w-full flex items-center justify-center space-x-2 bg-green-500 text-white text-base font-semibold px-4 py-3 rounded-lg hover:bg-green-600 transition-colors shadow-sm active:scale-95">
-                  <WhatsAppIcon className="w-6 h-6" />
-                  <span>Share My Progress</span>
-              </a>
-              </>
+            {showWeeklyReport ? (
+                <WeeklyReportView
+                    onBack={() => setShowWeeklyReport(false)}
+                    progressData={progressData}
+                    intakeData={intakeData}
+                    sleepData={sleepData}
+                    workoutLogs={workoutLogs}
+                />
+            ) : (
+                <>
+                    <div className="w-full h-64 md:h-80 bg-gray-50 dark:bg-gray-900/50 rounded-lg p-2 relative">
+                        <ProgressChart data={chartData}/>
+                        <div className="absolute top-2 left-2 flex flex-wrap gap-x-3 gap-y-1 text-xs font-semibold">
+                            <div className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-orange-500"></span><span className="text-gray-700 dark:text-gray-300">Weight</span></div>
+                            <div className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-teal-500"></span><span className="text-gray-700 dark:text-gray-300">BMI</span></div>
+                            <div className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-cyan-500"></span><span className="text-gray-700 dark:text-gray-300">Sleep</span></div>
+                            <div className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-purple-500"></span><span className="text-gray-700 dark:text-gray-300">Fasting</span></div>
+                            <div className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-blue-500"></span><span className="text-gray-700 dark:text-gray-300">Water</span></div>
+                            <div className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-indigo-500"></span><span className="text-gray-700 dark:text-gray-300">Intake</span></div>
+                            <div className="flex items-center gap-1"><span className="w-3 h-1 border-b-2 border-dashed border-indigo-400 dark:border-indigo-600"></span><span className="text-gray-700 dark:text-gray-300">Target</span></div>
+                        </div>
+                    </div>
+                    
+                    <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <button onClick={() => setShowWeeklyReport(true)} className="w-full flex items-center justify-center space-x-2 bg-orange-500 text-white text-base font-semibold px-4 py-3 rounded-lg hover:bg-orange-600 transition-colors shadow-sm active:scale-95">
+                            <span>📅</span>
+                            <span>View Weekly Report</span>
+                        </button>
+                        <a href={`https://wa.me/?text=${getShareText()}`} target="_blank" rel="noopener noreferrer" className="w-full flex items-center justify-center space-x-2 bg-green-500 text-white text-base font-semibold px-4 py-3 rounded-lg hover:bg-green-600 transition-colors shadow-sm active:scale-95">
+                            <WhatsAppIcon className="w-6 h-6" />
+                            <span>Share My Progress</span>
+                        </a>
+                    </div>
+                </>
             )}
-            {workoutLogs.length > 0 && (
+
+            {workoutLogs.length > 0 && !showWeeklyReport && (
                 <div className="mt-6">
                     <h3 className="text-lg font-bold text-gray-700 dark:text-gray-300 mb-3 text-center sm:text-left">Recent Workouts</h3>
                     <div className="space-y-2 max-h-40 overflow-y-auto pr-2">

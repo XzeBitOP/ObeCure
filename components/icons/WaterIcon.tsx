@@ -1,6 +1,6 @@
 import React from 'react';
 
-export const MicIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
+export const WaterIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
     className="w-6 h-6"
@@ -13,9 +13,9 @@ export const MicIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
     {...props}
   >
     <path stroke="none" d="M0 0h24v24H0z" fill="none" />
-    <path d="M9 2m0 3a3 3 0 0 1 3 -3h0a3 3 0 0 1 3 3v5a3 3 0 0 1 -3 3h0a3 3 0 0 1 -3 -3z" />
-    <path d="M5 10a7 7 0 0 0 14 0" />
-    <path d="M8 21l8 0" />
-    <path d="M12 17l0 4" />
+    <path d="M14.5 21a8.96 8.96 0 0 0 -10.5 -12.5a9 9 0 0 0 1.954 12.016a2 2 0 0 0 3.3 0l.246 -.464" />
+    <path d="M13 13.5a1.5 1.5 0 0 0 2.5 1.5l1 -1.5" />
+    <path d="M9 15.5l-2 -2" />
+    <path d="M17.5 11a1.5 1.5 0 0 0 -2 -2" />
   </svg>
 );

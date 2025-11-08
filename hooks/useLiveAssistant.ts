@@ -1,4 +1,3 @@
-
 import { useState, useRef, useCallback } from 'react';
 import { GoogleGenAI, LiveServerMessage, Modality, Blob } from '@google/genai';
 
@@ -59,19 +58,29 @@ export const useLiveAssistant = () => {
     const [error, setError] = useState<string | null>(null);
     const sessionPromiseRef = useRef<Promise<any> | null>(null);
     const mediaStreamRef = useRef<MediaStream | null>(null);
-    const audioContextRef = useRef<AudioContext | null>(null);
+    const inputAudioContextRef = useRef<AudioContext | null>(null);
+    const outputAudioContextRef = useRef<AudioContext | null>(null);
     const scriptProcessorRef = useRef<ScriptProcessorNode | null>(null);
     const mediaStreamSourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
+    const sourcesRef = useRef<Set<AudioBufferSourceNode>>(new Set());
+    const nextStartTimeRef = useRef<number>(0);
+
 
     const stopSession = useCallback(async () => {
         setStatus('idle');
         if (sessionPromiseRef.current) {
-            const session = await sessionPromiseRef.current;
-            session.close();
+            try {
+                const session = await sessionPromiseRef.current;
+                session.close();
+            } catch (e) {
+                console.error("Error closing session:", e);
+            }
             sessionPromiseRef.current = null;
         }
+
         if (scriptProcessorRef.current) {
             scriptProcessorRef.current.disconnect();
+            scriptProcessorRef.current.onaudioprocess = null;
             scriptProcessorRef.current = null;
         }
         if (mediaStreamSourceRef.current) {
@@ -82,13 +91,21 @@ export const useLiveAssistant = () => {
             mediaStreamRef.current.getTracks().forEach(track => track.stop());
             mediaStreamRef.current = null;
         }
-        if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
-            await audioContextRef.current.close();
-            audioContextRef.current = null;
+        if (inputAudioContextRef.current && inputAudioContextRef.current.state !== 'closed') {
+            await inputAudioContextRef.current.close();
+            inputAudioContextRef.current = null;
+        }
+        if (outputAudioContextRef.current && outputAudioContextRef.current.state !== 'closed') {
+             sourcesRef.current.forEach(source => source.stop());
+             sourcesRef.current.clear();
+            await outputAudioContextRef.current.close();
+            outputAudioContextRef.current = null;
         }
     }, []);
 
     const startSession = useCallback(async () => {
+        if (status !== 'idle' && status !== 'error') return;
+
         setStatus('connecting');
         setError(null);
 
@@ -97,14 +114,17 @@ export const useLiveAssistant = () => {
             mediaStreamRef.current = stream;
 
             const inputAudioContext = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
-            audioContextRef.current = inputAudioContext;
+            inputAudioContextRef.current = inputAudioContext;
             
             const outputAudioContext = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
+            outputAudioContextRef.current = outputAudioContext;
             const outputNode = outputAudioContext.createGain();
             outputNode.connect(outputAudioContext.destination);
 
-            let nextStartTime = 0;
+            nextStartTimeRef.current = 0;
             const sources = new Set<AudioBufferSourceNode>();
+            sourcesRef.current = sources;
+
 
             const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
             
@@ -137,15 +157,16 @@ export const useLiveAssistant = () => {
                     },
                     onmessage: async (message: LiveServerMessage) => {
                         const base64Audio = message.serverContent?.modelTurn?.parts[0]?.inlineData?.data;
-                        if (base64Audio) {
-                            nextStartTime = Math.max(nextStartTime, outputAudioContext.currentTime);
-                            const audioBuffer = await decodeAudioData(decode(base64Audio), outputAudioContext, 24000, 1);
-                            const source = outputAudioContext.createBufferSource();
+                        if (base64Audio && outputAudioContextRef.current) {
+                            const ctx = outputAudioContextRef.current;
+                            nextStartTimeRef.current = Math.max(nextStartTimeRef.current, ctx.currentTime);
+                            const audioBuffer = await decodeAudioData(decode(base64Audio), ctx, 24000, 1);
+                            const source = ctx.createBufferSource();
                             source.buffer = audioBuffer;
                             source.connect(outputNode);
                             source.addEventListener('ended', () => { sources.delete(source); });
-                            source.start(nextStartTime);
-                            nextStartTime += audioBuffer.duration;
+                            source.start(nextStartTimeRef.current);
+                            nextStartTimeRef.current += audioBuffer.duration;
                             sources.add(source);
                         }
                          if (message.serverContent?.interrupted) {
@@ -153,7 +174,7 @@ export const useLiveAssistant = () => {
                                 source.stop();
                                 sources.delete(source);
                             }
-                            nextStartTime = 0;
+                            nextStartTimeRef.current = 0;
                         }
                     },
                     onerror: (e: ErrorEvent) => {
@@ -163,17 +184,25 @@ export const useLiveAssistant = () => {
                         stopSession();
                     },
                     onclose: () => {
-                        setStatus('idle');
+                        stopSession();
                     },
                 },
             });
+
+            sessionPromiseRef.current.catch((err: any) => {
+                console.error('Session connection promise rejected:', err);
+                setError('Failed to connect to the assistant service.');
+                setStatus('error');
+                stopSession();
+            });
+
         } catch (err) {
             console.error('Failed to start session:', err);
             setError('Could not access microphone. Please grant permission and try again.');
             setStatus('error');
             stopSession();
         }
-    }, [stopSession]);
+    }, [stopSession, status]);
 
     return {
         status,
