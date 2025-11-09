@@ -1,22 +1,28 @@
 {
-  "name": "lit-adaptive--obecure-assistant",
+  "name": "obecure-diet-assistant",
   "private": true,
   "version": "0.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "tsc && vite build",
     "preview": "vite preview"
   },
   "dependencies": {
+    "@google/genai": "^1.28.0",
+    "jspdf": "^2.5.1",
+    "jspdf-autotable": "^3.8.2",
+    "qrcode": "^1.5.3",
     "react": "^19.2.0",
-    "react-dom": "^19.2.0",
-    "@google/genai": "^1.28.0"
+    "react-dom": "^19.2.0"
   },
   "devDependencies": {
-    "@types/node": "^22.14.0",
-    "@vitejs/plugin-react": "^5.0.0",
-    "typescript": "~5.8.2",
-    "vite": "^6.2.0"
+    "@types/qrcode": "^1.5.5",
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "@vitejs/plugin-react": "^4.2.1",
+    "typescript": "^5.2.2",
+    "vite": "^5.2.0",
+    "vite-plugin-pwa": "^0.20.0"
   }
 }
