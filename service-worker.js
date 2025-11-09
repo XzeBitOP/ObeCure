@@ -12,6 +12,7 @@ const urlsToCache = [
   '/components/Faq.tsx',
   '/components/icons/WebsiteIcon.tsx',
   '/components/icons/InstagramIcon.tsx',
+  '/components/NotificationBell.tsx',
   '/components/LogSleepModal.tsx',
   '/components/ProgressModal.tsx',
   '/components/SubscriptionModal.tsx',
@@ -75,108 +76,6 @@ const urlsToCache = [
   'https://aistudiocdn.com/@google/genai@^1.28.0'
 ];
 
-// --- NOTIFICATION DATA ---
-const morningQuotes = [
-    "Every sunrise is a second chance to heal your body and honor your goals.",
-    "Small steps today become your transformation story tomorrow.",
-    "You don’t need motivation every day — just commitment.",
-];
-const eveningQuotes = [
-    "Recovery is part of discipline — sleep is your silent progress.",
-    "Rest is not quitting; it’s recharging.",
-    "Your body heals while you sleep — give it that gift.",
-];
-
-
-// --- INDEXEDDB HELPERS ---
-const DB_NAME = 'ObeCureDB';
-const DB_VERSION = 1;
-const STORE_NAME = 'appState';
-let dbPromise = null;
-
-function getDB() {
-    if (!dbPromise) {
-        dbPromise = new Promise((resolve, reject) => {
-            const request = indexedDB.open(DB_NAME, DB_VERSION);
-            request.onupgradeneeded = event => {
-                const db = event.target.result;
-                if (!db.objectStoreNames.contains(STORE_NAME)) {
-                    db.createObjectStore(STORE_NAME);
-                }
-            };
-            request.onsuccess = event => resolve(event.target.result);
-            request.onerror = event => reject(event.target.error);
-        });
-    }
-    return dbPromise;
-}
-
-async function getFromDB(key) {
-    const db = await getDB();
-    return new Promise((resolve, reject) => {
-        const transaction = db.transaction(STORE_NAME, 'readonly');
-        const store = transaction.objectStore(STORE_NAME);
-        const request = store.get(key);
-        request.onsuccess = () => resolve(request.result);
-        request.onerror = () => reject(request.error);
-    });
-}
-
-async function setInDB(key, value) {
-    const db = await getDB();
-    return new Promise((resolve, reject) => {
-        const transaction = db.transaction(STORE_NAME, 'readwrite');
-        const store = transaction.objectStore(STORE_NAME);
-        const request = store.put(value, key);
-        request.onsuccess = () => resolve(request.result);
-        request.onerror = () => reject(request.error);
-    });
-}
-
-
-// --- NOTIFICATION LOGIC ---
-async function checkAndShowNotifications() {
-    const now = new Date();
-    const todayStr = now.toDateString();
-
-    // Morning Quote
-    const lastMorningQuoteDate = await getFromDB('lastMorningQuoteDate');
-    if (now.getHours() === 7 && todayStr !== lastMorningQuoteDate) {
-        const quote = morningQuotes[Math.floor(Math.random() * morningQuotes.length)];
-        self.registration.showNotification('☀️ Morning Motivation', {
-            body: quote,
-            icon: '/vite.svg'
-        });
-        await setInDB('lastMorningQuoteDate', todayStr);
-    }
-
-    // Evening Quote
-    const lastEveningQuoteDate = await getFromDB('lastEveningQuoteDate');
-    if (now.getHours() === 18 && todayStr !== lastEveningQuoteDate) {
-        const quote = eveningQuotes[Math.floor(Math.random() * eveningQuotes.length)];
-        self.registration.showNotification('🌙 Evening Reflection', {
-            body: quote,
-            icon: '/vite.svg'
-        });
-        await setInDB('lastEveningQuoteDate', todayStr);
-    }
-
-    // Subscription Expiry
-    const subscriptionExpiry = await getFromDB('subscriptionExpiry');
-    if (subscriptionExpiry) {
-        const daysLeft = (subscriptionExpiry - now.getTime()) / (1000 * 60 * 60 * 24);
-        const lastExpiryNotificationDate = await getFromDB('lastExpiryNotificationDate');
-        if (daysLeft > 4 && daysLeft <= 5 && todayStr !== lastExpiryNotificationDate) {
-             self.registration.showNotification('Subscription Expiring Soon', {
-                body: 'Your ObeCure subscription expires in 5 days. Renew now to keep your access!',
-                icon: '/vite.svg'
-            });
-            await setInDB('lastExpiryNotificationDate', todayStr);
-        }
-    }
-}
-
-
 // --- SERVICE WORKER EVENT LISTENERS ---
 
 self.addEventListener('install', (event) => {
@@ -222,19 +121,8 @@ self.addEventListener('activate', (event) => {
                     }
                 })
             )
-        ).then(() => {
-            // Start the notification check interval. 15 minutes.
-            console.log('Service Worker activated. Starting notification checker.');
-            setInterval(checkAndShowNotifications, 15 * 60 * 1000);
-            checkAndShowNotifications(); // Run once on activation
-        })
+        )
     );
-});
-
-self.addEventListener('message', event => {
-    if (event.data && event.data.type === 'SET_SUBSCRIPTION_EXPIRY') {
-        setInDB('subscriptionExpiry', event.data.expiry);
-    }
 });
 
 self.addEventListener('notificationclick', event => {

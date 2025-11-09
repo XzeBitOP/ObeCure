@@ -30,17 +30,18 @@ const ObeCureLogo: React.FC = () => {
 
 interface HeaderProps {
   onLogSleepClick: () => void;
-  subscriptionExpiry: number | null;
   showInstallButton: boolean;
   onInstallClick: () => void;
+  isNotificationUnread: boolean;
+  onToggleNotification: () => void;
 }
 
-const Header: React.FC<HeaderProps> = ({ onLogSleepClick, subscriptionExpiry, showInstallButton, onInstallClick }) => {
+const Header: React.FC<HeaderProps> = ({ onLogSleepClick, showInstallButton, onInstallClick, isNotificationUnread, onToggleNotification }) => {
   return (
     <header className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-md sticky top-0 z-10 shadow-sm">
       <div className="max-w-5xl mx-auto py-4 px-4 sm:px-6 md:px-8 flex justify-between items-center">
          <ObeCureLogo />
-         <div className="flex items-center space-x-2 sm:space-x-4">
+         <div className="flex items-center space-x-1 sm:space-x-4">
             <p className="hidden md:block font-medium text-gray-600 dark:text-gray-300">Your Path to a Healthier You</p>
             {showInstallButton && (
                 <div className="flex flex-col items-center">
@@ -54,7 +55,10 @@ const Header: React.FC<HeaderProps> = ({ onLogSleepClick, subscriptionExpiry, sh
                     <span className="text-xs font-medium text-gray-600 dark:text-gray-400 mt-1">Install App</span>
                 </div>
             )}
-            <NotificationBell subscriptionExpiry={subscriptionExpiry} />
+            <NotificationBell
+                isUnread={isNotificationUnread}
+                onToggle={onToggleNotification}
+            />
             <LogSleep onLogSleepClick={onLogSleepClick} />
          </div>
       </div>

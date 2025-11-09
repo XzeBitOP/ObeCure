@@ -91,6 +91,16 @@ const App: React.FC = () => {
   const [showInstallButton, setShowInstallButton] = useState<boolean>(false);
   const [isInstallModalOpen, setIsInstallModalOpen] = useState<boolean>(false);
 
+  const [isNotificationUnread, setIsNotificationUnread] = useState(true);
+  const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+
+  const handleToggleNotification = () => {
+    setIsNotificationOpen(prev => !prev);
+    if (isNotificationUnread) {
+        setIsNotificationUnread(false);
+    }
+  };
+
   const navRef = useRef<HTMLDivElement>(null);
   const plannerButtonRef = useRef<HTMLButtonElement>(null);
   const ayurvedaButtonRef = useRef<HTMLButtonElement>(null);
@@ -275,61 +285,82 @@ const App: React.FC = () => {
         />
       <Header 
         onLogSleepClick={() => setIsLogSleepModalOpen(true)} 
-        subscriptionExpiry={subscriptionExpiry}
         showInstallButton={showInstallButton}
         onInstallClick={handleInstallClick}
+        isNotificationUnread={isNotificationUnread}
+        onToggleNotification={handleToggleNotification}
         />
       <main className="p-4 sm:p-6 md:p-8 max-w-5xl mx-auto">
+        {isNotificationOpen && (
+            <div className="relative mb-6 p-4 bg-orange-800/95 dark:bg-orange-900/95 backdrop-blur-sm text-white rounded-lg shadow-lg animate-fade-in-up">
+                <h4 className="font-bold text-lg text-center text-orange-200">Consultation Recommended</h4>
+                <p className="text-sm mt-1 text-orange-100 max-w-prose mx-auto text-center">
+                    Please visit an ObeCure clinic for a consultation before starting your plan to ensure the best results.
+                </p>
+            </div>
+        )}
+
         <div ref={navRef} className="relative flex justify-center mb-8 bg-orange-100/80 dark:bg-gray-800 rounded-full p-1 max-w-md sm:max-w-xl mx-auto shadow-inner">
-          <div
-            className="absolute top-1 bottom-1 bg-white dark:bg-gray-700 rounded-full shadow transition-all duration-300 ease-in-out"
-            style={bubbleStyle}
-            role="presentation"
-          ></div>
-          <button
-            ref={plannerButtonRef}
-            onClick={() => setView('planner')}
-            className={`relative z-10 w-1/4 py-2 px-3 rounded-full text-xs sm:text-sm font-semibold transition-all duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-orange-400 focus:ring-opacity-50 active:scale-95 flex items-center justify-center gap-1 ${
-              view === 'planner'
-                ? 'text-orange-600 dark:text-orange-400'
-                : 'text-gray-600 dark:text-gray-400 hover:text-orange-500/70 dark:hover:text-orange-400/70'
-            }`}
-          >
-            Diet Plan
-          </button>
-          <button
-            ref={ayurvedaButtonRef}
-            onClick={() => setView('ayurveda')}
-            className={`relative z-10 w-1/4 py-2 px-3 rounded-full text-xs sm:text-sm font-semibold transition-all duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-orange-400 focus:ring-opacity-50 active:scale-95 flex items-center justify-center gap-1 ${
-              view === 'ayurveda'
-                ? 'text-orange-600 dark:text-orange-400'
-                : 'text-gray-600 dark:text-gray-400 hover:text-orange-500/70 dark:hover:text-orange-400/70'
-            }`}
-          >
-            <LeafIcon className="w-4 h-4" /> Ayurveda
-          </button>
-          <button
-            ref={workoutsButtonRef}
-            onClick={() => setView('workouts')}
-            className={`relative z-10 w-1/4 py-2 px-3 rounded-full text-xs sm:text-sm font-semibold transition-all duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-orange-400 focus:ring-opacity-50 active:scale-95 ${
-              view === 'workouts'
-                ? 'text-orange-600 dark:text-orange-400'
-                : 'text-gray-600 dark:text-gray-400 hover:text-orange-500/70 dark:hover:text-orange-400/70'
-            }`}
-          >
-            Workouts
-          </button>
-           <button
-            ref={progressButtonRef}
-            onClick={() => setView('progress')}
-            className={`relative z-10 w-1/4 py-2 px-3 rounded-full text-xs sm:text-sm font-semibold transition-all duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-orange-400 focus:ring-opacity-50 active:scale-95 flex items-center justify-center gap-1 ${
-              view === 'progress'
-                ? 'text-orange-600 dark:text-orange-400'
-                : 'text-gray-600 dark:text-gray-400 hover:text-orange-500/70 dark:hover:text-orange-400/70'
-            }`}
-          >
-            <ChartBarIcon className="w-4 h-4" /> My Progress
-          </button>
+          {isNotificationOpen ? (
+                <button
+                    onClick={() => setIsNotificationOpen(false)}
+                    className="relative z-10 w-full py-2 px-3 rounded-full text-base sm:text-lg font-bold transition-all duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-orange-400 focus:ring-opacity-50 active:scale-95 bg-orange-500 text-white shadow"
+                >
+                    Close
+                </button>
+          ) : (
+            <>
+              <div
+                className="absolute top-1 bottom-1 bg-white dark:bg-gray-700 rounded-full shadow transition-all duration-300 ease-in-out"
+                style={bubbleStyle}
+                role="presentation"
+              ></div>
+              <button
+                ref={plannerButtonRef}
+                onClick={() => setView('planner')}
+                className={`relative z-10 w-1/4 py-2 px-3 rounded-full text-xs sm:text-sm font-semibold transition-all duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-orange-400 focus:ring-opacity-50 active:scale-95 flex items-center justify-center gap-1 ${
+                  view === 'planner'
+                    ? 'text-orange-600 dark:text-orange-400'
+                    : 'text-gray-600 dark:text-gray-400 hover:text-orange-500/70 dark:hover:text-orange-400/70'
+                }`}
+              >
+                Diet Plan
+              </button>
+              <button
+                ref={ayurvedaButtonRef}
+                onClick={() => setView('ayurveda')}
+                className={`relative z-10 w-1/4 py-2 px-3 rounded-full text-xs sm:text-sm font-semibold transition-all duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-orange-400 focus:ring-opacity-50 active:scale-95 flex items-center justify-center gap-1 ${
+                  view === 'ayurveda'
+                    ? 'text-orange-600 dark:text-orange-400'
+                    : 'text-gray-600 dark:text-gray-400 hover:text-orange-500/70 dark:hover:text-orange-400/70'
+                }`}
+              >
+                <LeafIcon className="w-4 h-4" /> Ayurveda
+              </button>
+              <button
+                ref={workoutsButtonRef}
+                onClick={() => setView('workouts')}
+                className={`relative z-10 w-1/4 py-2 px-3 rounded-full text-xs sm:text-sm font-semibold transition-all duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-orange-400 focus:ring-opacity-50 active:scale-95 ${
+                  view === 'workouts'
+                    ? 'text-orange-600 dark:text-orange-400'
+                    : 'text-gray-600 dark:text-gray-400 hover:text-orange-500/70 dark:hover:text-orange-400/70'
+                }`}
+              >
+                Workouts
+              </button>
+               <button
+                ref={progressButtonRef}
+                onClick={() => setView('progress')}
+                className={`relative z-10 w-1/4 py-2 px-3 rounded-full text-xs sm:text-sm font-semibold transition-all duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-orange-400 focus:ring-opacity-50 active:scale-95 flex items-center justify-center gap-1 ${
+                  view === 'progress'
+                    ? 'text-orange-600 dark:text-orange-400'
+                    : 'text-gray-600 dark:text-gray-400 hover:text-orange-500/70 dark:hover:text-orange-400/70'
+                }`}
+              >
+                <ChartBarIcon className="w-4 h-4" /> My Progress
+              </button>
+            </>
+          )}
         </div>
 
         {view === 'planner' && <DietPlanner isSubscribed={isSubscribed} onOpenSubscriptionModal={handleOpenSubscriptionModal} />}
