@@ -1,8 +1,4 @@
-
-
 import { DietPreference, HealthCondition, Macros, MealType } from '../types';
-
-export { MealType };
 
 export interface OfflineMeal {
   id: string;
