@@ -4,9 +4,19 @@ import QRCode from 'qrcode';
 import { DailyPlan, UserProfile } from '../types';
 
 // The jsPDF instance has autoTable as a method after importing jspdf-autotable
-interface jsPDFWithAutoTable extends jsPDF {
+// FIX: The imported jsPDF type is missing methods. Manually defining an interface with all methods used in this file to fix compile-time errors.
+interface jsPDFWithAutoTable {
   autoTable: (options: any) => jsPDFWithAutoTable;
   lastAutoTable: { finalY: number };
+  setFont(fontName: string, fontStyle?: string): jsPDFWithAutoTable;
+  setFontSize(size: number): jsPDFWithAutoTable;
+  setTextColor(ch1: string | number, ch2?: number, ch3?: number): jsPDFWithAutoTable;
+  text(text: string | string[], x: number, y: number, options?: any): jsPDFWithAutoTable;
+  setDrawColor(ch1: string | number, ch2?: number, ch3?: number): jsPDFWithAutoTable;
+  line(x1: number, y1: number, x2: number, y2: number, style?: string): jsPDFWithAutoTable;
+  splitTextToSize(text: string | string[], maxWidth: number): string[];
+  addImage(imageData: string, format: string, x: number, y: number, w: number, h: number, alias?: string, compression?: string, rotation?: number): jsPDFWithAutoTable;
+  output(type: 'blob'): Blob;
 }
 
 
