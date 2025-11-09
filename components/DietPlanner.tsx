@@ -238,9 +238,9 @@ const DietPlanner: React.FC<DietPlannerProps> = ({ isSubscribed, onOpenSubscript
     } else if (bmi >= 23.0 && bmi <= 24.9) {
       return { value: bmi, category: 'Overweight', color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-300', risk: null };
     } else if (bmi >= 25.0 && bmi <= 29.9) {
-      return { value: bmi, category: 'Obese I', color: 'bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300', risk: 'High risk for diabetes, hypertension' };
+      return { value: bmi, category: 'Obese I', color: 'bg-red-100 text-red-800 dark:bg-red-700 dark:text-white', risk: 'High risk for diabetes, hypertension' };
     } else {
-      return { value: bmi, category: 'Obese II', color: 'bg-red-200 text-red-900 dark:bg-red-900/60 ring-2 ring-red-500 animate-pulse', risk: 'High risk for diabetes, hypertension' };
+      return { value: bmi, category: 'Obese II', color: 'bg-red-200 text-white dark:bg-red-800 ring-1 ring-white/80 animate-pulse', risk: 'High risk for diabetes, hypertension' };
     }
   };
 
