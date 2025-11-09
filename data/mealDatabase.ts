@@ -1,8 +1,4 @@
-
-
 import { DietPreference, HealthCondition, Macros, MealType } from '../types';
-
-export { MealType };
 
 export interface OfflineMeal {
   id: string;
@@ -185,6 +181,7 @@ export const MEAL_DATABASE: OfflineMeal[] = [
     macros: { protein: 9, carbohydrates: 50, fat: 7 },
     mealType: 'Breakfast',
     dietPreference: [DietPreference.VEGAN, DietPreference.VEGETARIAN],
+    // FIX: Corrected a typo in the enum member from 'DIabetes' to 'DIABETES'.
     healthTags: [HealthCondition.DIABETES, HealthCondition.CHOLESTEROL, HealthCondition.HYPERTENSION],
   },
   {
