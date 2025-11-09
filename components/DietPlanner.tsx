@@ -78,27 +78,44 @@ const DietPlanner: React.FC<DietPlannerProps> = ({ isSubscribed, onOpenSubscript
   useEffect(() => {
     try {
       const savedPrefsRaw = localStorage.getItem(USER_PREFERENCES_KEY);
-      if (savedPrefsRaw) {
-        const savedPrefs = JSON.parse(savedPrefsRaw);
-        setPatientName(savedPrefs.patientName || '');
-        setPatientWeight(savedPrefs.patientWeight || '');
-        setTargetWeight(savedPrefs.targetWeight || '');
-        setHeight(savedPrefs.height || '');
-        setAge(savedPrefs.age || '');
-        setSex(savedPrefs.sex || Sex.FEMALE);
-        setActivityLevel(savedPrefs.activityLevel || ActivityLevel.LIGHTLY_ACTIVE);
-        setPreference(savedPrefs.preference || DietPreference.VEGETARIAN);
-        setDietType(savedPrefs.dietType || DietType.BALANCED);
-        setHealthConditions(savedPrefs.healthConditions || []);
-        setFastingStartHour(savedPrefs.fastingStartHour || '10');
-        setFastingStartPeriod(savedPrefs.fastingStartPeriod || 'AM');
-        setFastingEndHour(savedPrefs.fastingEndHour || '6');
-        setFastingEndPeriod(savedPrefs.fastingEndPeriod || 'PM');
-        setHeightUnit(savedPrefs.heightUnit || 'cm');
-        setHeightFt(savedPrefs.heightFt || '');
-        setHeightIn(savedPrefs.heightIn || '');
-      }
+      const savedPrefs = savedPrefsRaw ? JSON.parse(savedPrefsRaw) : {};
+
+      setPatientName(savedPrefs.patientName || '');
+      setTargetWeight(savedPrefs.targetWeight || '');
+      setHeight(savedPrefs.height || '');
+      setAge(savedPrefs.age || '');
+      setSex(savedPrefs.sex || Sex.FEMALE);
+      setActivityLevel(savedPrefs.activityLevel || ActivityLevel.LIGHTLY_ACTIVE);
+      setPreference(savedPrefs.preference || DietPreference.VEGETARIAN);
+      setDietType(savedPrefs.dietType || DietType.BALANCED);
+      setHealthConditions(savedPrefs.healthConditions || []);
+      setFastingStartHour(savedPrefs.fastingStartHour || '10');
+      setFastingStartPeriod(savedPrefs.fastingStartPeriod || 'AM');
+      setFastingEndHour(savedPrefs.fastingEndHour || '6');
+      setFastingEndPeriod(savedPrefs.fastingEndPeriod || 'PM');
+      setHeightUnit(savedPrefs.heightUnit || 'cm');
+      setHeightFt(savedPrefs.heightFt || '');
+      setHeightIn(savedPrefs.heightIn || '');
       
+      // Calculate weight from recent progress entries
+      const progressDataRaw = localStorage.getItem(PROGRESS_DATA_KEY);
+      let initialWeight = savedPrefs.patientWeight || '';
+      
+      if (progressDataRaw) {
+          const progressData: ProgressEntry[] = JSON.parse(progressDataRaw);
+          if (progressData.length > 0) {
+              // Sort by date descending to get the most recent entries
+              const sortedProgress = [...progressData].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+              const recentEntries = sortedProgress.slice(0, 7);
+              if (recentEntries.length > 0) {
+                  const totalWeight = recentEntries.reduce((sum, entry) => sum + entry.weight, 0);
+                  const avgWeight = totalWeight / recentEntries.length;
+                  initialWeight = avgWeight.toFixed(1); // Use one decimal place for precision
+              }
+          }
+      }
+      setPatientWeight(initialWeight);
+
       // Load today's water intake
       const waterDataRaw = localStorage.getItem(WATER_INTAKE_KEY);
       if (waterDataRaw) {
@@ -111,7 +128,7 @@ const DietPlanner: React.FC<DietPlannerProps> = ({ isSubscribed, onOpenSubscript
       }
 
     } catch (e) {
-      console.error("Failed to parse user preferences from localStorage", e);
+      console.error("Failed to parse data from localStorage", e);
     }
   }, []);
 
@@ -457,7 +474,7 @@ const DietPlanner: React.FC<DietPlannerProps> = ({ isSubscribed, onOpenSubscript
         setTimeout(() => setError(null), 3000);
       }
   };
-  const handleBack = () => setStep(prev => prev > 1 ? prev - 1 : prev);
+  const handleBack = () => setStep(prev => prev > 1 ? prev + 1 : prev);
   
   const formInputClass = "w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition";
   const formLabelClass = "block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2";

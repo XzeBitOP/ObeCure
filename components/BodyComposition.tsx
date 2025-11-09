@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { BodyCompositionEntry, DailyIntake, Sex, WaterEntry } from '../types';
+import { BodyCompositionEntry, DailyIntake, Sex, WaterEntry, ProgressEntry } from '../types';
 import * as calculator from '../services/bodyCompositionCalculator';
 import PieChart from './PieChart';
 import RiskBar from './RiskBar';
@@ -9,6 +9,7 @@ const USER_PREFERENCES_KEY = 'obeCureUserPreferences';
 const BODY_COMPOSITION_KEY = 'obeCureBodyComposition';
 const WATER_INTAKE_KEY = 'obeCureWaterIntake';
 const DAILY_INTAKE_KEY = 'obeCureDailyIntake';
+const PROGRESS_DATA_KEY = 'obeCureProgressData';
 
 interface BodyCompositionProps {
     onOpenHistory: () => void;
@@ -26,11 +27,29 @@ const BodyComposition: React.FC<BodyCompositionProps> = ({ onOpenHistory }) => {
         const prefsRaw = localStorage.getItem(USER_PREFERENCES_KEY);
         if (prefsRaw) {
             const prefs = JSON.parse(prefsRaw);
+            
+            // Calculate average weight from progress data
+            const progressDataRaw = localStorage.getItem(PROGRESS_DATA_KEY);
+            let currentWeight = parseFloat(prefs.patientWeight) || 0;
+            if (progressDataRaw) {
+                try {
+                    const progressData: ProgressEntry[] = JSON.parse(progressDataRaw);
+                    if (progressData.length > 0) {
+                        const sortedProgress = [...progressData].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+                        const recentEntries = sortedProgress.slice(0, 7);
+                        if (recentEntries.length > 0) {
+                            const totalWeight = recentEntries.reduce((sum, entry) => sum + entry.weight, 0);
+                            currentWeight = totalWeight / recentEntries.length;
+                        }
+                    }
+                } catch (e) { console.error("Could not parse progress data for weight calculation.", e); }
+            }
+
             const loadedInputs = {
                 age: parseInt(prefs.age, 10) || 0,
                 gender: prefs.sex === Sex.MALE ? 1 : 0,
                 height: parseFloat(prefs.height) || 0,
-                weight: parseFloat(prefs.patientWeight) || 0,
+                weight: currentWeight,
                 waist: '', neck: '', hip: '',
             };
             setInputs(loadedInputs);

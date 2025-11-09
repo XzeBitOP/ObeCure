@@ -98,6 +98,17 @@ const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, onClose, 
         const code = redeemCode.trim().toUpperCase();
         setValidationMessage(null);
 
+        // Handle temporary preview code
+        if (code === 'PREVIEWMODE123') {
+            const expiryDate = new Date('2026-01-01T00:00:00Z');
+            if (new Date() > expiryDate) {
+                setValidationMessage('This preview code has expired.');
+                return;
+            }
+            onSuccessfulRedeem(2); // Grant 2 months access
+            return; // Exit without saving the code
+        }
+
         if (code.length !== 14 || !/^[A-Z0-9]{14}$/.test(code)) {
             setValidationMessage('Invalid code format. Must be 14 alphanumeric characters.');
             return;
@@ -156,7 +167,7 @@ const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, onClose, 
                         <div className="flex transition-transform duration-300 ease-in-out" style={{ transform: `translateX(-${currentPlanIndex * 100}%)` }}>
                             {plans.map((plan) => (
                                 <div key={plan.months} className="flex-shrink-0 w-full px-1">
-                                    <div className={`relative p-6 rounded-2xl border-2 text-center transition-all duration-300 h-full flex flex-col justify-between min-h-[320px] ${plan.isBestValue ? 'border-orange-500 bg-orange-50 dark:bg-orange-900/20' : 'border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800'}`}>
+                                    <div className={`relative p-6 rounded-2xl border-2 text-center transition-all duration-300 h-full flex flex-col justify-between min-h-[380px] ${plan.isBestValue ? 'border-orange-500 bg-orange-50 dark:bg-orange-900/20' : 'border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800'}`}>
                                         {plan.isBestValue && <div className="absolute top-4 right-4 bg-orange-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow">BEST VALUE</div>}
                                         
                                         <div>
@@ -171,7 +182,11 @@ const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, onClose, 
                                         <ul className="text-left my-4 space-y-2 text-sm text-gray-600 dark:text-gray-300">
                                             <li className="flex items-center gap-2">
                                                 <CheckCircleIcon className="w-5 h-5 text-green-500" />
-                                                <span>Personalized Diet Plans</span>
+                                                <span>Personalized AI Diet Plans</span>
+                                            </li>
+                                            <li className="flex items-center gap-2">
+                                                <CheckCircleIcon className="w-5 h-5 text-green-500" />
+                                                <span>BioAdaptive Ayurveda™ Plans</span>
                                             </li>
                                             <li className="flex items-center gap-2">
                                                 <CheckCircleIcon className="w-5 h-5 text-green-500" />
@@ -179,7 +194,11 @@ const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, onClose, 
                                             </li>
                                             <li className="flex items-center gap-2">
                                                 <CheckCircleIcon className="w-5 h-5 text-green-500" />
-                                                <span>Track Your Progress</span>
+                                                <span>Detailed Progress Analytics</span>
+                                            </li>
+                                            <li className="flex items-center gap-2">
+                                                <CheckCircleIcon className="w-5 h-5 text-green-500" />
+                                                <span>WhatsApp Plan Sharing</span>
                                             </li>
                                         </ul>
 
@@ -225,7 +244,7 @@ const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, onClose, 
                             type="text"
                             value={redeemCode}
                             onChange={(e) => setRedeemCode(e.target.value)}
-                            placeholder="Enter 14-character code"
+                            placeholder="Enter redeem code"
                             maxLength={14}
                             className="flex-grow w-full px-4 py-3 bg-gray-100 dark:bg-gray-700/50 rounded-lg border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-orange-400 transition uppercase"
                             style={{fontFamily: 'monospace', textTransform: 'uppercase'}}
