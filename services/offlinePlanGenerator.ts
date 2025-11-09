@@ -137,13 +137,15 @@ export const generateOfflineDietPlan = (
     let remainingCalories = calorieTarget;
 
     const mealSlotsToFill: (MealType | 'Special')[] = dietType === DietType.WEIGHT_GAIN 
-        ? ['Breakfast', 'Snack', 'Lunch', 'Snack', 'Dinner'] 
-        : ['Breakfast', 'Special', 'Dinner', 'Snack']; // Special replaces Lunch or Dinner
+// FIX: Changed meal type strings to lowercase to match the MealType enum.
+        ? ['breakfast', 'snack', 'lunch', 'snack', 'dinner'] 
+        : ['breakfast', 'Special', 'dinner', 'snack']; // Special replaces Lunch or Dinner
 
     if (dietType !== DietType.WEIGHT_GAIN) {
         // Randomly decide if the special meal is Lunch or Dinner
         if (Math.random() > 0.5) {
-           mealSlotsToFill[1] = 'Lunch';
+// FIX: Changed 'Lunch' to 'lunch' to match the MealType enum.
+           mealSlotsToFill[1] = 'lunch';
            mealSlotsToFill.splice(2, 0, 'Special');
         }
     }
@@ -152,8 +154,10 @@ export const generateOfflineDietPlan = (
     for (const slot of mealSlotsToFill) {
         if (slot === 'Special') {
             const specialMeal = { ...OBE_CURE_SPECIAL_MEALS[Math.floor(Math.random() * OBE_CURE_SPECIAL_MEALS.length)] };
-            const time = mealSlotsToFill.includes('Lunch') ? '08:00 PM' : '01:00 PM'; // Assign to the slot that's missing
-            const mealType: MealType = time === '01:00 PM' ? 'Lunch' : 'Dinner';
+// FIX: Changed 'Lunch' to 'lunch' to match the MealType enum.
+            const time = mealSlotsToFill.includes('lunch') ? '08:00 PM' : '01:00 PM'; // Assign to the slot that's missing
+// FIX: Changed 'Lunch' and 'Dinner' to 'lunch' and 'dinner' respectively.
+            const mealType: MealType = time === '01:00 PM' ? 'lunch' : 'dinner';
             planMeals.push({ ...specialMeal, time, mealType });
             remainingCalories -= specialMeal.calories;
             continue;
@@ -167,11 +171,13 @@ export const generateOfflineDietPlan = (
 
         if (bestMeal) {
             let time: string;
-            if (slot === 'Snack') {
+// FIX: Changed 'Snack' to 'snack' to match the MealType enum.
+            if (slot === 'snack') {
                 time = snackCount === 0 ? '04:00 PM' : '11:00 AM';
                 snackCount++;
             } else {
-                const timeMap: { [key in MealType]?: string } = { Breakfast: '09:00 AM', Lunch: '01:00 PM', Dinner: '08:00 PM' };
+// FIX: Changed timeMap keys to lowercase to match the MealType enum.
+                const timeMap: { [key in MealType]?: string } = { breakfast: '09:00 AM', lunch: '01:00 PM', dinner: '08:00 PM' };
                 time = timeMap[slot] || 'N/A';
             }
 

@@ -1,4 +1,5 @@
 
+
 import { DailyCheckin, Scores, UserProfile } from '../types';
 import { SCORING_WEIGHTS, RULE_THRESHOLDS } from './constants';
 

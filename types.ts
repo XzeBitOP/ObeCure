@@ -35,7 +35,7 @@ export enum HealthCondition {
   HEART_DISEASE = 'Heart Disease (Stable)',
 }
 
-export type MealType = 'Breakfast' | 'Lunch' | 'Dinner' | 'Snack';
+export type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack';
 
 export interface Macros {
   protein: number;
