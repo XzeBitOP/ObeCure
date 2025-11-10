@@ -72,6 +72,7 @@ const urlsToCache = [
   '/components/RiskBar.tsx',
   '/components/icons/WaterIcon.tsx',
   '/components/icons/ChartBarIcon.tsx',
+  '/components/icons/SearchIcon.tsx',
   '/metadata.json',
   // External assets
   'https://cdn.tailwindcss.com',

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import SubscriptionModal from './SubscriptionModal';
 import CongratulationsModal from './CongratulationsModal';
 import { Sex } from '../types';
+import { YouTubeIcon } from './icons/YouTubeIcon';
 
 const motivationalQuotes = [
     "You don’t need to be perfect — just persistent.",
@@ -209,6 +210,15 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
                   <div className="mt-6 space-y-3">
                       <button ref={beginButtonRef} onClick={handleBegin} className="w-full bg-orange-500 text-white font-bold py-3 px-6 rounded-lg hover:bg-orange-600 transition-all active:scale-95 shadow-md">Let's Begin &rarr;</button>
                       <button onClick={() => setIsSubscriptionModalOpen(true)} className="w-full bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-bold py-3 px-6 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-all active:scale-95">Redeem Subscription &rarr;</button>
+                      <a 
+                          href="https://www.youtube.com/@Obecure" 
+                          target="_blank" 
+                          rel="noopener noreferrer" 
+                          className="w-full flex items-center justify-center gap-2 bg-red-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-red-700 transition-all active:scale-95 shadow-md"
+                      >
+                          <YouTubeIcon className="w-6 h-6" />
+                          <span>Watch Tutorial</span>
+                      </a>
                   </div>
               </div>
           </div>
