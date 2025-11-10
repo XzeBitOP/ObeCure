@@ -289,26 +289,10 @@ const App: React.FC = () => {
         onInstallClick={handleInstallClick}
         isNotificationUnread={isNotificationUnread}
         onToggleNotification={handleToggleNotification}
+        isNotificationOpen={isNotificationOpen}
         />
       <main className="p-4 sm:p-6 md:p-8 max-w-5xl mx-auto">
-        {isNotificationOpen && (
-            <div className="relative mb-6 p-4 bg-orange-800/95 dark:bg-orange-900/95 backdrop-blur-sm text-white rounded-lg shadow-lg animate-fade-in-up">
-                <h4 className="font-bold text-lg text-center text-orange-200">Consultation Recommended</h4>
-                <p className="text-sm mt-1 text-orange-100 max-w-prose mx-auto text-center">
-                    Please visit an ObeCure clinic for a consultation before starting your plan to ensure the best results.
-                </p>
-            </div>
-        )}
-
         <div ref={navRef} className="relative flex justify-center mb-8 bg-orange-100/80 dark:bg-gray-800 rounded-full p-1 max-w-md sm:max-w-xl mx-auto shadow-inner">
-          {isNotificationOpen ? (
-                <button
-                    onClick={() => setIsNotificationOpen(false)}
-                    className="relative z-10 w-full py-2 px-3 rounded-full text-base sm:text-lg font-bold transition-all duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-orange-400 focus:ring-opacity-50 active:scale-95 bg-orange-500 text-white shadow"
-                >
-                    Close
-                </button>
-          ) : (
             <>
               <div
                 className="absolute top-1 bottom-1 bg-white dark:bg-gray-700 rounded-full shadow transition-all duration-300 ease-in-out"
@@ -360,7 +344,6 @@ const App: React.FC = () => {
                 <ChartBarIcon className="w-4 h-4" /> My Progress
               </button>
             </>
-          )}
         </div>
 
         {view === 'planner' && <DietPlanner isSubscribed={isSubscribed} onOpenSubscriptionModal={handleOpenSubscriptionModal} />}

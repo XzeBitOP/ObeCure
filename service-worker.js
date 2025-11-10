@@ -7,31 +7,30 @@ const urlsToCache = [
   '/types.ts',
   '/components/Header.tsx',
   '/components/DietPlanner.tsx',
-  '/components/Workouts.tsx',
-  '/components/DisclaimerModal.tsx',
-  '/components/Faq.tsx',
-  '/components/icons/WebsiteIcon.tsx',
-  '/components/icons/InstagramIcon.tsx',
-  '/components/NotificationBell.tsx',
-  '/components/LogSleepModal.tsx',
-  '/components/ProgressModal.tsx',
-  '/components/SubscriptionModal.tsx',
-  '/components/CongratulationsModal.tsx',
-  '/components/bioadaptive/BioAdaptivePlanner.tsx',
-  '/components/icons/LeafIcon.tsx',
+  '/components/LiveAssistant.tsx',
+  '/hooks/useLiveAssistant.ts',
   '/services/gemini.ts',
+  '/components/icons/MicIcon.tsx',
+  '/components/icons/StopIcon.tsx',
   '/components/icons/StarIcon.tsx',
+  '/components/ThemeToggle.tsx',
   '/data/notes.ts',
   '/components/DrKenilsNote.tsx',
+  '/components/DisclaimerModal.tsx',
   '/components/GeneratingPlan.tsx',
-  '/data/quotes.ts',
-  '/components/SuccessToast.tsx',
+  '/components/ProgressModal.tsx',
+  '/components/LogSleep.tsx',
+  '/components/LogSleepModal.tsx',
   '/data/workouts.ts',
+  '/components/Faq.tsx',
   '/data/faq.ts',
+  '/components/icons/WebsiteIcon.tsx',
+  '/components/icons/InstagramIcon.tsx',
   '/data/mealDatabase.ts',
   '/data/specialMeals.ts',
   '/services/offlinePlanGenerator.ts',
-  '/meals.txt',
+  '/data/quotes.ts',
+  '/components/SuccessToast.tsx',
   '/components/icons/YouTubeIcon.tsx',
   '/components/InfoModal.tsx',
   '/components/icons/CheckIcon.tsx',
@@ -39,9 +38,13 @@ const urlsToCache = [
   '/components/icons/LunchIcon.tsx',
   '/components/icons/DinnerIcon.tsx',
   '/components/icons/SnackIcon.tsx',
-  '/components/LogSleep.tsx',
+  '/components/Workouts.tsx',
+  '/components/SubscriptionModal.tsx',
+  '/components/CongratulationsModal.tsx',
+  '/components/icons/LeafIcon.tsx',
   '/components/icons/ShareIcon.tsx',
   '/components/icons/EditIcon.tsx',
+  '/components/bioadaptive/BioAdaptivePlanner.tsx',
   '/components/bioadaptive/BaselineForm.tsx',
   '/components/bioadaptive/DailyCheckinForm.tsx',
   '/components/bioadaptive/DailyPlanView.tsx',
@@ -53,10 +56,16 @@ const urlsToCache = [
   '/bioadaptive/plannerService.ts',
   '/bioadaptive/pdfService.ts',
   '/bioadaptive/guardrails.ts',
+  '/manifest.json',
+  '/service-worker.js',
+  '/components/NotificationBell.tsx',
+  '/components/Onboarding.tsx',
   '/components/InstallPwaModal.tsx',
   '/components/icons/InstallIcon.tsx',
   '/components/icons/MoreVerticalIcon.tsx',
   '/components/icons/WhatsAppIcon.tsx',
+  '/components/icons/SwapIcon.tsx',
+  '/components/WeeklyReportView.tsx',
   '/components/BodyComposition.tsx',
   '/services/bodyCompositionCalculator.ts',
   '/components/PieChart.tsx',
@@ -64,7 +73,6 @@ const urlsToCache = [
   '/components/icons/WaterIcon.tsx',
   '/components/icons/ChartBarIcon.tsx',
   '/metadata.json',
-  '/manifest.json',
   // External assets
   'https://cdn.tailwindcss.com',
   'https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Kalam:wght@400;700&display=swap',
@@ -130,10 +138,17 @@ self.addEventListener('notificationclick', event => {
     event.waitUntil(
         clients.matchAll({ type: 'window', includeUncontrolled: true }).then(windowClients => {
             if (windowClients.length > 0) {
-                return windowClients[0].focus();
-            } else {
-                return clients.openWindow('/');
+                const client = windowClients[0];
+                for (let i = 0; i < windowClients.length; i++) {
+                    if (windowClients[i].focused) {
+                        return windowClients[i].focus();
+                    }
+                }
+                if (client) {
+                   return client.focus();
+                }
             }
+            return clients.openWindow('/');
         })
     );
 });

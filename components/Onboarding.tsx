@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import SubscriptionModal from './SubscriptionModal';
 import CongratulationsModal from './CongratulationsModal';
 import { Sex } from '../types';
@@ -59,6 +59,13 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
   const [isSubscriptionModalOpen, setIsSubscriptionModalOpen] = useState(false);
   const [isCongratsModalOpen, setIsCongratsModalOpen] = useState(false);
   const [unlockedMonths, setUnlockedMonths] = useState(0);
+  
+  const patientNameRef = useRef<HTMLInputElement>(null);
+  const ageRef = useRef<HTMLInputElement>(null);
+  const sexRef = useRef<HTMLSelectElement>(null);
+  const phoneRef = useRef<HTMLInputElement>(null);
+  const patientWeightRef = useRef<HTMLInputElement>(null);
+  const beginButtonRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     setQuote(motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)]);
@@ -73,13 +80,32 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
+  const focusAndScroll = (ref: React.RefObject<HTMLElement>) => {
+    if (ref.current) {
+        ref.current.focus({ preventScroll: true });
+        ref.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent, nextRef: React.RefObject<HTMLElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        focusAndScroll(nextRef);
+    }
+  };
+
   const handleBegin = () => {
-    // Basic validation
-    if (!formData.age || !formData.patientWeight) {
-        alert("Please fill in your age and current weight to begin.");
+    if (!formData.age) {
+        alert("Please fill in your age to begin.");
+        focusAndScroll(ageRef);
         return;
     }
-    // Load existing data to not overwrite other fields like height, etc.
+    if (!formData.patientWeight) {
+        alert("Please fill in your current weight to begin.");
+        focusAndScroll(patientWeightRef);
+        return;
+    }
+
     let prefsToSave: any = {};
     try {
         const savedPrefsRaw = localStorage.getItem(USER_PREFERENCES_KEY);
@@ -99,7 +125,6 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
     const expiryDate = new Date(now.setMonth(now.getMonth() + durationInMonths));
     const expiryTimestamp = expiryDate.getTime();
     localStorage.setItem(SUBSCRIPTION_KEY, String(expiryTimestamp));
-    // The main app will pick this up on load
   };
 
   const handleSuccessfulRedeem = (durationInMonths: number) => {
@@ -157,32 +182,32 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
                   <div className="space-y-4">
                       <div>
                           <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Name</label>
-                          <input type="text" name="patientName" value={formData.patientName} onChange={handleInputChange} placeholder="e.g., Anjali Sharma" className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-orange-400" />
+                          <input ref={patientNameRef} onKeyDown={e => handleKeyDown(e, ageRef)} type="text" name="patientName" value={formData.patientName} onChange={handleInputChange} placeholder="e.g., Anjali Sharma" className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-orange-400" />
                       </div>
                       <div className="grid grid-cols-2 gap-4">
                           <div>
                               <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Age*</label>
-                              <input type="number" name="age" value={formData.age} onChange={handleInputChange} placeholder="e.g., 30" required className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-orange-400" />
+                              <input ref={ageRef} onKeyDown={e => handleKeyDown(e, sexRef)} type="number" name="age" value={formData.age} onChange={handleInputChange} placeholder="e.g., 30" required className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-orange-400" />
                           </div>
                           <div>
                               <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Sex*</label>
-                              <select name="sex" value={formData.sex} onChange={handleInputChange} className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-orange-400">
+                              <select ref={sexRef} onKeyDown={e => handleKeyDown(e, phoneRef)} name="sex" value={formData.sex} onChange={handleInputChange} className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-orange-400">
                                   {Object.values(Sex).map(s => <option key={s} value={s}>{s}</option>)}
                               </select>
                           </div>
                       </div>
                       <div>
                           <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Phone Number</label>
-                          <input type="tel" name="phone" value={formData.phone} onChange={handleInputChange} placeholder="Optional" className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-orange-400" />
+                          <input ref={phoneRef} onKeyDown={e => handleKeyDown(e, patientWeightRef)} type="tel" name="phone" value={formData.phone} onChange={handleInputChange} placeholder="Optional" className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-orange-400" />
                       </div>
                       <div>
                           <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Current Weight (kg)*</label>
-                          <input type="number" name="patientWeight" value={formData.patientWeight} onChange={handleInputChange} placeholder="e.g., 75" required className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-orange-400" />
+                          <input ref={patientWeightRef} onKeyDown={e => handleKeyDown(e, beginButtonRef)} type="number" name="patientWeight" value={formData.patientWeight} onChange={handleInputChange} placeholder="e.g., 75" required className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-orange-400" />
                       </div>
                   </div>
 
                   <div className="mt-6 space-y-3">
-                      <button onClick={handleBegin} className="w-full bg-orange-500 text-white font-bold py-3 px-6 rounded-lg hover:bg-orange-600 transition-all active:scale-95 shadow-md">Let's Begin &rarr;</button>
+                      <button ref={beginButtonRef} onClick={handleBegin} className="w-full bg-orange-500 text-white font-bold py-3 px-6 rounded-lg hover:bg-orange-600 transition-all active:scale-95 shadow-md">Let's Begin &rarr;</button>
                       <button onClick={() => setIsSubscriptionModalOpen(true)} className="w-full bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-bold py-3 px-6 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-all active:scale-95">Redeem Subscription &rarr;</button>
                   </div>
               </div>

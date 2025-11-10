@@ -145,12 +145,12 @@ const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, onClose, 
             onClick={onClose}
         >
             <div 
-                className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl p-6 sm:p-8 w-full max-w-md border border-gray-200 dark:border-gray-700 transform animate-bounce-in"
+                className="bg-white dark:bg-slate-800 rounded-xl shadow-2xl p-4 sm:p-6 w-full max-w-xs border border-gray-200 dark:border-slate-700 transform animate-bounce-in"
                 onClick={(e) => e.stopPropagation()}
             >
                 <div className="flex justify-between items-start">
                     <div>
-                         <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-200">
+                         <h2 className="text-xl font-bold text-gray-800 dark:text-gray-200">
                             Unlock Full Access
                         </h2>
                         <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Choose a plan to continue your health journey.</p>
@@ -158,7 +158,7 @@ const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, onClose, 
                     <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition text-2xl -mt-2">&times;</button>
                 </div>
                 
-                <div className="relative mt-6">
+                <div className="relative mt-4">
                     <div 
                         className="overflow-hidden"
                         onTouchStart={handleTouchStart}
@@ -167,13 +167,13 @@ const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, onClose, 
                         <div className="flex transition-transform duration-300 ease-in-out" style={{ transform: `translateX(-${currentPlanIndex * 100}%)` }}>
                             {plans.map((plan) => (
                                 <div key={plan.months} className="flex-shrink-0 w-full px-1">
-                                    <div className={`relative p-6 rounded-2xl border-2 text-center transition-all duration-300 h-full flex flex-col justify-between min-h-[380px] ${plan.isBestValue ? 'border-orange-500 bg-orange-50 dark:bg-orange-900/20' : 'border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800'}`}>
-                                        {plan.isBestValue && <div className="absolute top-4 right-4 bg-orange-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow">BEST VALUE</div>}
+                                    <div className={`relative p-4 rounded-2xl border-2 text-center transition-all duration-300 h-full flex flex-col justify-between ${plan.isBestValue ? 'border-orange-500 bg-orange-50 dark:bg-orange-900/20' : 'border-transparent bg-gray-50 dark:bg-slate-900'}`}>
+                                        {plan.isBestValue && <div className="absolute top-3 right-3 bg-orange-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow">BEST VALUE</div>}
                                         
                                         <div>
                                             <h3 className="font-bold text-lg text-gray-800 dark:text-gray-200 mt-2">{plan.name}</h3>
                                             <p className="my-2">
-                                                <span className="text-4xl font-extrabold text-gray-900 dark:text-gray-100">₹{plan.discountedPrice}</span>
+                                                <span className="text-3xl font-extrabold text-gray-900 dark:text-gray-100">₹{plan.discountedPrice}</span>
                                                 <span className="text-sm text-gray-500 dark:text-gray-400"> / {plan.months} mo</span>
                                             </p>
                                             <p className="text-sm text-gray-400 dark:text-gray-500 line-through">₹{plan.originalPrice}</p>
@@ -211,16 +211,16 @@ const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, onClose, 
                         </div>
                     </div>
                     
-                    <button onClick={goToPrevPlan} disabled={currentPlanIndex === 0} className="absolute top-1/2 -translate-y-1/2 -left-4 p-1 bg-white dark:bg-gray-700 rounded-full shadow-md disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-gray-600 transition">
+                    <button onClick={goToPrevPlan} disabled={currentPlanIndex === 0} className="absolute top-1/2 -translate-y-1/2 -left-2 p-1 bg-white dark:bg-gray-700 rounded-full shadow-md disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-gray-600 transition">
                         <ChevronLeftIcon className="w-6 h-6 text-gray-700 dark:text-gray-200" />
                     </button>
-                    <button onClick={goToNextPlan} disabled={currentPlanIndex === plans.length - 1} className="absolute top-1/2 -translate-y-1/2 -right-4 p-1 bg-white dark:bg-gray-700 rounded-full shadow-md disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-gray-600 transition">
+                    <button onClick={goToNextPlan} disabled={currentPlanIndex === plans.length - 1} className="absolute top-1/2 -translate-y-1/2 -right-2 p-1 bg-white dark:bg-gray-700 rounded-full shadow-md disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-gray-600 transition">
                         <ChevronRightIcon className="w-6 h-6 text-gray-700 dark:text-gray-200" />
                     </button>
                 </div>
 
                 {currentPlanIndex < plans.findIndex(p => p.isBestValue) && (
-                    <div className="text-center mt-3 text-sm text-gray-500 dark:text-gray-400 flex items-center justify-center gap-1 animate-pulse">
+                    <div className="text-center mt-3 text-xs text-gray-500 dark:text-gray-400 flex items-center justify-center gap-1 animate-pulse">
                         <span>Slide to get best plan</span>
                         <ChevronRightIcon className="w-4 h-4" />
                     </div>
@@ -237,8 +237,8 @@ const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, onClose, 
                     ))}
                 </div>
 
-                <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
-                    <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300 text-center tracking-wide">Have a Code?</h3>
+                <div className="mt-4 pt-4 border-t border-gray-200 dark:border-slate-700">
+                    <h3 className="text-base font-semibold text-gray-700 dark:text-gray-300 text-center tracking-wide">Have a Code?</h3>
                     <div className="flex flex-col sm:flex-row gap-2 mt-3 max-w-md mx-auto">
                         <input
                             type="text"
@@ -246,15 +246,15 @@ const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, onClose, 
                             onChange={(e) => setRedeemCode(e.target.value)}
                             placeholder="Enter redeem code"
                             maxLength={14}
-                            className="flex-grow w-full px-4 py-3 bg-gray-100 dark:bg-gray-700/50 rounded-lg border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-orange-400 transition uppercase"
+                            className="flex-grow w-full px-4 py-2 bg-gray-100 dark:bg-gray-700/50 rounded-lg border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-orange-400 transition uppercase text-sm"
                             style={{fontFamily: 'monospace', textTransform: 'uppercase'}}
                         />
-                        <button onClick={handleRedeemCode} className="w-full sm:w-auto bg-orange-500 text-white font-bold py-3 px-6 rounded-lg hover:bg-orange-600 transition-all shadow-md active:scale-95">
+                        <button onClick={handleRedeemCode} className="w-full sm:w-auto bg-orange-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-orange-600 transition-all shadow-md active:scale-95 text-sm">
                             Redeem
                         </button>
                     </div>
                     {validationMessage && (
-                        <p className={`mt-2 text-center text-sm font-medium text-red-600 dark:text-red-400`}>
+                        <p className={`mt-2 text-center text-xs font-medium text-red-600 dark:text-red-400`}>
                             {validationMessage}
                         </p>
                     )}

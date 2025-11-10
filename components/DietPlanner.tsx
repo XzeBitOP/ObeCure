@@ -25,6 +25,16 @@ const FASTING_DATA_KEY = 'obeCureFastingData';
 const WATER_INTAKE_KEY = 'obeCureWaterIntake';
 
 
+// FIX: Add missing getActivityFactor function
+const getActivityFactor = (level: ActivityLevel): number => {
+    switch (level) {
+        case ActivityLevel.SEDENTARY: return 1.2;
+        case ActivityLevel.LIGHTLY_ACTIVE: return 1.375;
+        case ActivityLevel.MODERATELY_ACTIVE: return 1.55;
+        case ActivityLevel.VERY_ACTIVE: return 1.725;
+        default: return 1.375;
+    }
+};
 
 interface DietPlannerProps {
   isSubscribed: boolean;
@@ -64,7 +74,29 @@ const DietPlanner: React.FC<DietPlannerProps> = ({ isSubscribed, onOpenSubscript
   const [isLogging, setIsLogging] = useState(false);
   const [logSuccess, setLogSuccess] = useState(false);
   
+  const [showNotificationPrompt, setShowNotificationPrompt] = useState(false);
+  const timerIdsRef = useRef<number[]>([]);
+  
   const resultsRef = useRef<HTMLDivElement>(null);
+
+  // --- Refs for auto-scrolling and focus management ---
+  const formContainerRef = useRef<HTMLDivElement>(null);
+  const patientNameRef = useRef<HTMLInputElement>(null);
+  const patientWeightRef = useRef<HTMLInputElement>(null);
+  const ageRef = useRef<HTMLInputElement>(null);
+  const heightCmRef = useRef<HTMLInputElement>(null);
+  const heightFtRef = useRef<HTMLInputElement>(null);
+  const heightInRef = useRef<HTMLInputElement>(null);
+  const sexRef = useRef<HTMLSelectElement>(null);
+  const nextButton1Ref = useRef<HTMLButtonElement>(null);
+
+  const targetWeightRef = useRef<HTMLInputElement>(null);
+  const activityLevelRef = useRef<HTMLSelectElement>(null);
+  const dietTypeRef = useRef<HTMLSelectElement>(null);
+  const nextButton2Ref = useRef<HTMLButtonElement>(null);
+
+  const preferenceRef = useRef<HTMLSelectElement>(null);
+  const generateButtonRef = useRef<HTMLButtonElement>(null);
 
   const plannerTitle = useMemo(() => {
     const firstName = patientName.trim().split(' ')[0];
@@ -97,26 +129,23 @@ const DietPlanner: React.FC<DietPlannerProps> = ({ isSubscribed, onOpenSubscript
       setHeightFt(savedPrefs.heightFt || '');
       setHeightIn(savedPrefs.heightIn || '');
       
-      // Calculate weight from recent progress entries
       const progressDataRaw = localStorage.getItem(PROGRESS_DATA_KEY);
       let initialWeight = savedPrefs.patientWeight || '';
       
       if (progressDataRaw) {
           const progressData: ProgressEntry[] = JSON.parse(progressDataRaw);
           if (progressData.length > 0) {
-              // Sort by date descending to get the most recent entries
               const sortedProgress = [...progressData].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
               const recentEntries = sortedProgress.slice(0, 7);
               if (recentEntries.length > 0) {
                   const totalWeight = recentEntries.reduce((sum, entry) => sum + entry.weight, 0);
                   const avgWeight = totalWeight / recentEntries.length;
-                  initialWeight = avgWeight.toFixed(1); // Use one decimal place for precision
+                  initialWeight = avgWeight.toFixed(1);
               }
           }
       }
       setPatientWeight(initialWeight);
 
-      // Load today's water intake
       const waterDataRaw = localStorage.getItem(WATER_INTAKE_KEY);
       if (waterDataRaw) {
           const waterData: WaterEntry[] = JSON.parse(waterDataRaw);
@@ -157,15 +186,6 @@ const DietPlanner: React.FC<DietPlannerProps> = ({ isSubscribed, onOpenSubscript
 
     if (weightNum > 0 && targetNum > 0 && weightNum > targetNum && heightNum > 0 && ageNum > 0 && dietType !== DietType.WEIGHT_GAIN) {
         const bmr = (10 * weightNum) + (6.25 * heightNum) - (5 * ageNum) + (sex === Sex.MALE ? 5 : -161);
-        const getActivityFactor = (level: ActivityLevel): number => {
-            switch (level) {
-                case ActivityLevel.SEDENTARY: return 1.2;
-                case ActivityLevel.LIGHTLY_ACTIVE: return 1.375;
-                case ActivityLevel.MODERATELY_ACTIVE: return 1.55;
-                case ActivityLevel.VERY_ACTIVE: return 1.725;
-                default: return 1.375;
-            }
-        };
         const tdee = bmr * getActivityFactor(activityLevel);
         const dailyDeficit = 500;
         const weightToLose = weightNum - targetNum;
@@ -180,6 +200,110 @@ const DietPlanner: React.FC<DietPlannerProps> = ({ isSubscribed, onOpenSubscript
         setEstimatedDuration(null);
     }
   }, [patientWeight, targetWeight, height, age, sex, activityLevel, dietType, step]);
+
+    useEffect(() => {
+    return () => {
+        timerIdsRef.current.forEach(clearTimeout);
+        timerIdsRef.current = [];
+    };
+    }, [dietPlan]);
+
+    // --- Auto-scroll and Focus Logic ---
+    const focusAndScroll = (ref: React.RefObject<HTMLElement>) => {
+        if (ref.current) {
+            ref.current.focus({ preventScroll: true });
+            ref.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    };
+
+    const handleKeyDown = (e: React.KeyboardEvent, nextRef: React.RefObject<HTMLElement>) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            focusAndScroll(nextRef);
+        }
+    };
+
+    useEffect(() => {
+        let focusRef: React.RefObject<HTMLElement> | null = null;
+        if (step === 1) focusRef = patientNameRef;
+        else if (step === 2) focusRef = targetWeightRef;
+        else if (step === 3) focusRef = preferenceRef;
+
+        if (focusRef?.current && formContainerRef.current) {
+            formContainerRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            setTimeout(() => focusRef!.current?.focus(), 400); // Delay for scroll animation
+        }
+    }, [step]);
+
+
+    const scheduleMealReminders = (plan: DietPlan) => {
+        timerIdsRef.current.forEach(clearTimeout);
+        timerIdsRef.current = [];
+
+        navigator.serviceWorker.ready.then(registration => {
+            if (!registration) return;
+
+            const scheduleNotification = (title: string, body: string, time: string, tag: string) => {
+                const timeParts = time.match(/(\d+):(\d+)\s*(AM|PM)/);
+                if (!timeParts) return;
+
+                let [_, hourStr, minuteStr, period] = timeParts;
+                let hour = parseInt(hourStr, 10);
+
+                if (period.toUpperCase() === 'PM' && hour < 12) hour += 12;
+                if (period.toUpperCase() === 'AM' && hour === 12) hour = 0;
+
+                const targetTime = new Date();
+                targetTime.setHours(hour, parseInt(minuteStr, 10), 0, 0);
+
+                const delay = targetTime.getTime() - new Date().getTime();
+
+                if (delay > 0) {
+                    const timerId = setTimeout(() => {
+                        registration.showNotification(title, { body, icon: '/vite.svg', tag });
+                    }, delay);
+                    timerIdsRef.current.push(timerId);
+                }
+            };
+            
+            plan.meals.forEach(meal => {
+                if (meal.time) {
+                    scheduleNotification(
+                        `Time for ${meal.mealType}!`,
+                        `It's time to have your ${meal.name.toLowerCase()}. Enjoy!`,
+                        meal.time,
+                        `meal-${meal.mealType.toLowerCase()}`
+                    );
+                }
+            });
+            
+            scheduleNotification(
+                'Time to Rest Up!',
+                `Don't forget to log your sleep tonight to keep your progress on track.`,
+                '09:30 PM',
+                'sleep-reminder'
+            );
+
+            setToastInfo({ title: "Reminders Set!", message: "We'll notify you for your meals and sleep log today.", quote: "Consistency is key to success!" });
+        });
+    };
+
+    const handleEnableNotifications = async () => {
+        setShowNotificationPrompt(false);
+        if (!('Notification' in window)) {
+            alert('This browser does not support desktop notification');
+            return;
+        }
+        
+        const permission = await Notification.requestPermission();
+        if (permission === 'granted') {
+            if (dietPlan) {
+                scheduleMealReminders(dietPlan);
+            }
+        } else {
+            setToastInfo({ title: "Notifications Blocked", message: "You can enable them in your browser settings if you change your mind.", quote: "Every choice is a step forward." });
+        }
+    };
 
   const cmToFtIn = (cm: number) => {
     if (isNaN(cm) || cm <= 0) return { ft: '', in: '' };
@@ -329,6 +453,13 @@ const DietPlanner: React.FC<DietPlannerProps> = ({ isSubscribed, onOpenSubscript
             if (todayFastingIndex > -1) { existingFastingData[todayFastingIndex] = newFastingEntry; } else { existingFastingData.push(newFastingEntry); }
             localStorage.setItem(FASTING_DATA_KEY, JSON.stringify(existingFastingData));
 
+            if ('Notification' in window) {
+                if (Notification.permission === 'default') {
+                    setShowNotificationPrompt(true);
+                } else if (Notification.permission === 'granted') {
+                    scheduleMealReminders(plan);
+                }
+            }
         } catch (err) {
             console.error(err);
             setError('An unexpected error occurred while generating the plan. Please check your inputs.');
@@ -459,22 +590,27 @@ const DietPlanner: React.FC<DietPlannerProps> = ({ isSubscribed, onOpenSubscript
     return SnackIcon;
   };
 
-  const validateStep = (currentStep: number): boolean => {
+  const validateStep = (currentStep: number): React.RefObject<HTMLElement> | null => {
     if (currentStep === 1) {
-        return !!patientWeight && !!height && !!age;
+        if (!patientWeight.trim()) return patientWeightRef;
+        if (!height.trim()) return heightUnit === 'cm' ? heightCmRef : heightFtRef;
+        if (!age.trim()) return ageRef;
     }
-    return true; // No validation for other steps for now
+    return null;
   };
 
   const handleNext = () => {
-      if(validateStep(step)) {
-        setStep(prev => prev < 3 ? prev + 1 : prev);
-      } else {
+      const invalidFieldRef = validateStep(step);
+      if (invalidFieldRef) {
         setError("Please fill in all required (*) fields before proceeding.");
+        focusAndScroll(invalidFieldRef);
         setTimeout(() => setError(null), 3000);
+      } else {
+        if(error) setError(null);
+        setStep(prev => prev < 3 ? prev + 1 : prev);
       }
   };
-  const handleBack = () => setStep(prev => prev > 1 ? prev + 1 : prev);
+  const handleBack = () => setStep(prev => prev > 1 ? prev - 1 : prev);
   
   const formInputClass = "w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition";
   const formLabelClass = "block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2";
@@ -489,7 +625,7 @@ const DietPlanner: React.FC<DietPlannerProps> = ({ isSubscribed, onOpenSubscript
             onClose={() => setToastInfo(null)}
           />
         )}
-      <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700">
+      <div ref={formContainerRef} className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 scroll-mt-20">
         <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 dark:text-gray-200 text-center">{plannerTitle}</h1>
         <p className="mt-2 text-gray-600 dark:text-gray-400 mb-8 text-center max-w-prose mx-auto">
             {step === 1 && "Let's start with your basic information to create your profile."}
@@ -511,15 +647,15 @@ const DietPlanner: React.FC<DietPlannerProps> = ({ isSubscribed, onOpenSubscript
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 animate-fade-in-up">
               <div className="lg:col-span-2">
                 <label htmlFor="patientName" className={formLabelClass}>Patient Name</label>
-                <input id="patientName" type="text" value={patientName} onChange={(e) => setPatientName(e.target.value)} placeholder="e.g., Anjali Sharma" className={formInputClass}/>
+                <input ref={patientNameRef} onKeyDown={e => handleKeyDown(e, patientWeightRef)} id="patientName" type="text" value={patientName} onChange={(e) => setPatientName(e.target.value)} placeholder="e.g., Anjali Sharma" className={formInputClass}/>
               </div>
               <div>
                 <label htmlFor="patientWeight" className={formLabelClass}>Weight (kg)<span className="text-red-500">*</span></label>
-                <input id="patientWeight" type="number" value={patientWeight} onChange={(e) => setPatientWeight(e.target.value)} placeholder="e.g., 75" required className={formInputClass}/>
+                <input ref={patientWeightRef} onKeyDown={e => handleKeyDown(e, ageRef)} id="patientWeight" type="number" value={patientWeight} onChange={(e) => setPatientWeight(e.target.value)} placeholder="e.g., 75" required className={formInputClass}/>
               </div>
               <div>
                  <label htmlFor="age" className={formLabelClass}>Age<span className="text-red-500">*</span></label>
-                 <input id="age" type="number" value={age} onChange={(e) => setAge(e.target.value)} placeholder="e.g., 30" required className={formInputClass}/>
+                 <input ref={ageRef} onKeyDown={e => handleKeyDown(e, heightUnit === 'cm' ? heightCmRef : heightFtRef)} id="age" type="number" value={age} onChange={(e) => setAge(e.target.value)} placeholder="e.g., 30" required className={formInputClass}/>
               </div>
               <div>
                 <div className="flex justify-between items-center mb-2">
@@ -529,16 +665,16 @@ const DietPlanner: React.FC<DietPlannerProps> = ({ isSubscribed, onOpenSubscript
                         <button onClick={() => handleHeightUnitChange('ft')} className={`px-3 py-1 rounded-full transition-all text-xs active:scale-95 ${heightUnit === 'ft' ? 'bg-white dark:bg-gray-600 text-orange-600 dark:text-orange-400 shadow' : 'text-gray-500 dark:text-gray-400'}`}>ft/in</button>
                     </div>
                 </div>
-                {heightUnit === 'cm' ? ( <input id="height" type="number" value={height} onChange={handleHeightCmChange} placeholder="e.g., 165" required className={formInputClass}/> ) : (
+                {heightUnit === 'cm' ? ( <input ref={heightCmRef} onKeyDown={e => handleKeyDown(e, sexRef)} id="height" type="number" value={height} onChange={handleHeightCmChange} placeholder="e.g., 165" required className={formInputClass}/> ) : (
                     <div className="flex gap-2">
-                        <input id="heightFt" type="number" value={heightFt} onChange={handleHeightFtInChange} placeholder="ft" required className={`${formInputClass} text-center`} />
-                        <input id="heightIn" type="number" value={heightIn} onChange={handleHeightFtInChange} placeholder="in" required className={`${formInputClass} text-center`} />
+                        <input ref={heightFtRef} onKeyDown={e => handleKeyDown(e, heightInRef)} id="heightFt" type="number" value={heightFt} onChange={handleHeightFtInChange} placeholder="ft" required className={`${formInputClass} text-center`} />
+                        <input ref={heightInRef} onKeyDown={e => handleKeyDown(e, sexRef)} id="heightIn" type="number" value={heightIn} onChange={handleHeightFtInChange} placeholder="in" required className={`${formInputClass} text-center`} />
                     </div>
                 )}
               </div>
               <div className="lg:col-span-3">
                 <label htmlFor="sex" className={formLabelClass}>Sex</label>
-                <select id="sex" value={sex} onChange={(e) => setSex(e.target.value as Sex)} className={formInputClass}>
+                <select ref={sexRef} onKeyDown={e => handleKeyDown(e, nextButton1Ref)} id="sex" value={sex} onChange={(e) => setSex(e.target.value as Sex)} className={formInputClass}>
                   {Object.values(Sex).map((s) => (<option key={s} value={s}>{s}</option>))}
                 </select>
               </div>
@@ -549,17 +685,17 @@ const DietPlanner: React.FC<DietPlannerProps> = ({ isSubscribed, onOpenSubscript
              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-fade-in-up">
                 <div className="md:col-span-2">
                     <label htmlFor="targetWeight" className={formLabelClass}>Target Weight (kg)</label>
-                    <input id="targetWeight" type="number" value={targetWeight} onChange={(e) => setTargetWeight(e.target.value)} placeholder="e.g., 65" className={formInputClass}/>
+                    <input ref={targetWeightRef} onKeyDown={e => handleKeyDown(e, activityLevelRef)} id="targetWeight" type="number" value={targetWeight} onChange={(e) => setTargetWeight(e.target.value)} placeholder="e.g., 65" className={formInputClass}/>
                 </div>
                 <div className="md:col-span-2">
                     <label htmlFor="activityLevel" className={formLabelClass}>Activity Level</label>
-                    <select id="activityLevel" value={activityLevel} onChange={(e) => setActivityLevel(e.target.value as ActivityLevel)} className={formInputClass}>
+                    <select ref={activityLevelRef} onKeyDown={e => handleKeyDown(e, dietTypeRef)} id="activityLevel" value={activityLevel} onChange={(e) => setActivityLevel(e.target.value as ActivityLevel)} className={formInputClass}>
                     {Object.values(ActivityLevel).map((level) => (<option key={level} value={level}>{level}</option>))}
                     </select>
                 </div>
                 <div className="md:col-span-2">
                     <label htmlFor="dietType" className={formLabelClass}>Diet Goal</label>
-                    <select id="dietType" value={dietType} onChange={(e) => setDietType(e.target.value as DietType)} className={formInputClass}>
+                    <select ref={dietTypeRef} onKeyDown={e => handleKeyDown(e, nextButton2Ref)} id="dietType" value={dietType} onChange={(e) => setDietType(e.target.value as DietType)} className={formInputClass}>
                     {Object.values(DietType).map((type) => (<option key={type} value={type}>{type}</option>))}
                     </select>
                 </div>
@@ -581,7 +717,7 @@ const DietPlanner: React.FC<DietPlannerProps> = ({ isSubscribed, onOpenSubscript
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-fade-in-up">
                 <div className="md:col-span-2">
                     <label htmlFor="preference" className={formLabelClass}>Food Preference</label>
-                    <select id="preference" value={preference} onChange={(e) => setPreference(e.target.value as DietPreference)} className={formInputClass}>
+                    <select ref={preferenceRef} onKeyDown={e => handleKeyDown(e, generateButtonRef)} id="preference" value={preference} onChange={(e) => setPreference(e.target.value as DietPreference)} className={formInputClass}>
                     {Object.values(DietPreference).map((pref) => (<option key={pref} value={pref}>{pref}</option>))}
                     </select>
                 </div>
@@ -637,12 +773,12 @@ const DietPlanner: React.FC<DietPlannerProps> = ({ isSubscribed, onOpenSubscript
 
         <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row-reverse gap-4">
           {step < 3 && (
-            <button onClick={handleNext} className="w-full bg-orange-500 text-white font-bold py-3 px-6 rounded-lg hover:bg-orange-600 transition-all duration-300 active:scale-95 shadow-md">Next Step &rarr;</button>
+            <button ref={step === 1 ? nextButton1Ref : nextButton2Ref} onClick={handleNext} className="w-full bg-orange-500 text-white font-bold py-3 px-6 rounded-lg hover:bg-orange-600 transition-all duration-300 active:scale-95 shadow-md">Next Step &rarr;</button>
           )}
 
           {step === 3 && (
             <div className="flex flex-col sm:flex-row gap-4 w-full">
-                <button onClick={handleGeneratePlan} disabled={isLoading} className="w-full bg-orange-500 text-white font-bold py-3 px-6 rounded-lg hover:bg-orange-600 transition-all duration-300 disabled:bg-orange-300 disabled:cursor-not-allowed flex items-center justify-center space-x-2 shadow-md hover:shadow-lg dark:hover:bg-orange-600 flex-grow active:scale-95">
+                <button ref={generateButtonRef} onClick={handleGeneratePlan} disabled={isLoading} className="w-full bg-orange-500 text-white font-bold py-3 px-6 rounded-lg hover:bg-orange-600 transition-all duration-300 disabled:bg-orange-300 disabled:cursor-not-allowed flex items-center justify-center space-x-2 shadow-md hover:shadow-lg dark:hover:bg-orange-600 flex-grow active:scale-95">
                 {isLoading ? (
                     <><svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg><span>Generating...</span></>
                 ) : ( <span>Generate Diet Plan</span> )}
@@ -729,6 +865,18 @@ const DietPlanner: React.FC<DietPlannerProps> = ({ isSubscribed, onOpenSubscript
                 </label>
               )})}
             </div>
+            
+             {showNotificationPrompt && (
+                <div className="mt-6 p-4 bg-blue-100 dark:bg-blue-900/30 rounded-lg text-center animate-fade-in-up border border-blue-200 dark:border-blue-800">
+                    <h3 className="font-bold text-blue-800 dark:text-blue-200">Stay on Track!</h3>
+                    <p className="text-sm text-blue-700 dark:text-blue-300 my-2">Would you like to receive reminders for your meal times today?</p>
+                    <div className="flex justify-center gap-4 mt-3">
+                        <button onClick={handleEnableNotifications} className="bg-blue-500 text-white font-semibold py-2 px-5 rounded-lg hover:bg-blue-600 transition-all active:scale-95 shadow">Yes, remind me</button>
+                        <button onClick={() => setShowNotificationPrompt(false)} className="bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200 font-semibold py-2 px-5 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500 transition-all active:scale-95">No, thanks</button>
+                    </div>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-3">(Note: Reminders only work if this browser tab remains open)</p>
+                </div>
+            )}
 
             <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
