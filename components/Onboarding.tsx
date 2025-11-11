@@ -211,7 +211,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
                       <button ref={beginButtonRef} onClick={handleBegin} className="w-full bg-orange-500 text-white font-bold py-3 px-6 rounded-lg hover:bg-orange-600 transition-all active:scale-95 shadow-md">Let's Begin &rarr;</button>
                       <button onClick={() => setIsSubscriptionModalOpen(true)} className="w-full bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-bold py-3 px-6 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-all active:scale-95">Redeem Subscription &rarr;</button>
                       <a 
-                          href="https://www.youtube.com/@Obecure" 
+                          href="https://youtube.com/playlist?list=PLNhXSgyaqlx8IaP9dM9AiMXXXdNqs7_ae&si=vCFz1FUbs5R5HtA" 
                           target="_blank" 
                           rel="noopener noreferrer" 
                           className="w-full flex items-center justify-center gap-2 bg-red-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-red-700 transition-all active:scale-95 shadow-md"
