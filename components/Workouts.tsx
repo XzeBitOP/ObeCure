@@ -379,20 +379,6 @@ const Workouts: React.FC = () => {
         setCompletedDuration(0);
     };
 
-    const UniversalTips: React.FC = () => (
-        <div className="mt-8 bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700">
-            <h3 className="text-xl font-bold text-gray-800 dark:text-gray-200 mb-4 text-center">Universal Tips for Fat Loss</h3>
-            <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-sm text-gray-600 dark:text-gray-400">
-                <li className="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg"><strong>Be consistent:</strong> 30–40 min/day, 5 days/week</li>
-                <li className="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg"><strong>Walk 15–20 min</strong> after meals</li>
-                <li className="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg"><strong>Drink 2.5–3 L</strong> water daily</li>
-                <li className="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg"><strong>Eat high protein</strong> (1.2–1.5 g/kg/day)</li>
-                <li className="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg"><strong>Sleep 7–8 hours</strong> every night</li>
-                <li className="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg"><strong>Stay patient</strong> and trust the process</li>
-            </ul>
-        </div>
-    );
-    
     let content;
     switch(view) {
         case 'selector':
@@ -417,8 +403,6 @@ const Workouts: React.FC = () => {
             {toastInfo && <SuccessToast title={toastInfo.title} message={toastInfo.message} quote={toastInfo.quote} onClose={() => setToastInfo(null)} />}
             
             {content}
-            
-            <UniversalTips />
 
             <div className="mt-8 text-center">
                 <button onClick={() => setIsInfoModalOpen(true)} className="bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-bold py-3 px-8 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-all duration-300 shadow-md hover:shadow-lg active:scale-95">

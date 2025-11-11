@@ -231,7 +231,7 @@ export const findSwapMeal = (
     currentPlanMeals: Meal[],
     params: { preference: DietPreference, healthConditions: HealthCondition[], dietType: DietType, mealType: MealType, favoriteMeals?: string[] }
 ): Meal | null => {
-    const { preference, healthConditions, dietType, mealType, favoriteMeals } = params;
+    const { preference, healthConditions, favoriteMeals } = params;
 
     const isRelevant = (meal: OfflineMeal): boolean => {
         const dietMatch = meal.dietPreference.includes(preference);
@@ -239,41 +239,52 @@ export const findSwapMeal = (
         return dietMatch && healthMatch;
     };
 
-    let availableMeals = MEAL_DATABASE.filter(m => m.mealType === mealType && isRelevant(m));
-
+    // 1. Filter all meals based on profile and uniqueness in current plan
     const currentMealRecipes = currentPlanMeals.map(m => m.recipe);
-    availableMeals = availableMeals.filter(m => !currentMealRecipes.includes(m.recipe));
+    const allEligibleMeals = MEAL_DATABASE.filter(m => 
+        isRelevant(m) && 
+        !currentMealRecipes.includes(m.recipe)
+    );
 
-    if (availableMeals.length === 0) return null;
-    
-    let bestFit: OfflineMeal | null = null;
+    if (allEligibleMeals.length === 0) return null;
 
-    // Prioritize favorite swaps
-    const favoriteSwaps = availableMeals.filter(m => favoriteMeals?.includes(m.recipe));
-    if (favoriteSwaps.length > 0) {
-        bestFit = findBestMeal(favoriteSwaps, mealToReplace.calories, 150);
-    }
-    
-    // If no favorite swap was found or fit, search all available meals
-    if (!bestFit) {
-        if (dietType === DietType.HIGH_PROTEIN) {
-            const highProteinSwaps = availableMeals.filter(isHighProtein);
-            if (highProteinSwaps.length > 0) availableMeals = highProteinSwaps;
-        } else if (dietType === DietType.LOW_CARB) {
-            const lowCarbSwaps = availableMeals.filter(isLowCarb);
-            if (lowCarbSwaps.length > 0) availableMeals = lowCarbSwaps;
-        }
-        
-        bestFit = findBestMeal(availableMeals, mealToReplace.calories, 100);
-    }
+    // 2. Separate into favorite and non-favorite lists
+    const favoriteEligibleMeals = allEligibleMeals.filter(m => favoriteMeals?.includes(m.recipe));
+    const nonFavoriteEligibleMeals = allEligibleMeals.filter(m => !favoriteMeals?.includes(m.recipe));
 
+    const calorieTarget = mealToReplace.calories;
+    const calorieVariance = 40;
 
-    if (bestFit) {
+    // 3. Find suitable swaps in favorites first
+    const suitableFavorites = favoriteEligibleMeals.filter(m => 
+        Math.abs(m.calories - calorieTarget) <= calorieVariance
+    );
+
+    if (suitableFavorites.length > 0) {
+        // Pick a random favorite from the suitable list
+        const bestFit = suitableFavorites[Math.floor(Math.random() * suitableFavorites.length)];
         return {
             ...bestFit,
-            time: mealToReplace.time
+            time: mealToReplace.time, // Keep original time
+            mealType: mealToReplace.mealType, // Keep original mealType to maintain the UI slot
         };
     }
+
+    // 4. If no favorite, find suitable swaps in non-favorites
+    const suitableNonFavorites = nonFavoriteEligibleMeals.filter(m => 
+        Math.abs(m.calories - calorieTarget) <= calorieVariance
+    );
     
+    if (suitableNonFavorites.length > 0) {
+        // Pick a random non-favorite from the suitable list
+        const bestFit = suitableNonFavorites[Math.floor(Math.random() * suitableNonFavorites.length)];
+        return {
+            ...bestFit,
+            time: mealToReplace.time,
+            mealType: mealToReplace.mealType,
+        };
+    }
+
+    // 5. If no suitable meal found at all
     return null;
 };

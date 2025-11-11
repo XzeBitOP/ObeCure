@@ -934,7 +934,7 @@ const DietPlanner: React.FC<DietPlannerProps> = ({ isSubscribed, onOpenSubscript
                                     <span className="text-2xl font-bold text-blue-600 dark:text-blue-300 w-12 text-center">{waterGlasses}</span>
                                     <button onClick={() => handleWaterChange(1)} className="w-8 h-8 rounded-full bg-blue-200 dark:bg-blue-700 text-blue-800 dark:text-blue-100 font-bold">+</button>
                                 </div>
-                                <p className="text-xs text-center text-blue-600 dark:text-blue-400 mt-2">({(waterGlasses * 0.25).toFixed(2)} / 2.0 Liters)</p>
+                                <p className="text-xs text-center text-blue-600 dark:text-blue-400 mt-2">({(waterGlasses * 0.25).toFixed(2)} / 3.0 Liters)</p>
                             </div>
 
                             <div className="grid grid-cols-1 gap-3 mb-4">
