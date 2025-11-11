@@ -7,8 +7,8 @@ interface StreakTrackerProps {
 
 const StreakTracker: React.FC<StreakTrackerProps> = ({ streak, quote }) => {
   return (
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 md:px-8 -mt-4 mb-6">
-      <div className="bg-gradient-to-br from-gray-900 to-gray-800 dark:from-slate-800 dark:to-slate-900 text-white rounded-xl shadow-2xl p-6 text-center animate-fade-in-up border border-orange-500/20">
+    <div className="max-w-5xl mx-auto px-4 sm:px-6 md:px-8 mb-6">
+      <div className="bg-gradient-to-br from-gray-900 to-gray-800 dark:from-slate-800 dark:to-slate-900 text-white rounded-xl shadow-2xl p-6 text-center animate-fade-in-up border border-orange-500/20 animate-glowing-orange-border">
         <div className="flex items-center justify-center gap-4">
           <div className="text-7xl animate-flame" style={{ textShadow: '0 0 10px #f97316' }}>🔥</div>
           <div>

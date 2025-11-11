@@ -11,9 +11,13 @@ const LAST_BOT_CHEER_KEY = 'obeCureLastBotCheerTimestamp';
 const BOT_POST_INTERVAL = 4 * 60 * 60 * 1000; // 4 hours
 const BOT_CHEER_INTERVAL = 1 * 60 * 60 * 1000; // 1 hour
 
+const celebrationEmojis = ['🎉', '🥳', '🎊', '✨', '🏅', '🍾', '🏆', '🪄', '🥂'];
+
 const CommunityView: React.FC = () => {
     const [posts, setPosts] = useState<VictoryPost[]>([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [newPostId, setNewPostId] = useState<string | null>(null);
+    const [showCelebration, setShowCelebration] = useState(false);
 
     const runBotActions = useCallback((currentPosts: VictoryPost[]): VictoryPost[] => {
         let updatedPosts = [...currentPosts];
@@ -100,6 +104,13 @@ const CommunityView: React.FC = () => {
         };
         const updatedPosts = [newPost, ...posts].slice(0, 50); // Keep latest 50 posts
         savePosts(updatedPosts);
+
+        // Trigger animations
+        setNewPostId(newPost.id);
+        setShowCelebration(true);
+
+        setTimeout(() => setNewPostId(null), 5000); // Highlight for 5 seconds
+        setTimeout(() => setShowCelebration(false), 2000); // Celebration animation duration
     };
 
     const handleCheer = (postId: string) => {
@@ -152,24 +163,43 @@ const CommunityView: React.FC = () => {
                     posts.map((post, index) => (
                         <div 
                             key={post.id} 
-                            className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-md border border-gray-100 dark:border-gray-700 opacity-0 animate-fade-in-up"
+                            className={`relative overflow-hidden bg-white dark:bg-gray-800 p-4 rounded-xl shadow-md border border-gray-100 dark:border-gray-700 opacity-0 animate-fade-in-up transition-all duration-300 ${post.id === newPostId ? 'animate-glowing-orange-border' : ''}`}
                             style={{ animationDelay: `${index * 70}ms` }}
                         >
-                            <div className="flex justify-between items-start">
-                                <p className="text-gray-700 dark:text-gray-300">
-                                    <span className="font-semibold">Someone</span> celebrated: "{post.text}"
-                                </p>
-                                <span className="text-xs text-gray-400 dark:text-gray-500 shrink-0 ml-2">{timeAgo(post.timestamp)}</span>
+                            <div className="absolute inset-0 pointer-events-none">
+                                {celebrationEmojis.slice(0, 7).map((emoji, i) => (
+                                    <span
+                                        key={i}
+                                        className="absolute text-2xl animate-float-card-emoji"
+                                        style={{
+                                            left: `${Math.random() * 90}%`,
+                                            bottom: '-20px',
+                                            animationDuration: `${Math.random() * 8 + 8}s`,
+                                            animationDelay: `${Math.random() * 12}s`,
+                                        }}
+                                        aria-hidden="true"
+                                    >
+                                        {emoji}
+                                    </span>
+                                ))}
                             </div>
-                            <div className="flex justify-end items-center mt-3">
-                                <button 
-                                    onClick={() => handleCheer(post.id)}
-                                    className="flex items-center gap-2 text-sm font-semibold text-orange-600 dark:text-orange-400 bg-orange-100 dark:bg-orange-900/30 px-3 py-1 rounded-full hover:bg-orange-200 dark:hover:bg-orange-900/50 transition active:scale-95"
-                                >
-                                    <span>🎉</span>
-                                    <span>Cheer</span>
-                                    {post.cheers > 0 && <span className="font-bold">{post.cheers}</span>}
-                                </button>
+                            <div className="relative z-10">
+                                <div className="flex justify-between items-start">
+                                    <p className="text-gray-700 dark:text-gray-300">
+                                        <span className="font-semibold">Someone</span> celebrated: "{post.text}"
+                                    </p>
+                                    <span className="text-xs text-gray-400 dark:text-gray-500 shrink-0 ml-2">{timeAgo(post.timestamp)}</span>
+                                </div>
+                                <div className="flex justify-end items-center mt-3">
+                                    <button 
+                                        onClick={() => handleCheer(post.id)}
+                                        className="flex items-center gap-2 text-sm font-semibold text-orange-600 dark:text-orange-400 bg-orange-100 dark:bg-orange-900/30 px-3 py-1 rounded-full hover:bg-orange-200 dark:hover:bg-orange-900/50 transition active:scale-95"
+                                    >
+                                        <span>🎉</span>
+                                        <span>Cheer</span>
+                                        {post.cheers > 0 && <span className="font-bold">{post.cheers}</span>}
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     ))
@@ -180,6 +210,26 @@ const CommunityView: React.FC = () => {
                     </div>
                 )}
             </div>
+            
+            {showCelebration && (
+                <div className="fixed bottom-24 right-8 z-20 pointer-events-none">
+                    {celebrationEmojis.map((emoji, index) => (
+                        <span
+                            key={index}
+                            className="absolute text-3xl animate-float-celebrate"
+                            style={{
+                                left: `${Math.random() * 80 - 40}px`,
+                                bottom: `${Math.random() * 20}px`,
+                                animationDuration: `${Math.random() * 1.5 + 1}s`, // 1s to 2.5s
+                                animationDelay: `${Math.random() * 0.3}s`,
+                            }}
+                            aria-hidden="true"
+                        >
+                            {emoji}
+                        </span>
+                    ))}
+                </div>
+            )}
 
             <button
                 onClick={() => setIsModalOpen(true)}

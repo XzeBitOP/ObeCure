@@ -3,6 +3,7 @@ import SubscriptionModal from './SubscriptionModal';
 import CongratulationsModal from './CongratulationsModal';
 import { Sex } from '../types';
 import { YouTubeIcon } from './icons/YouTubeIcon';
+import { submitToGoogleForm } from '../services/googleFormSubmit';
 
 const motivationalQuotes = [
     "You don’t need to be perfect — just persistent.",
@@ -101,6 +102,11 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
         focusAndScroll(ageRef);
         return;
     }
+    if (!formData.phone) {
+        alert("Please fill in your phone number to begin.");
+        focusAndScroll(phoneRef);
+        return;
+    }
     if (!formData.patientWeight) {
         alert("Please fill in your current weight to begin.");
         focusAndScroll(patientWeightRef);
@@ -118,6 +124,10 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
     prefsToSave = { ...prefsToSave, ...formData };
     
     localStorage.setItem(USER_PREFERENCES_KEY, JSON.stringify(prefsToSave));
+
+    // Submit data to Google Form in the background
+    submitToGoogleForm(prefsToSave);
+    
     onComplete();
   };
 
@@ -198,8 +208,8 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
                           </div>
                       </div>
                       <div>
-                          <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Phone Number</label>
-                          <input ref={phoneRef} onKeyDown={e => handleKeyDown(e, patientWeightRef)} type="tel" name="phone" value={formData.phone} onChange={handleInputChange} placeholder="Optional" className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-orange-400" />
+                          <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Phone Number*</label>
+                          <input ref={phoneRef} onKeyDown={e => handleKeyDown(e, patientWeightRef)} type="tel" name="phone" value={formData.phone} onChange={handleInputChange} placeholder="e.g., 9876543210" required className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-orange-400" />
                       </div>
                       <div>
                           <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Current Weight (kg)*</label>

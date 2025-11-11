@@ -18,6 +18,8 @@ import { OBE_CURE_SPECIAL_MEALS } from '../data/specialMeals';
 import { WaterIcon } from './icons/WaterIcon';
 import { HeartIcon } from './icons/HeartIcon';
 import LogMealModal from './LogMealModal';
+import { HistoryIcon } from './icons/HistoryIcon';
+import MealHistoryModal from './MealHistoryModal';
 
 
 const USER_PREFERENCES_KEY = 'obeCureUserPreferences';
@@ -27,6 +29,7 @@ const FASTING_DATA_KEY = 'obeCureFastingData';
 const WATER_INTAKE_KEY = 'obeCureWaterIntake';
 const FAVORITE_MEALS_KEY = 'obeCureFavoriteMeals';
 const MANUAL_MEAL_LOG_KEY = 'obeCureManualMealLog';
+const DIET_PLAN_KEY = 'obeCureDailyDietPlan';
 
 
 // FIX: Add missing getActivityFactor function
@@ -43,9 +46,11 @@ const getActivityFactor = (level: ActivityLevel): number => {
 interface DietPlannerProps {
   isSubscribed: boolean;
   onOpenSubscriptionModal: () => void;
+  dietPlan: DietPlan | null;
+  setDietPlan: (plan: DietPlan | null) => void;
 }
 
-const DietPlanner: React.FC<DietPlannerProps> = ({ isSubscribed, onOpenSubscriptionModal }) => {
+const DietPlanner: React.FC<DietPlannerProps> = ({ isSubscribed, onOpenSubscriptionModal, dietPlan, setDietPlan }) => {
   const [step, setStep] = useState(1);
   const [patientName, setPatientName] = useState<string>('');
   const [patientWeight, setPatientWeight] = useState<string>('');
@@ -65,13 +70,13 @@ const DietPlanner: React.FC<DietPlannerProps> = ({ isSubscribed, onOpenSubscript
   const [fastingEndHour, setFastingEndHour] = useState<string>('6');
   const [fastingEndPeriod, setFastingEndPeriod] = useState<string>('PM');
 
-  const [dietPlan, setDietPlan] = useState<DietPlan | null>(null);
   const [drKenilsNote, setDrKenilsNote] = useState<DrKenilsNote | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [estimatedDuration, setEstimatedDuration] = useState<number | null>(null);
 
   const [checkedMeals, setCheckedMeals] = useState<Record<string, boolean>>({});
+  const [expandedMealIndex, setExpandedMealIndex] = useState<number | null>(null);
   const [waterGlasses, setWaterGlasses] = useState<number>(0);
   const [toastInfo, setToastInfo] = useState<{ title: string; message: string; quote: string; } | null>(null);
   const [isLogging, setIsLogging] = useState(false);
@@ -80,6 +85,7 @@ const DietPlanner: React.FC<DietPlannerProps> = ({ isSubscribed, onOpenSubscript
   const [showNotificationPrompt, setShowNotificationPrompt] = useState(false);
   const [favoriteMeals, setFavoriteMeals] = useState<string[]>([]);
   const [isLogMealModalOpen, setIsLogMealModalOpen] = useState(false);
+  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
 
   const timerIdsRef = useRef<number[]>([]);
   
@@ -171,6 +177,23 @@ const DietPlanner: React.FC<DietPlannerProps> = ({ isSubscribed, onOpenSubscript
       console.error("Failed to parse data from localStorage", e);
     }
   }, []);
+  
+    useEffect(() => {
+        if (dietPlan) {
+            // When a new plan is loaded, initialize all meals as checked
+            // but don't overwrite existing checked state for meals that are still in the plan
+            setCheckedMeals(prev => {
+                const newCheckedState = { ...prev };
+                dietPlan.meals.forEach(meal => {
+                    // If a meal is new to the checked state object, default it to checked.
+                    if (newCheckedState[meal.recipe] === undefined) {
+                        newCheckedState[meal.recipe] = true;
+                    }
+                });
+                return newCheckedState;
+            });
+        }
+    }, [dietPlan]);
 
   useEffect(() => {
     const prefsToSave = {
@@ -410,8 +433,8 @@ const DietPlanner: React.FC<DietPlannerProps> = ({ isSubscribed, onOpenSubscript
   const handleGeneratePlan = () => {
     setIsLoading(true);
     setError(null);
-    setDietPlan(null);
     setDrKenilsNote(null);
+    setExpandedMealIndex(null);
 
     setTimeout(() => {
         try {
@@ -424,11 +447,12 @@ const DietPlanner: React.FC<DietPlannerProps> = ({ isSubscribed, onOpenSubscript
               return;
             }
             setDietPlan(plan);
-            const initialCheckedState = plan.meals.reduce((acc, meal) => {
-                acc[meal.name] = true;
-                return acc;
-            }, {} as Record<string, boolean>);
-            setCheckedMeals(initialCheckedState);
+            const planDataToSave = {
+                date: new Date().toISOString().split('T')[0],
+                plan: plan,
+            };
+            localStorage.setItem(DIET_PLAN_KEY, JSON.stringify(planDataToSave));
+
             const randomNote = drKenilsNotes[Math.floor(Math.random() * drKenilsNotes.length)];
             setDrKenilsNote(randomNote);
             const weightNum = parseFloat(patientWeight);
@@ -474,8 +498,8 @@ const DietPlanner: React.FC<DietPlannerProps> = ({ isSubscribed, onOpenSubscript
     }, 5000);
   };
 
-  const handleMealCheckChange = (mealName: string) => {
-    setCheckedMeals(prev => ({ ...prev, [mealName]: !prev[mealName] }));
+  const handleMealCheckChange = (mealRecipe: string) => {
+    setCheckedMeals(prev => ({ ...prev, [mealRecipe]: !prev[mealRecipe] }));
   };
 
   const handleToggleFavorite = (meal: Meal) => {
@@ -523,13 +547,13 @@ const DietPlanner: React.FC<DietPlannerProps> = ({ isSubscribed, onOpenSubscript
         const existingLogsRaw = localStorage.getItem(MANUAL_MEAL_LOG_KEY);
         let existingLogs: CustomMealLogEntry[] = existingLogsRaw ? JSON.parse(existingLogsRaw) : [];
         
-        // Filter out old data to only keep today's logs
-        const todayStr = new Date().toISOString().split('T')[0];
-        const todaysLogs = existingLogs.filter(log => log.date === todayStr);
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+        const sevenDaysAgoStr = sevenDaysAgo.toISOString().split('T')[0];
 
-        todaysLogs.push(newEntry);
+        const updatedLogs = [...existingLogs, newEntry].filter(log => log.date >= sevenDaysAgoStr);
         
-        localStorage.setItem(MANUAL_MEAL_LOG_KEY, JSON.stringify(todaysLogs));
+        localStorage.setItem(MANUAL_MEAL_LOG_KEY, JSON.stringify(updatedLogs));
 
         setToastInfo({ title: "Meal Logged!", message: `${mealName} has been added to your daily log.`, quote: "Every entry is a step toward awareness." });
       } catch (e) {
@@ -545,11 +569,11 @@ const DietPlanner: React.FC<DietPlannerProps> = ({ isSubscribed, onOpenSubscript
     setLogSuccess(false);
     
     setTimeout(() => {
-        const eatenMeals = dietPlan.meals.filter(meal => checkedMeals[meal.name]);
+        const todayStr = new Date().toISOString().split('T')[0];
+        const eatenMeals = dietPlan.meals.filter(meal => checkedMeals[meal.recipe] ?? true);
         const loggedMealsCalories = eatenMeals.reduce((sum, meal) => sum + meal.calories, 0);
         
         const customMealsRaw = localStorage.getItem(MANUAL_MEAL_LOG_KEY);
-        const todayStr = new Date().toISOString().split('T')[0];
         let customCaloriesToday = 0;
         if (customMealsRaw) {
             try {
@@ -570,8 +594,18 @@ const DietPlanner: React.FC<DietPlannerProps> = ({ isSubscribed, onOpenSubscript
             targetCalories: dietPlan.totalCalories 
         };
 
-        // Overwrite history with only today's entry
-        localStorage.setItem(DAILY_INTAKE_KEY, JSON.stringify([newIntakeEntry]));
+        try {
+            const existingIntakeRaw = localStorage.getItem(DAILY_INTAKE_KEY);
+            let existingIntake: DailyIntake[] = existingIntakeRaw ? JSON.parse(existingIntakeRaw) : [];
+            const filteredIntake = existingIntake.filter(entry => entry.date !== todayStr);
+            
+            const sevenDaysAgo = new Date();
+            sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+            const sevenDaysAgoStr = sevenDaysAgo.toISOString().split('T')[0];
+
+            const updatedIntake = [newIntakeEntry, ...filteredIntake].filter(entry => entry.date >= sevenDaysAgoStr);
+            localStorage.setItem(DAILY_INTAKE_KEY, JSON.stringify(updatedIntake));
+        } catch(e) { console.error("Could not save daily intake", e) }
         
         setIsLogging(false);
         setLogSuccess(true);
@@ -619,11 +653,17 @@ const DietPlanner: React.FC<DietPlannerProps> = ({ isSubscribed, onOpenSubscript
                 fat: totals.fat + meal.macros.fat,
             }), { protein: 0, carbohydrates: 0, fat: 0 });
             
-            setDietPlan({
+            const newPlan = {
                 meals: newMeals,
                 totalCalories: newTotalCalories,
                 totalMacros: newTotalMacros
-            });
+            };
+            setDietPlan(newPlan);
+            const planDataToSave = {
+                date: new Date().toISOString().split('T')[0],
+                plan: newPlan,
+            };
+            localStorage.setItem(DIET_PLAN_KEY, JSON.stringify(planDataToSave));
         } else {
              setToastInfo({ title: "No Swap Found", message: "Could not find a suitable alternative meal for your criteria. Try again later!", quote: "Variety is the spice of life, but consistency is the main course." });
         }
@@ -695,6 +735,10 @@ const DietPlanner: React.FC<DietPlannerProps> = ({ isSubscribed, onOpenSubscript
             isOpen={isLogMealModalOpen} 
             onClose={() => setIsLogMealModalOpen(false)} 
             onLog={handleLogCustomMeal} 
+        />
+        <MealHistoryModal
+            isOpen={isHistoryModalOpen}
+            onClose={() => setIsHistoryModalOpen(false)}
         />
       <div ref={formContainerRef} className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 scroll-mt-20">
         <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 dark:text-gray-200 text-center">{plannerTitle}</h1>
@@ -881,8 +925,13 @@ const DietPlanner: React.FC<DietPlannerProps> = ({ isSubscribed, onOpenSubscript
                             {dietPlan.meals.map((meal, index) => {
                                 const Icon = getMealIcon(meal.time);
                                 const isSpecial = meal.name.includes('Special');
+                                const isExpanded = expandedMealIndex === index;
                                 return (
-                                <div key={index} className={`relative p-4 rounded-lg shadow-sm border-l-4 transition-all duration-300 ${isSpecial ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-400' : 'bg-gray-50 dark:bg-gray-700/50 border-gray-300 dark:border-gray-600'}`}>
+                                <div 
+                                    key={index} 
+                                    onClick={() => setExpandedMealIndex(isExpanded ? null : index)}
+                                    className={`relative p-6 rounded-lg shadow-sm border-l-4 transition-all duration-300 cursor-pointer ${isSpecial ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-400' : 'bg-gray-50 dark:bg-gray-700/50 border-gray-300 dark:border-gray-600'}`}
+                                >
                                     <div className="flex items-start">
                                         <div className="mr-4 mt-1">
                                             <Icon className={`w-6 h-6 ${isSpecial ? 'text-amber-500' : 'text-gray-500'}`} />
@@ -901,21 +950,26 @@ const DietPlanner: React.FC<DietPlannerProps> = ({ isSubscribed, onOpenSubscript
                                             </div>
                                         </div>
                                     </div>
-                                    <div className="absolute top-2 right-2 flex items-center gap-1">
-                                       <button onClick={() => handleToggleFavorite(meal)} title={favoriteMeals.includes(meal.recipe) ? 'Remove from favorites' : 'Add to favorites'}>
-                                           <HeartIcon isFavorite={favoriteMeals.includes(meal.recipe)} className="w-5 h-5 text-gray-400 hover:text-red-500 transition-colors" />
-                                       </button>
-                                       <button onClick={() => handleSwapMeal(index)} title="Swap this meal">
-                                           <SwapIcon className="w-5 h-5 text-gray-400 hover:text-orange-500 transition-colors"/>
-                                       </button>
-                                        <input type="checkbox" checked={!!checkedMeals[meal.name]} onChange={() => handleMealCheckChange(meal.name)} className="h-4 w-4 rounded border-gray-300 text-orange-500 focus:ring-orange-400 ml-1"/>
-                                    </div>
+                                    {isExpanded && (
+                                        <div 
+                                            className="absolute top-2 right-2 flex items-center gap-1 animate-fade-in"
+                                            onClick={(e) => e.stopPropagation()}
+                                        >
+                                           <button onClick={() => handleToggleFavorite(meal)} title={favoriteMeals.includes(meal.recipe) ? 'Remove from favorites' : 'Add to favorites'}>
+                                               <HeartIcon isFavorite={favoriteMeals.includes(meal.recipe)} className="w-5 h-5 text-gray-400 hover:text-red-500 transition-colors" />
+                                           </button>
+                                           <button onClick={() => handleSwapMeal(index)} title="Swap this meal">
+                                               <SwapIcon className="w-5 h-5 text-gray-400 hover:text-orange-500 transition-colors"/>
+                                           </button>
+                                            <input type="checkbox" checked={checkedMeals[meal.recipe] ?? true} onChange={() => handleMealCheckChange(meal.recipe)} className="h-4 w-4 rounded border-gray-300 text-orange-500 focus:ring-orange-400 ml-1"/>
+                                        </div>
+                                    )}
                                 </div>
                             )})}
                         </div>
                     </div>
                     <div>
-                         <div className="sticky top-20">
+                         <div className="sticky top-20 z-10">
                              <div className="p-4 bg-orange-50 dark:bg-orange-900/20 rounded-lg border border-orange-200 dark:border-orange-800 text-center mb-4">
                                 <h4 className="font-bold text-orange-800 dark:text-orange-200">Total Intake</h4>
                                 <p className="text-3xl font-bold text-orange-600 dark:text-orange-400">{dietPlan.totalCalories} kcal</p>
@@ -937,8 +991,12 @@ const DietPlanner: React.FC<DietPlannerProps> = ({ isSubscribed, onOpenSubscript
                                 <p className="text-xs text-center text-blue-600 dark:text-blue-400 mt-2">({(waterGlasses * 0.25).toFixed(2)} / 3.0 Liters)</p>
                             </div>
 
-                            <div className="grid grid-cols-1 gap-3 mb-4">
+                            <div className="grid grid-cols-2 gap-3 mb-4">
                                <button onClick={() => setIsLogMealModalOpen(true)} className="p-3 bg-gray-100 dark:bg-gray-700 rounded-lg font-semibold text-gray-700 dark:text-gray-200 text-sm hover:bg-gray-200 dark:hover:bg-gray-600 transition">Log Other Food</button>
+                               <button onClick={() => setIsHistoryModalOpen(true)} className="p-3 bg-gray-100 dark:bg-gray-700 rounded-lg font-semibold text-gray-700 dark:text-gray-200 text-sm hover:bg-gray-200 dark:hover:bg-gray-600 transition flex items-center justify-center gap-2">
+                                    <HistoryIcon className="w-5 h-5" />
+                                    <span>Log History</span>
+                                </button>
                             </div>
 
                              <button onClick={handleLogIntake} disabled={isLogging || logSuccess} className="w-full bg-green-500 text-white font-bold py-3 px-4 rounded-lg hover:bg-green-600 transition-all flex items-center justify-center space-x-2 disabled:bg-green-300">

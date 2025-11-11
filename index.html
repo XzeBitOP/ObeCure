@@ -115,7 +115,53 @@
       .animate-glowing-body {
         animation: glowing-body 4s ease-in-out infinite;
       }
+
+      /* --- New Animations --- */
+      @keyframes glowing-orange-border {
+        0%, 100% {
+            box-shadow: 0 0 5px #fbbf24, 0 0 10px #f97316, inset 0 0 5px #fbbf24;
+            border-color: #fbbf24;
+        }
+        50% {
+            box-shadow: 0 0 15px #fbbf24, 0 0 25px #f97316, inset 0 0 10px #f97316;
+            border-color: #f59e0b;
+        }
+      }
+      .animate-glowing-orange-border {
+          animation: glowing-orange-border 3s ease-in-out infinite;
+      }
+
+      @keyframes float-celebrate {
+        from {
+          transform: translateY(0) rotate(0deg) scale(1);
+          opacity: 1;
+        }
+        to {
+          transform: translateY(-200px) rotate(180deg) scale(0.5);
+          opacity: 0;
+        }
+      }
+      .animate-float-celebrate {
+          animation: float-celebrate 2s ease-out forwards;
+      }
       
+      @keyframes float-card-emoji {
+        from {
+            transform: translateY(10px) rotate(0deg);
+            opacity: 0;
+        }
+        15%, 85% {
+            opacity: 0.7;
+        }
+        to {
+            transform: translateY(-150px) rotate(360deg);
+            opacity: 0;
+        }
+      }
+      .animate-float-card-emoji {
+          animation: float-card-emoji linear infinite;
+      }
+
       /* --- Streak Animations --- */
        @keyframes flame-flicker {
         0%, 100% { transform: scale(1) rotate(-1deg); opacity: 1; }

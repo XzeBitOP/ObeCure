@@ -21,12 +21,14 @@ import { UsersIcon } from './components/icons/UsersIcon';
 import StreakTracker from './components/StreakTracker';
 import { motivationalLines } from './data/motivationalLines';
 import SubscriptionLock from './components/SubscriptionLock';
+import { DietPlan } from './types';
 
 type View = 'planner' | 'ayurveda' | 'workouts' | 'progress' | 'community';
 
 const USER_PREFERENCES_KEY = 'obeCureUserPreferences';
 const SUBSCRIPTION_KEY = 'obeCureSubscriptionExpiry';
 const STREAK_KEY = 'obeCureLoginStreak';
+const DIET_PLAN_KEY = 'obeCureDailyDietPlan';
 
 const products = [
   {
@@ -82,6 +84,7 @@ const App: React.FC = () => {
     });
 
   const [view, setView] = useState<View>('planner');
+  const [dietPlan, setDietPlan] = useState<DietPlan | null>(null);
   const [showDisclaimer, setShowDisclaimer] = useState<boolean>(true);
   const [isLogSleepModalOpen, setIsLogSleepModalOpen] = useState(false);
   const [isProgressModalOpen, setIsProgressModalOpen] = useState(false);
@@ -152,6 +155,23 @@ const App: React.FC = () => {
     // Set daily quote
     const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000);
     setDailyQuote(motivationalLines[dayOfYear % motivationalLines.length]);
+
+    // Load diet plan for today
+    try {
+        const planDataRaw = localStorage.getItem(DIET_PLAN_KEY);
+        if (planDataRaw) {
+            const planData = JSON.parse(planDataRaw);
+            const today = new Date().toISOString().split('T')[0];
+            if (planData.date === today && planData.plan) {
+                setDietPlan(planData.plan);
+            } else {
+                // It's a new day, clear the old plan
+                localStorage.removeItem(DIET_PLAN_KEY);
+            }
+        }
+    } catch (e) {
+        console.error("Failed to load diet plan from storage", e);
+    }
   }, []);
 
   useEffect(() => {
@@ -398,7 +418,7 @@ const App: React.FC = () => {
             </>
         </div>
 
-        {view === 'planner' && <DietPlanner isSubscribed={isSubscribed} onOpenSubscriptionModal={handleOpenSubscriptionModal} />}
+        {view === 'planner' && <DietPlanner dietPlan={dietPlan} setDietPlan={setDietPlan} isSubscribed={isSubscribed} onOpenSubscriptionModal={handleOpenSubscriptionModal} />}
         {view === 'ayurveda' && (
             isSubscribed ?
             <BioAdaptivePlanner /> :
