@@ -32,7 +32,7 @@ const DisclaimerModal: React.FC<DisclaimerModalProps> = ({ isOpen, onClose }) =>
             </h2>
         </div>
         <p className="text-gray-600 dark:text-gray-400 mb-6">
-          This application provides AI-generated diet and workout suggestions. It is not a substitute for professional medical advice, diagnosis, or treatment. Always seek the advice of your physician or another qualified health provider with any questions you may have regarding a medical condition.
+          This application provides BioAdaptive engine generated diet and workout suggestions. It is not a substitute for professional medical advice, diagnosis, or treatment. Always seek the advice of your physician or another qualified health provider with any questions you may have regarding a medical condition.
         </p>
         <button
           onClick={onClose}

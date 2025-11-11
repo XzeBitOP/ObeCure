@@ -1,7 +1,10 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { DailyPlan, UserProfile, Sku } from '../../types';
 import { EditIcon } from '../icons/EditIcon';
 import { WhatsAppIcon } from '../icons/WhatsAppIcon';
+import * as repository from '../../bioadaptive/repository';
+import SuccessToast from '../SuccessToast';
+import { motivationalQuotes } from '../../data/quotes';
 
 interface DailyPlanViewProps {
     plan: DailyPlan;
@@ -34,7 +37,14 @@ const ScoreDisplay: React.FC<{label: string, value: number}> = ({label, value}) 
 
 
 const DailyPlanView: React.FC<DailyPlanViewProps> = ({ plan, user, onEditBaseline, onNewCheckin }) => {
-    
+    const [isAcknowledged, setIsAcknowledged] = useState(false);
+    const [toastInfo, setToastInfo] = useState<{ title: string; message: string; quote: string; } | null>(null);
+
+    useEffect(() => {
+        const acknowledged = repository.isPlanAcknowledged(plan.date);
+        setIsAcknowledged(acknowledged);
+    }, [plan.date]);
+
     const handleShare = () => {
         let shareText = `*ObeCure BioAdaptive Plan*\n\n`;
         shareText += `*Date:* ${new Date(plan.date + 'T00:00:00').toLocaleDateString('en-GB')}\n`;
@@ -60,10 +70,21 @@ const DailyPlanView: React.FC<DailyPlanViewProps> = ({ plan, user, onEditBaselin
         const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(shareText)}`;
         window.open(whatsappUrl, '_blank');
     };
+
+    const handleAcknowledge = () => {
+        repository.logPlanAcknowledgement(plan.date);
+        setIsAcknowledged(true);
+        setToastInfo({
+            title: "Plan Logged!",
+            message: "Your daily scores and plan are saved. Stay consistent!",
+            quote: motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)],
+        });
+    };
     
     return (
-        <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 animate-fade-in-up">
-            <div className="flex justify-between items-start mb-4">
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700">
+            {toastInfo && <SuccessToast {...toastInfo} onClose={() => setToastInfo(null)} />}
+            <div className="flex justify-between items-start mb-4 opacity-0 animate-fade-in-up">
                 <div>
                     <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-200">Your Plan for Today</h2>
                     <p className="text-sm text-gray-500 dark:text-gray-400">{new Date(plan.date + 'T00:00:00').toLocaleDateString('en-GB', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
@@ -78,7 +99,7 @@ const DailyPlanView: React.FC<DailyPlanViewProps> = ({ plan, user, onEditBaselin
                 </div>
             </div>
 
-            <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg mb-6">
+            <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg mb-6 opacity-0 animate-fade-in-up" style={{ animationDelay: '100ms' }}>
                 <h3 className="font-bold text-center mb-3 text-gray-700 dark:text-gray-300">Your Metabolic Scores</h3>
                 <div className="grid grid-cols-5 gap-4">
                     <ScoreDisplay label="Gut Load" value={plan.scores.GLS} />
@@ -89,7 +110,7 @@ const DailyPlanView: React.FC<DailyPlanViewProps> = ({ plan, user, onEditBaselin
                 </div>
             </div>
 
-            <div className="text-center mb-6">
+            <div className="text-center mb-6 opacity-0 animate-fade-in-up" style={{ animationDelay: '200ms' }}>
                 <h3 className="font-bold text-gray-700 dark:text-gray-300">Today's Phenotype</h3>
                 <p className="text-xl font-semibold text-orange-600 dark:text-orange-400">
                     {plan.phenotype.primary}
@@ -98,8 +119,12 @@ const DailyPlanView: React.FC<DailyPlanViewProps> = ({ plan, user, onEditBaselin
             </div>
 
             <div className="space-y-4">
-                {plan.plan.map(item => (
-                    <div key={item.sku} className={`p-4 rounded-lg border-l-4 ${SKU_COLORS[item.sku].bg} ${SKU_COLORS[item.sku].border}`}>
+                {plan.plan.map((item, index) => (
+                    <div 
+                        key={item.sku} 
+                        className={`p-4 rounded-lg border-l-4 opacity-0 animate-fade-in-up ${SKU_COLORS[item.sku].bg} ${SKU_COLORS[item.sku].border}`}
+                        style={{ animationDelay: `${300 + index * 100}ms` }}
+                    >
                         <div className="flex justify-between items-start">
                              <div>
                                 <h4 className={`font-bold text-lg ${SKU_COLORS[item.sku].text}`}>{item.sku}®</h4>
@@ -113,7 +138,7 @@ const DailyPlanView: React.FC<DailyPlanViewProps> = ({ plan, user, onEditBaselin
             </div>
 
             {plan.notes.length > 0 && (
-                 <div className="mt-6">
+                 <div className="mt-6 opacity-0 animate-fade-in-up" style={{ animationDelay: `${300 + plan.plan.length * 100}ms` }}>
                     <h4 className="font-bold text-gray-700 dark:text-gray-300 mb-2">Doctor's Notes</h4>
                     <ul className="list-disc list-inside space-y-1 text-sm text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg">
                         {plan.notes.map((note, i) => <li key={i}>{note}</li>)}
@@ -121,10 +146,16 @@ const DailyPlanView: React.FC<DailyPlanViewProps> = ({ plan, user, onEditBaselin
                 </div>
             )}
             
-            <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
-                <button onClick={onNewCheckin} className="w-full bg-orange-500 text-white font-bold py-3 px-6 rounded-lg hover:bg-orange-600 transition-all active:scale-95 shadow-md">
-                    Update Today's Check-in
-                </button>
+             <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
+                {isAcknowledged ? (
+                    <button onClick={onNewCheckin} className="w-full bg-orange-500 text-white font-bold py-3 px-6 rounded-lg hover:bg-orange-600 transition-all active:scale-95 shadow-md">
+                        Update Today's Check-in
+                    </button>
+                ) : (
+                    <button onClick={handleAcknowledge} className="w-full bg-green-500 text-white font-bold py-3 px-6 rounded-lg hover:bg-green-600 transition-all active:scale-95 shadow-md">
+                        Log & Acknowledge Today's Plan
+                    </button>
+                )}
             </div>
         </div>
     )

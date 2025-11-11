@@ -16,6 +16,7 @@ export interface GenerateDietPlanParams {
   dietType: DietType;
   fastingStartTime: string;
   fastingEndTime: string;
+  favoriteMeals?: string[];
 }
 
 const getActivityFactor = (level: ActivityLevel): number => {
@@ -163,7 +164,21 @@ export const generateOfflineDietPlan = (
         const slotCalorieTarget = remainingCalories / (numRemainingSlots > 0 ? numRemainingSlots : 1);
         
         const slotMeals = filteredForVariety.filter(m => m.mealType === slot && !usedMealIdsInPlan.includes(m.id));
-        const bestMeal = findBestMeal(slotMeals, slotCalorieTarget, dietType === DietType.WEIGHT_GAIN ? 200 : 150);
+        
+        // Prioritize favorites
+        const favoriteSlotMeals = slotMeals.filter(m => params.favoriteMeals?.includes(m.recipe));
+        let bestMeal: OfflineMeal | null = null;
+        
+        // 70% chance to pick a favorite if available
+        if (favoriteSlotMeals.length > 0 && Math.random() < 0.7) {
+            bestMeal = findBestMeal(favoriteSlotMeals, slotCalorieTarget, dietType === DietType.WEIGHT_GAIN ? 250 : 200);
+        }
+        
+        // If no favorite was chosen, find the best from all available
+        if (!bestMeal) {
+            bestMeal = findBestMeal(slotMeals, slotCalorieTarget, dietType === DietType.WEIGHT_GAIN ? 200 : 150);
+        }
+
 
         if (bestMeal) {
             let time: string;
@@ -214,9 +229,9 @@ export const generateOfflineDietPlan = (
 export const findSwapMeal = (
     mealToReplace: Meal,
     currentPlanMeals: Meal[],
-    params: { preference: DietPreference, healthConditions: HealthCondition[], dietType: DietType, mealType: MealType }
+    params: { preference: DietPreference, healthConditions: HealthCondition[], dietType: DietType, mealType: MealType, favoriteMeals?: string[] }
 ): Meal | null => {
-    const { preference, healthConditions, dietType, mealType } = params;
+    const { preference, healthConditions, dietType, mealType, favoriteMeals } = params;
 
     const isRelevant = (meal: OfflineMeal): boolean => {
         const dietMatch = meal.dietPreference.includes(preference);
@@ -230,16 +245,28 @@ export const findSwapMeal = (
     availableMeals = availableMeals.filter(m => !currentMealRecipes.includes(m.recipe));
 
     if (availableMeals.length === 0) return null;
+    
+    let bestFit: OfflineMeal | null = null;
 
-    if (dietType === DietType.HIGH_PROTEIN) {
-        const highProteinSwaps = availableMeals.filter(isHighProtein);
-        if (highProteinSwaps.length > 0) availableMeals = highProteinSwaps;
-    } else if (dietType === DietType.LOW_CARB) {
-        const lowCarbSwaps = availableMeals.filter(isLowCarb);
-        if (lowCarbSwaps.length > 0) availableMeals = lowCarbSwaps;
+    // Prioritize favorite swaps
+    const favoriteSwaps = availableMeals.filter(m => favoriteMeals?.includes(m.recipe));
+    if (favoriteSwaps.length > 0) {
+        bestFit = findBestMeal(favoriteSwaps, mealToReplace.calories, 150);
     }
     
-    const bestFit = findBestMeal(availableMeals, mealToReplace.calories, 100);
+    // If no favorite swap was found or fit, search all available meals
+    if (!bestFit) {
+        if (dietType === DietType.HIGH_PROTEIN) {
+            const highProteinSwaps = availableMeals.filter(isHighProtein);
+            if (highProteinSwaps.length > 0) availableMeals = highProteinSwaps;
+        } else if (dietType === DietType.LOW_CARB) {
+            const lowCarbSwaps = availableMeals.filter(isLowCarb);
+            if (lowCarbSwaps.length > 0) availableMeals = lowCarbSwaps;
+        }
+        
+        bestFit = findBestMeal(availableMeals, mealToReplace.calories, 100);
+    }
+
 
     if (bestFit) {
         return {

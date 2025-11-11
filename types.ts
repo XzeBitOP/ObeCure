@@ -111,9 +111,27 @@ export interface LoggedMeal {
 export interface DailyIntake {
   date: string; // YYYY-MM-DD
   loggedMeals: LoggedMeal[];
-  otherCalories: number;
+  otherCalories: number; // This will now be populated by summing custom meals
   totalIntake: number;
   targetCalories: number;
+}
+
+export interface CustomMealLogEntry {
+    id: string;
+    date: string; // YYYY-MM-DD
+    mealType: MealType;
+    name: string;
+    calories: number;
+    timestamp: string; // ISO string for precise time
+}
+
+
+export interface VictoryPost {
+    id: string;
+    type: 'NSV'; // Non-Scale Victory
+    text: string;
+    cheers: number;
+    timestamp: string;
 }
 
 

@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { UserProfile, DailyCheckin, DailyPlan } from '../../types';
 import * as repository from '../../bioadaptive/repository';
@@ -8,15 +9,15 @@ import BaselineForm from './BaselineForm';
 import DailyCheckinForm from './DailyCheckinForm';
 import DailyPlanView from './DailyPlanView';
 import { LeafIcon } from '../icons/LeafIcon';
+import GeneratingBioPlan from './GeneratingBioPlan';
 
 interface BioAdaptivePlannerProps {
-    isSubscribed: boolean;
-    onOpenSubscriptionModal: () => void;
+    // No subscription props needed anymore
 }
 
 type ViewState = 'loading' | 'needs_baseline' | 'needs_checkin' | 'show_plan';
 
-const BioAdaptivePlanner: React.FC<BioAdaptivePlannerProps> = ({ isSubscribed, onOpenSubscriptionModal }) => {
+const BioAdaptivePlanner: React.FC<BioAdaptivePlannerProps> = () => {
     const [viewState, setViewState] = useState<ViewState>('loading');
     const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
     const [todaysPlan, setTodaysPlan] = useState<DailyPlan | null>(null);
@@ -74,7 +75,7 @@ const BioAdaptivePlanner: React.FC<BioAdaptivePlannerProps> = ({ isSubscribed, o
             } finally {
                 setIsProcessing(false);
             }
-        }, 2500);
+        }, 3500); // Increased duration for the new animation
     };
     
     const handleEditBaseline = () => {
@@ -86,36 +87,9 @@ const BioAdaptivePlanner: React.FC<BioAdaptivePlannerProps> = ({ isSubscribed, o
         // We already have today's checkin in state, so the form will be pre-filled
         setViewState('needs_checkin');
     }
-
-    if (!isSubscribed) {
-        return (
-            <div className="bg-white dark:bg-gray-800 p-8 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 text-center animate-fade-in-up">
-                 <LeafIcon className="w-12 h-12 text-green-500 mx-auto mb-4" />
-                <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-200">Unlock BioAdaptive Ayurveda™</h2>
-                <p className="mt-4 text-gray-600 dark:text-gray-400 max-w-md mx-auto">
-                    This premium feature provides personalized Ayurvedic supplement recommendations based on your daily inputs. Subscribe to access your daily plan.
-                </p>
-                <button
-                    onClick={onOpenSubscriptionModal}
-                    className="mt-6 bg-orange-500 text-white font-bold py-3 px-8 rounded-lg hover:bg-orange-600 transition-all duration-300 shadow-md active:scale-95"
-                >
-                    Subscribe Now
-                </button>
-            </div>
-        );
-    }
     
     if (isProcessing) {
-        return (
-             <div className="bg-white dark:bg-gray-800 p-8 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 text-center animate-fade-in-up min-h-[400px] flex flex-col justify-center items-center">
-                <svg className="animate-spin h-12 w-12 text-orange-500 mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                <h2 className="text-xl font-bold text-gray-800 dark:text-gray-200">Analyzing your check-in...</h2>
-                <p className="mt-2 text-gray-600 dark:text-gray-400">Generating your personalized BioAdaptive plan.</p>
-            </div>
-        )
+        return <GeneratingBioPlan />;
     }
 
     switch (viewState) {

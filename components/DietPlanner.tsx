@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { DietPreference, DietPlan, Sex, ActivityLevel, DietType, HealthCondition, DrKenilsNote, ProgressEntry, DailyIntake, FastingEntry, Meal, WaterEntry } from '../types';
+import { DietPreference, DietPlan, Sex, ActivityLevel, DietType, HealthCondition, DrKenilsNote, ProgressEntry, DailyIntake, FastingEntry, Meal, WaterEntry, CustomMealLogEntry, MealType } from '../types';
 import { generateOfflineDietPlan as generateDietPlan, findSwapMeal } from '../services/offlinePlanGenerator';
 import { StarIcon } from './icons/StarIcon';
 import { drKenilsNotes } from '../data/notes';
@@ -16,7 +16,8 @@ import { WhatsAppIcon } from './icons/WhatsAppIcon';
 import { SwapIcon } from './icons/SwapIcon';
 import { OBE_CURE_SPECIAL_MEALS } from '../data/specialMeals';
 import { WaterIcon } from './icons/WaterIcon';
-import { SearchIcon } from './icons/SearchIcon';
+import { HeartIcon } from './icons/HeartIcon';
+import LogMealModal from './LogMealModal';
 
 
 const USER_PREFERENCES_KEY = 'obeCureUserPreferences';
@@ -24,6 +25,8 @@ const PROGRESS_DATA_KEY = 'obeCureProgressData';
 const DAILY_INTAKE_KEY = 'obeCureDailyIntake';
 const FASTING_DATA_KEY = 'obeCureFastingData';
 const WATER_INTAKE_KEY = 'obeCureWaterIntake';
+const FAVORITE_MEALS_KEY = 'obeCureFavoriteMeals';
+const MANUAL_MEAL_LOG_KEY = 'obeCureManualMealLog';
 
 
 // FIX: Add missing getActivityFactor function
@@ -69,14 +72,15 @@ const DietPlanner: React.FC<DietPlannerProps> = ({ isSubscribed, onOpenSubscript
   const [estimatedDuration, setEstimatedDuration] = useState<number | null>(null);
 
   const [checkedMeals, setCheckedMeals] = useState<Record<string, boolean>>({});
-  const [otherCalories, setOtherCalories] = useState<string>('');
-  const [otherCaloriesSearch, setOtherCaloriesSearch] = useState<string>('');
   const [waterGlasses, setWaterGlasses] = useState<number>(0);
   const [toastInfo, setToastInfo] = useState<{ title: string; message: string; quote: string; } | null>(null);
   const [isLogging, setIsLogging] = useState(false);
   const [logSuccess, setLogSuccess] = useState(false);
   
   const [showNotificationPrompt, setShowNotificationPrompt] = useState(false);
+  const [favoriteMeals, setFavoriteMeals] = useState<string[]>([]);
+  const [isLogMealModalOpen, setIsLogMealModalOpen] = useState(false);
+
   const timerIdsRef = useRef<number[]>([]);
   
   const resultsRef = useRef<HTMLDivElement>(null);
@@ -156,6 +160,11 @@ const DietPlanner: React.FC<DietPlannerProps> = ({ isSubscribed, onOpenSubscript
           if (todayEntry) {
               setWaterGlasses(todayEntry.glasses);
           }
+      }
+
+      const savedFavoritesRaw = localStorage.getItem(FAVORITE_MEALS_KEY);
+      if (savedFavoritesRaw) {
+        setFavoriteMeals(JSON.parse(savedFavoritesRaw));
       }
 
     } catch (e) {
@@ -399,11 +408,6 @@ const DietPlanner: React.FC<DietPlannerProps> = ({ isSubscribed, onOpenSubscript
   }, [patientWeight, height, age, step]);
 
   const handleGeneratePlan = () => {
-    if (!isSubscribed) {
-        onOpenSubscriptionModal();
-        return;
-    }
-
     setIsLoading(true);
     setError(null);
     setDietPlan(null);
@@ -413,7 +417,7 @@ const DietPlanner: React.FC<DietPlannerProps> = ({ isSubscribed, onOpenSubscript
         try {
             const fastingStartTime = `${fastingStartHour}:00 ${fastingStartPeriod}`;
             const fastingEndTime = `${fastingEndHour}:00 ${fastingEndPeriod}`;
-            const plan = generateDietPlan({ patientWeight, height, age, sex, activityLevel, preference, healthConditions, dietType, fastingStartTime, fastingEndTime });
+            const plan = generateDietPlan({ patientWeight, height, age, sex, activityLevel, preference, healthConditions, dietType, fastingStartTime, fastingEndTime, favoriteMeals });
             if (!plan || plan.meals.length === 0) {
               setError('Sorry, we couldn\'t find a suitable diet plan with the selected criteria. Please try different options.');
               setIsLoading(false);
@@ -425,7 +429,6 @@ const DietPlanner: React.FC<DietPlannerProps> = ({ isSubscribed, onOpenSubscript
                 return acc;
             }, {} as Record<string, boolean>);
             setCheckedMeals(initialCheckedState);
-            setOtherCalories('');
             const randomNote = drKenilsNotes[Math.floor(Math.random() * drKenilsNotes.length)];
             setDrKenilsNote(randomNote);
             const weightNum = parseFloat(patientWeight);
@@ -474,6 +477,17 @@ const DietPlanner: React.FC<DietPlannerProps> = ({ isSubscribed, onOpenSubscript
   const handleMealCheckChange = (mealName: string) => {
     setCheckedMeals(prev => ({ ...prev, [mealName]: !prev[mealName] }));
   };
+
+  const handleToggleFavorite = (meal: Meal) => {
+    const recipeId = meal.recipe;
+    setFavoriteMeals(prev => {
+        const newFavorites = prev.includes(recipeId)
+            ? prev.filter(id => id !== recipeId)
+            : [...prev, recipeId];
+        localStorage.setItem(FAVORITE_MEALS_KEY, JSON.stringify(newFavorites));
+        return newFavorites;
+    });
+  };
   
   const handleWaterChange = (amount: number) => {
     setWaterGlasses(prev => {
@@ -495,6 +509,36 @@ const DietPlanner: React.FC<DietPlannerProps> = ({ isSubscribed, onOpenSubscript
     });
   };
 
+  const handleLogCustomMeal = (mealName: string, calories: number, mealType: MealType) => {
+      const newEntry: CustomMealLogEntry = {
+          id: crypto.randomUUID(),
+          date: new Date().toISOString().split('T')[0],
+          mealType,
+          name: mealName,
+          calories,
+          timestamp: new Date().toISOString(),
+      };
+      
+      try {
+        const existingLogsRaw = localStorage.getItem(MANUAL_MEAL_LOG_KEY);
+        let existingLogs: CustomMealLogEntry[] = existingLogsRaw ? JSON.parse(existingLogsRaw) : [];
+        
+        // Filter out old data to only keep today's logs
+        const todayStr = new Date().toISOString().split('T')[0];
+        const todaysLogs = existingLogs.filter(log => log.date === todayStr);
+
+        todaysLogs.push(newEntry);
+        
+        localStorage.setItem(MANUAL_MEAL_LOG_KEY, JSON.stringify(todaysLogs));
+
+        setToastInfo({ title: "Meal Logged!", message: `${mealName} has been added to your daily log.`, quote: "Every entry is a step toward awareness." });
+      } catch (e) {
+        console.error("Could not save custom meal log", e);
+        setError("Could not save your custom meal. Please try again.");
+      }
+      setIsLogMealModalOpen(false);
+  };
+
   const handleLogIntake = () => {
     if (!dietPlan) return;
     setIsLogging(true);
@@ -503,15 +547,31 @@ const DietPlanner: React.FC<DietPlannerProps> = ({ isSubscribed, onOpenSubscript
     setTimeout(() => {
         const eatenMeals = dietPlan.meals.filter(meal => checkedMeals[meal.name]);
         const loggedMealsCalories = eatenMeals.reduce((sum, meal) => sum + meal.calories, 0);
-        const otherCals = parseInt(otherCalories) || 0;
-        const totalIntake = loggedMealsCalories + otherCals;
+        
+        const customMealsRaw = localStorage.getItem(MANUAL_MEAL_LOG_KEY);
+        const todayStr = new Date().toISOString().split('T')[0];
+        let customCaloriesToday = 0;
+        if (customMealsRaw) {
+            try {
+                const allCustomMeals: CustomMealLogEntry[] = JSON.parse(customMealsRaw);
+                customCaloriesToday = allCustomMeals
+                    .filter(m => m.date === todayStr)
+                    .reduce((sum, meal) => sum + meal.calories, 0);
+            } catch (e) { console.error("Could not parse custom meal logs", e); }
+        }
 
-        const newIntakeEntry: DailyIntake = { date: new Date().toISOString().split('T')[0], loggedMeals: eatenMeals.map(({ name, calories }) => ({ name, calories })), otherCalories: otherCals, totalIntake: totalIntake, targetCalories: dietPlan.totalCalories };
-        const existingDataRaw = localStorage.getItem(DAILY_INTAKE_KEY);
-        let existingData: DailyIntake[] = existingDataRaw ? JSON.parse(existingDataRaw) : [];
-        const todayEntryIndex = existingData.findIndex(entry => entry.date === newIntakeEntry.date);
-        if (todayEntryIndex > -1) { existingData[todayEntryIndex] = newIntakeEntry; } else { existingData.push(newIntakeEntry); }
-        localStorage.setItem(DAILY_INTAKE_KEY, JSON.stringify(existingData));
+        const totalIntake = loggedMealsCalories + customCaloriesToday;
+
+        const newIntakeEntry: DailyIntake = { 
+            date: todayStr, 
+            loggedMeals: eatenMeals.map(({ name, calories }) => ({ name, calories })), 
+            otherCalories: customCaloriesToday, 
+            totalIntake: totalIntake, 
+            targetCalories: dietPlan.totalCalories 
+        };
+
+        // Overwrite history with only today's entry
+        localStorage.setItem(DAILY_INTAKE_KEY, JSON.stringify([newIntakeEntry]));
         
         setIsLogging(false);
         setLogSuccess(true);
@@ -519,26 +579,16 @@ const DietPlanner: React.FC<DietPlannerProps> = ({ isSubscribed, onOpenSubscript
         setTimeout(() => {
             setLogSuccess(false);
             const randomQuote = motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)];
-            setToastInfo({ title: "Intake Logged!", message: "You've successfully logged your meals for today. Great job!", quote: randomQuote });
+            setToastInfo({ title: "Intake Logged!", message: "You've successfully logged your planned meals for today. Great job!", quote: randomQuote });
         }, 2000);
     }, 1000);
   };
 
-  const handleSearchCalories = () => {
-    if (otherCaloriesSearch.trim()) {
-      const query = encodeURIComponent(`calories in ${otherCaloriesSearch}`);
-      window.open(`https://www.google.com/search?q=${query}`, '_blank', 'noopener,noreferrer');
-    }
-  };
-
-  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      handleSearchCalories();
-    }
-  };
-
     const handleSwapMeal = (mealIndexToSwap: number) => {
+        if (!isSubscribed) {
+            onOpenSubscriptionModal();
+            return;
+        }
         if (!dietPlan) return;
 
         const mealToSwap = dietPlan.meals[mealIndexToSwap];
@@ -555,7 +605,7 @@ const DietPlanner: React.FC<DietPlannerProps> = ({ isSubscribed, onOpenSubscript
                 };
             }
         } else {
-            newMeal = findSwapMeal(mealToSwap, dietPlan.meals, { preference, healthConditions, dietType, mealType: mealToSwap.mealType });
+            newMeal = findSwapMeal(mealToSwap, dietPlan.meals, { preference, healthConditions, dietType, mealType: mealToSwap.mealType, favoriteMeals });
         }
 
         if (newMeal) {
@@ -641,6 +691,11 @@ const DietPlanner: React.FC<DietPlannerProps> = ({ isSubscribed, onOpenSubscript
             onClose={() => setToastInfo(null)}
           />
         )}
+        <LogMealModal 
+            isOpen={isLogMealModalOpen} 
+            onClose={() => setIsLogMealModalOpen(false)} 
+            onLog={handleLogCustomMeal} 
+        />
       <div ref={formContainerRef} className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 scroll-mt-20">
         <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 dark:text-gray-200 text-center">{plannerTitle}</h1>
         <p className="mt-2 text-gray-600 dark:text-gray-400 mb-8 text-center max-w-prose mx-auto">
@@ -801,152 +856,115 @@ const DietPlanner: React.FC<DietPlannerProps> = ({ isSubscribed, onOpenSubscript
                 </button>
             </div>
           )}
-          
           {step > 1 && (
             <button onClick={handleBack} className="w-full sm:w-auto bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-bold py-3 px-6 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-all duration-300 active:scale-95 shadow-md">&larr; Back</button>
           )}
         </div>
       </div>
-      
-
-      <div ref={resultsRef} className="scroll-mt-20">
-        {error && !isLoading && (
-          <div className="mt-6 p-4 bg-red-100 text-red-700 rounded-lg w-full text-sm">
-            <strong>Error:</strong> {error}
-          </div>
-        )}
-
+       <div ref={resultsRef} className="mt-8">
         {isLoading && <GeneratingPlan />}
-
+        {error && !isLoading && (
+            <div className="mt-8 bg-red-50 dark:bg-red-900/20 p-6 rounded-xl shadow-lg border border-red-200 dark:border-red-700 text-center">
+                <h3 className="text-xl font-bold text-red-600 dark:text-red-400">Oops!</h3>
+                <p className="mt-2 text-red-700 dark:text-red-300">{error}</p>
+                <button onClick={() => setStep(3)} className="mt-4 bg-orange-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-orange-600 transition-all">
+                    &larr; Go Back and Adjust
+                </button>
+            </div>
+        )}
         {dietPlan && !isLoading && (
-          <div className="mt-8 bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 animate-fade-in">
-              <div className="flex flex-col sm:flex-row justify-between items-start mb-4 border-b border-gray-200 dark:border-gray-700 pb-4 gap-4">
-                  <div>
-                      <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-200">Your Custom Diet Plan</h2>
-                       <div className="mt-2 text-sm text-gray-600 dark:text-gray-400 space-y-1">
-                            {patientName && <p><strong>Patient:</strong> {patientName}</p>}
-                            {patientWeight && <p><strong>Weight:</strong> {patientWeight} kg</p>}
-                            <p><strong>Eating Window:</strong> {`${fastingStartHour}:00 ${fastingStartPeriod}`} - {`${fastingEndHour}:00 ${fastingEndPeriod}`}</p>
-                        </div>
-                      <p className="mt-2 font-semibold text-orange-600">{dietPlan.totalCalories} kcal / day</p>
-                      <p className="text-xs font-mono tracking-wide text-gray-500 dark:text-gray-400">
-                          P: {dietPlan.totalMacros.protein}g | C: {dietPlan.totalMacros.carbohydrates}g | F: {dietPlan.totalMacros.fat}g
-                      </p>
-                  </div>
-                  <div className="flex flex-col sm:flex-row gap-2 items-center w-full sm:w-auto">
-                        <a href="https://www.zomato.com/ahmedabad/badster-burgers-3-mani-nagar/order" target="_blank" rel="noopener noreferrer" className="flex items-center justify-center space-x-2 bg-blue-500 text-white text-sm font-semibold px-4 py-2 rounded-full hover:bg-blue-600 transition-colors shadow-sm shrink-0 active:scale-95 w-full sm:w-auto">
-                            <span>🥗</span>
-                            <span>Order Salads Online</span>
-                        </a>
-                        <a href={`https://wa.me/?text=${getShareText()}`} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center space-x-2 bg-green-500 text-white text-sm font-semibold px-4 py-2 rounded-full hover:bg-green-600 transition-colors shadow-sm shrink-0 active:scale-95 w-full sm:w-auto">
-                            <WhatsAppIcon className="w-5 h-5" />
-                            <span>Share</span>
-                        </a>
-                   </div>
-              </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {dietPlan.meals.map((meal, index) => {
-                const isSpecial = meal.name.includes('ObeCure Special Meal');
-                const MealIcon = getMealIcon(meal.time);
-                return (
-                  <label 
-                      key={`${meal.name}-${meal.recipe}`}
-                      style={{ animationDelay: `${index * 80}ms` }}
-                      className={`relative block p-4 rounded-lg border transition-all cursor-pointer opacity-0 animate-fade-in-up ${isSpecial ? 'bg-orange-100/80 dark:bg-orange-900/20 border-orange-300 dark:border-orange-800 shadow-md' : 'bg-gray-50 dark:bg-gray-700/50 border-gray-200 dark:border-gray-700'}`}>
-                      <div className="flex items-start justify-between">
-                          <div className="pr-16">
-                              <h3 className={`font-bold text-lg mb-1 flex items-center gap-2 ${isSpecial ? 'text-orange-700 dark:text-orange-400' : 'text-gray-700 dark:text-gray-300'}`}>
-                                  {isSpecial ? <StarIcon className="w-5 h-5 text-yellow-500" /> : <MealIcon className="w-5 h-5" />}
-                                  {meal.name}
-                              </h3>
-                              {meal.time && <p className="text-xs font-semibold text-orange-600 dark:text-orange-500 mb-2">Suggested Time: {meal.time}</p>}
-                              <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">{meal.recipe}</p>
-                          </div>
-                          <input type="checkbox" checked={!!checkedMeals[meal.name]} onChange={() => handleMealCheckChange(meal.name)} className="h-5 w-5 rounded border-gray-300 text-orange-500 focus:ring-orange-400 shrink-0 ml-4 mt-1"/>
-                      </div>
-                      <button 
-                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleSwapMeal(index); }}
-                          className="absolute top-1/2 -translate-y-1/2 right-3 p-2 rounded-full bg-orange-500 text-white hover:bg-orange-600 transition-all shadow-md active:scale-95"
-                          title="Swap this meal"
-                      >
-                          <SwapIcon className="w-5 h-5" />
-                      </button>
-                      <div className="flex justify-between items-center text-sm mt-3 pt-2 border-t border-gray-200 dark:border-gray-600">
-                          <p className={`font-semibold ${isSpecial ? 'text-orange-600 dark:text-orange-400' : 'text-gray-600 dark:text-gray-300'}`}>{meal.calories} kcal</p>
-                          <p className="font-mono tracking-wide text-xs text-gray-500 dark:text-gray-400">
-                              P:{meal.macros.protein} C:{meal.macros.carbohydrates} F:{meal.macros.fat}
-                          </p>
-                      </div>
-                </label>
-              )})}
-            </div>
-            
-             {showNotificationPrompt && (
-                <div className="mt-6 p-4 bg-blue-100 dark:bg-blue-900/30 rounded-lg text-center animate-fade-in-up border border-blue-200 dark:border-blue-800">
-                    <h3 className="font-bold text-blue-800 dark:text-blue-200">Stay on Track!</h3>
-                    <p className="text-sm text-blue-700 dark:text-blue-300 my-2">Would you like to receive reminders for your meal times today?</p>
-                    <div className="flex justify-center gap-4 mt-3">
-                        <button onClick={handleEnableNotifications} className="bg-blue-500 text-white font-semibold py-2 px-5 rounded-lg hover:bg-blue-600 transition-all active:scale-95 shadow">Yes, remind me</button>
-                        <button onClick={() => setShowNotificationPrompt(false)} className="bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200 font-semibold py-2 px-5 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500 transition-all active:scale-95">No, thanks</button>
-                    </div>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-3">(Note: Reminders only work if this browser tab remains open)</p>
-                </div>
-            )}
-
-            <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                  <h3 className="font-bold text-gray-700 dark:text-gray-300 mb-2">Today's Hydration</h3>
-                  <div className="flex items-center justify-between gap-4">
-                    <button onClick={() => handleWaterChange(-1)} disabled={waterGlasses <= 0} className="w-12 h-12 rounded-full bg-gray-200 dark:bg-gray-600 text-2xl font-bold text-gray-700 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-500 transition disabled:opacity-50 active:scale-95">-</button>
-                    <div className="text-center">
-                        <WaterIcon className="w-8 h-8 mx-auto text-blue-500"/>
-                        <p className="text-xl font-bold text-gray-800 dark:text-gray-200">{waterGlasses} <span className="text-sm font-medium">/ 8 glasses</span></p>
-                    </div>
-                    <button onClick={() => handleWaterChange(1)} className="w-12 h-12 rounded-full bg-gray-200 dark:bg-gray-600 text-2xl font-bold text-gray-700 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-500 transition active:scale-95">+</button>
-                  </div>
-                </div>
-                <div className="space-y-4">
-                    <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                        <h3 className="font-bold text-gray-700 dark:text-gray-300 mb-2">Search for Other Calories</h3>
-                        <div className="flex gap-4 items-center">
-                            <input
-                                type="text"
-                                value={otherCaloriesSearch}
-                                onChange={(e) => setOtherCaloriesSearch(e.target.value)}
-                                onKeyDown={handleSearchKeyDown}
-                                placeholder="Search here for other calories..."
-                                className={`${formInputClass} flex-grow`}
-                            />
-                            <button
-                                onClick={handleSearchCalories}
-                                className="shrink-0 font-bold p-3 rounded-lg transition-all duration-300 shadow-md bg-orange-500 text-white hover:bg-orange-600 active:scale-95"
-                                aria-label="Search for food calories on Google"
-                            >
-                                <SearchIcon className="w-6 h-6"/>
-                            </button>
+            <div className="animate-fade-in-up">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+                    <div>
+                        <h3 className="text-xl font-bold text-gray-700 dark:text-gray-300 mb-3">Today's Meal Plan</h3>
+                        <div className="space-y-4">
+                            {dietPlan.meals.map((meal, index) => {
+                                const Icon = getMealIcon(meal.time);
+                                const isSpecial = meal.name.includes('Special');
+                                return (
+                                <div key={index} className={`relative p-4 rounded-lg shadow-sm border-l-4 transition-all duration-300 ${isSpecial ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-400' : 'bg-gray-50 dark:bg-gray-700/50 border-gray-300 dark:border-gray-600'}`}>
+                                    <div className="flex items-start">
+                                        <div className="mr-4 mt-1">
+                                            <Icon className={`w-6 h-6 ${isSpecial ? 'text-amber-500' : 'text-gray-500'}`} />
+                                        </div>
+                                        <div>
+                                            <div className="flex justify-between items-center">
+                                                <h4 className="font-bold text-lg text-gray-800 dark:text-gray-200">{meal.name}</h4>
+                                                <span className="text-sm font-semibold text-gray-500 dark:text-gray-400">{meal.time}</span>
+                                            </div>
+                                            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{meal.recipe}</p>
+                                            <div className="text-xs mt-2 flex flex-wrap gap-x-3 gap-y-1 text-gray-500 dark:text-gray-400">
+                                                <span>🔥 {meal.calories} kcal</span>
+                                                <span>💪 P: {meal.macros.protein}g</span>
+                                                <span>🍞 C: {meal.macros.carbohydrates}g</span>
+                                                <span>🥑 F: {meal.macros.fat}g</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="absolute top-2 right-2 flex items-center gap-1">
+                                       <button onClick={() => handleToggleFavorite(meal)} title={favoriteMeals.includes(meal.recipe) ? 'Remove from favorites' : 'Add to favorites'}>
+                                           <HeartIcon isFavorite={favoriteMeals.includes(meal.recipe)} className="w-5 h-5 text-gray-400 hover:text-red-500 transition-colors" />
+                                       </button>
+                                       <button onClick={() => handleSwapMeal(index)} title="Swap this meal">
+                                           <SwapIcon className="w-5 h-5 text-gray-400 hover:text-orange-500 transition-colors"/>
+                                       </button>
+                                        <input type="checkbox" checked={!!checkedMeals[meal.name]} onChange={() => handleMealCheckChange(meal.name)} className="h-4 w-4 rounded border-gray-300 text-orange-500 focus:ring-orange-400 ml-1"/>
+                                    </div>
+                                </div>
+                            )})}
                         </div>
                     </div>
-                    <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                      <h3 className="font-bold text-gray-700 dark:text-gray-300 mb-2">Log Other Intake</h3>
-                      <div className="flex flex-col sm:flex-row gap-4 items-center">
-                        <input type="number" value={otherCalories} onChange={(e) => setOtherCalories(e.target.value)} placeholder="Calories from other food" className={`${formInputClass} flex-grow`}/>
-                        <button onClick={handleLogIntake} disabled={isLogging || logSuccess} className={`w-full sm:w-auto font-bold py-3 px-6 rounded-lg transition-all duration-300 shadow-md flex items-center justify-center h-[50px] ${logSuccess ? 'bg-green-500 text-white' : 'bg-green-500 text-white hover:bg-green-600'} disabled:opacity-70 disabled:cursor-not-allowed`}>
-                            {isLogging ? (
-                                <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                            ) : logSuccess ? (
-                                <CheckIcon className="h-6 w-6 text-white"/>
-                            ) : (
-                                "Log Today's Intake"
-                            )}
-                        </button>
-                      </div>
+                    <div>
+                         <div className="sticky top-20">
+                             <div className="p-4 bg-orange-50 dark:bg-orange-900/20 rounded-lg border border-orange-200 dark:border-orange-800 text-center mb-4">
+                                <h4 className="font-bold text-orange-800 dark:text-orange-200">Total Intake</h4>
+                                <p className="text-3xl font-bold text-orange-600 dark:text-orange-400">{dietPlan.totalCalories} kcal</p>
+                                <div className="text-xs mt-1 flex justify-center gap-x-3 text-orange-700 dark:text-orange-300">
+                                    <span>P: {dietPlan.totalMacros.protein}g</span>
+                                    <span>C: {dietPlan.totalMacros.carbohydrates}g</span>
+                                    <span>F: {dietPlan.totalMacros.fat}g</span>
+                                </div>
+                             </div>
+                             
+                            <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800 mb-4">
+                                <h4 className="font-bold text-blue-800 dark:text-blue-200 mb-2 text-center">Daily Water Intake</h4>
+                                <div className="flex items-center justify-center gap-3">
+                                    <button onClick={() => handleWaterChange(-1)} className="w-8 h-8 rounded-full bg-blue-200 dark:bg-blue-700 text-blue-800 dark:text-blue-100 font-bold">-</button>
+                                    <WaterIcon className="w-8 h-8 text-blue-500" />
+                                    <span className="text-2xl font-bold text-blue-600 dark:text-blue-300 w-12 text-center">{waterGlasses}</span>
+                                    <button onClick={() => handleWaterChange(1)} className="w-8 h-8 rounded-full bg-blue-200 dark:bg-blue-700 text-blue-800 dark:text-blue-100 font-bold">+</button>
+                                </div>
+                                <p className="text-xs text-center text-blue-600 dark:text-blue-400 mt-2">({(waterGlasses * 0.25).toFixed(2)} / 2.0 Liters)</p>
+                            </div>
+
+                            <div className="grid grid-cols-1 gap-3 mb-4">
+                               <button onClick={() => setIsLogMealModalOpen(true)} className="p-3 bg-gray-100 dark:bg-gray-700 rounded-lg font-semibold text-gray-700 dark:text-gray-200 text-sm hover:bg-gray-200 dark:hover:bg-gray-600 transition">Log Other Food</button>
+                            </div>
+
+                             <button onClick={handleLogIntake} disabled={isLogging || logSuccess} className="w-full bg-green-500 text-white font-bold py-3 px-4 rounded-lg hover:bg-green-600 transition-all flex items-center justify-center space-x-2 disabled:bg-green-300">
+                                {isLogging ? 'Logging...' : logSuccess ? <>Logged <CheckIcon className="w-5 h-5 ml-2"/></> : 'Log Today\'s Intake'}
+                             </button>
+                             <a href={`https://wa.me/?text=${getShareText()}`} target="_blank" rel="noopener noreferrer" className="mt-3 w-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 font-bold py-3 px-4 rounded-lg hover:bg-green-200 dark:hover:bg-green-900/50 transition-all flex items-center justify-center space-x-2">
+                                <WhatsAppIcon className="w-5 h-5"/>
+                                <span>Share Plan</span>
+                            </a>
+                         </div>
                     </div>
                 </div>
+                
+                {drKenilsNote && <DrKenilsNoteComponent note={drKenilsNote} />}
+                
+                {showNotificationPrompt && (
+                    <div className="mt-6 p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg text-center border border-yellow-200 dark:border-yellow-700">
+                        <p className="font-semibold text-yellow-800 dark:text-yellow-200">Want meal reminders?</p>
+                        <p className="text-sm text-yellow-700 dark:text-yellow-300 mt-1">Enable notifications to get alerts for your meals and sleep log.</p>
+                        <div className="mt-3 flex justify-center gap-4">
+                            <button onClick={handleEnableNotifications} className="bg-yellow-400 text-yellow-900 font-bold py-2 px-4 rounded-lg text-sm">Enable</button>
+                            <button onClick={() => setShowNotificationPrompt(false)} className="bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 font-bold py-2 px-4 rounded-lg text-sm">Maybe Later</button>
+                        </div>
+                    </div>
+                )}
             </div>
-
-            {drKenilsNote && <DrKenilsNoteComponent note={drKenilsNote} />}
-          </div>
         )}
       </div>
     </div>

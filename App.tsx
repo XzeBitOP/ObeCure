@@ -16,11 +16,17 @@ import Onboarding from './components/Onboarding';
 import InstallPwaModal from './components/InstallPwaModal';
 import BodyComposition from './components/BodyComposition';
 import { ChartBarIcon } from './components/icons/ChartBarIcon';
+import CommunityView from './components/CommunityView';
+import { UsersIcon } from './components/icons/UsersIcon';
+import StreakTracker from './components/StreakTracker';
+import { motivationalLines } from './data/motivationalLines';
+import SubscriptionLock from './components/SubscriptionLock';
 
-type View = 'planner' | 'ayurveda' | 'workouts' | 'progress';
+type View = 'planner' | 'ayurveda' | 'workouts' | 'progress' | 'community';
 
 const USER_PREFERENCES_KEY = 'obeCureUserPreferences';
 const SUBSCRIPTION_KEY = 'obeCureSubscriptionExpiry';
+const STREAK_KEY = 'obeCureLoginStreak';
 
 const products = [
   {
@@ -94,6 +100,9 @@ const App: React.FC = () => {
   const [isNotificationUnread, setIsNotificationUnread] = useState(true);
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
 
+  const [streak, setStreak] = useState(0);
+  const [dailyQuote, setDailyQuote] = useState('');
+
   const handleToggleNotification = () => {
     setIsNotificationOpen(prev => !prev);
     if (isNotificationUnread) {
@@ -107,6 +116,43 @@ const App: React.FC = () => {
   const workoutsButtonRef = useRef<HTMLButtonElement>(null);
   const progressButtonRef = useRef<HTMLButtonElement>(null);
   const [bubbleStyle, setBubbleStyle] = useState({ opacity: 0, left: 0, width: 0 });
+
+  useEffect(() => {
+    // Streak calculation logic
+    try {
+        const streakDataRaw = localStorage.getItem(STREAK_KEY);
+        const streakData = streakDataRaw ? JSON.parse(streakDataRaw) : { count: 0, lastLogin: '' };
+        
+        const today = new Date().toISOString().split('T')[0];
+
+        if (streakData.lastLogin !== today) {
+            const yesterday = new Date();
+            yesterday.setDate(yesterday.getDate() - 1);
+            const yesterdayStr = yesterday.toISOString().split('T')[0];
+
+            let newCount;
+            if (streakData.lastLogin === yesterdayStr) {
+                newCount = streakData.count + 1; // Continue streak
+            } else {
+                newCount = 1; // Reset or start streak
+            }
+            
+            setStreak(newCount);
+            localStorage.setItem(STREAK_KEY, JSON.stringify({ count: newCount, lastLogin: today }));
+        } else {
+            setStreak(streakData.count); // Already logged in today
+        }
+
+    } catch (e) {
+        console.error("Failed to process streak data", e);
+        setStreak(1);
+        localStorage.setItem(STREAK_KEY, JSON.stringify({ count: 1, lastLogin: new Date().toISOString().split('T')[0] }));
+    }
+
+    // Set daily quote
+    const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000);
+    setDailyQuote(motivationalLines[dayOfYear % motivationalLines.length]);
+  }, []);
 
   useEffect(() => {
     const expiryTimestamp = localStorage.getItem(SUBSCRIPTION_KEY);
@@ -283,6 +329,7 @@ const App: React.FC = () => {
             onClose={() => setIsInstallModalOpen(false)}
             deferredPrompt={deferredPrompt}
         />
+
       <Header 
         onLogSleepClick={() => setIsLogSleepModalOpen(true)} 
         showInstallButton={showInstallButton}
@@ -291,6 +338,11 @@ const App: React.FC = () => {
         onToggleNotification={handleToggleNotification}
         isNotificationOpen={isNotificationOpen}
         />
+        
+        {!showDisclaimer && streak > 0 && (
+            <StreakTracker streak={streak} quote={dailyQuote} />
+        )}
+
       <main className="p-4 sm:p-6 md:p-8 max-w-5xl mx-auto">
         <div ref={navRef} className="relative flex justify-center mb-8 bg-orange-100/80 dark:bg-gray-800 rounded-full p-1 max-w-md sm:max-w-xl mx-auto shadow-inner">
             <>
@@ -341,15 +393,34 @@ const App: React.FC = () => {
                     : 'text-gray-600 dark:text-gray-400 hover:text-orange-500/70 dark:hover:text-orange-400/70'
                 }`}
               >
-                <ChartBarIcon className="w-4 h-4" /> My Progress
+                <ChartBarIcon className="w-4 h-4" /> Progress
               </button>
             </>
         </div>
 
         {view === 'planner' && <DietPlanner isSubscribed={isSubscribed} onOpenSubscriptionModal={handleOpenSubscriptionModal} />}
-        {view === 'ayurveda' && <BioAdaptivePlanner isSubscribed={isSubscribed} onOpenSubscriptionModal={handleOpenSubscriptionModal} />}
+        {view === 'ayurveda' && (
+            isSubscribed ?
+            <BioAdaptivePlanner /> :
+            <SubscriptionLock
+                onOpenSubscriptionModal={handleOpenSubscriptionModal}
+                featureName="BioAdaptive Ayurveda™"
+                description="This premium feature provides personalized Ayurvedic supplement recommendations based on your daily inputs. Subscribe to access your daily plan."
+                icon={<LeafIcon className="w-12 h-12 text-green-500 mx-auto mb-4" />}
+            />
+        )}
         {view === 'workouts' && <Workouts />}
-        {view === 'progress' && <BodyComposition onOpenHistory={() => setIsProgressModalOpen(true)}/>}
+        {view === 'progress' && (
+            isSubscribed ?
+            <BodyComposition onOpenHistory={() => setIsProgressModalOpen(true)}/> :
+            <SubscriptionLock
+                onOpenSubscriptionModal={handleOpenSubscriptionModal}
+                featureName="Body Composition Analysis"
+                description="This premium feature provides detailed body composition metrics like fat percentage, muscle mass, and visceral fat. Subscribe to track your progress."
+                icon={<ChartBarIcon className="w-12 h-12 text-purple-500 mx-auto mb-4" />}
+            />
+        )}
+        {view === 'community' && <CommunityView />}
       </main>
 
       <footer className="text-center p-4 text-xs text-gray-500 dark:text-gray-400">
@@ -360,8 +431,19 @@ const App: React.FC = () => {
             </p>
           </div>
           
-          <div className="max-w-5xl mx-auto px-4 sm:px-6 md:px-8 pb-8">
+          <div className="max-w-5xl mx-auto px-4 sm:px-6 md:px-8 pb-8 grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
             <Faq />
+            <button
+              onClick={() => setView('community')}
+              aria-label="Go to the community Victory Wall"
+              className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 w-full h-full text-center hover:bg-orange-50/50 dark:hover:bg-gray-700/50 transition-colors duration-300 transform hover:-translate-y-1"
+            >
+              <UsersIcon className="w-12 h-12 text-orange-500 mx-auto mb-4" />
+              <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-200 sm:text-4xl">
+                Victory Wall
+              </h1>
+              <p className="text-gray-500 dark:text-gray-400 mt-2">Join the community & share your wins!</p>
+            </button>
           </div>
 
           <div className="max-w-5xl mx-auto mb-12 px-4">
@@ -370,14 +452,17 @@ const App: React.FC = () => {
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
               {products.map((product, index) => (
-                <div 
-                  key={product.name} 
-                  className={`p-4 rounded-lg shadow-sm border-l-4 opacity-0 animate-fade-in-up ${product.bgColor} ${product.borderColor}`}
+                <a
+                  key={product.name}
+                  href="https://www.xzecure.co.in/buy"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`block p-4 rounded-lg shadow-sm border-l-4 opacity-0 animate-fade-in-up transition-transform transform hover:-translate-y-1 hover:shadow-lg ${product.bgColor} ${product.borderColor}`}
                   style={{ animationDelay: `${index * 100}ms` }}
                 >
                   <h4 className={`font-bold text-lg ${product.textColor}`}>{product.name}</h4>
                   <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{product.use}</p>
-                </div>
+                </a>
               ))}
             </div>
           </div>

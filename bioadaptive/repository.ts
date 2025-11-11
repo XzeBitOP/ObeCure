@@ -1,10 +1,10 @@
-
 import { UserProfile, DailyCheckin, DailyPlan } from '../types';
 
 const USER_PROFILE_KEY = 'bioadaptive_userProfile_v1';
 const CHECKIN_HISTORY_KEY = 'bioadaptive_checkinHistory_v1';
 const PLAN_HISTORY_KEY = 'bioadaptive_planHistory_v1';
 const PLAN_SHARED_KEY = 'bioadaptive_planShared_v1';
+const PLAN_ACKNOWLEDGED_KEY = 'bioadaptive_planAcknowledged_v1';
 
 // --- User Profile ---
 export const saveUserProfile = (profile: UserProfile): void => {
@@ -106,5 +106,28 @@ export const logPlanShare = (date: string): void => {
         localStorage.setItem(PLAN_SHARED_KEY, JSON.stringify(sharedData));
     } catch (error) {
         console.error("Error logging plan share:", error);
+    }
+};
+
+// --- Plan Acknowledgement ---
+export const logPlanAcknowledgement = (date: string): void => {
+    try {
+        const data = localStorage.getItem(PLAN_ACKNOWLEDGED_KEY);
+        const acknowledgedData: Record<string, boolean> = data ? JSON.parse(data) : {};
+        acknowledgedData[date] = true;
+        localStorage.setItem(PLAN_ACKNOWLEDGED_KEY, JSON.stringify(acknowledgedData));
+    } catch (error) {
+        console.error("Error logging plan acknowledgement:", error);
+    }
+};
+
+export const isPlanAcknowledged = (date: string): boolean => {
+    try {
+        const data = localStorage.getItem(PLAN_ACKNOWLEDGED_KEY);
+        const acknowledgedData: Record<string, boolean> = data ? JSON.parse(data) : {};
+        return acknowledgedData[date] === true;
+    } catch (error) {
+        console.error("Error checking plan acknowledgement:", error);
+        return false;
     }
 };
