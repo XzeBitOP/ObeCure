@@ -22,6 +22,10 @@ import StreakTracker from './components/StreakTracker';
 import { motivationalLines } from './data/motivationalLines';
 import SubscriptionLock from './components/SubscriptionLock';
 import { DietPlan } from './types';
+import { ForkAndSpoonIcon } from './components/icons/ForkAndSpoonIcon';
+import { DumbbellIcon } from './components/icons/DumbbellIcon';
+import InfoModal from './components/InfoModal';
+import { BrainIcon } from './components/icons/BrainIcon';
 
 type View = 'planner' | 'ayurveda' | 'workouts' | 'progress' | 'community';
 
@@ -105,6 +109,7 @@ const App: React.FC = () => {
 
   const [streak, setStreak] = useState(0);
   const [dailyQuote, setDailyQuote] = useState('');
+  const [isDrXzeModalOpen, setIsDrXzeModalOpen] = useState(false);
 
   const handleToggleNotification = () => {
     setIsNotificationOpen(prev => !prev);
@@ -324,6 +329,8 @@ const App: React.FC = () => {
     return <Onboarding onComplete={handleOnboardingComplete} />;
   }
 
+  const navButtonBaseClass = "relative z-10 h-10 rounded-full text-xs sm:text-sm font-semibold transition-all duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-orange-400 focus:ring-opacity-50 active:scale-95 flex items-center justify-center flex-1";
+
   return (
     <div className="min-h-screen bg-orange-50/50 dark:bg-gray-900 text-gray-800 dark:text-gray-200 transition-colors duration-300">
       <DisclaimerModal isOpen={showDisclaimer} onClose={handleCloseDisclaimer} />
@@ -349,6 +356,24 @@ const App: React.FC = () => {
             onClose={() => setIsInstallModalOpen(false)}
             deferredPrompt={deferredPrompt}
         />
+        <InfoModal
+            isOpen={isDrXzeModalOpen}
+            onClose={() => setIsDrXzeModalOpen(false)}
+            title="AI Coach: Dr. Xze"
+        >
+            <div className="text-center">
+                <BrainIcon className="w-12 h-12 text-orange-500 mx-auto mb-4" />
+                <p className="font-semibold text-lg text-gray-800 dark:text-gray-200">Coming soon for an additional <span className="text-orange-500">₹699/month</span>!</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-2 mb-4">Dr. Xze, your personal AI coach, will offer:</p>
+                <ul className="space-y-2 text-left text-sm text-gray-600 dark:text-gray-300 list-disc list-inside">
+                    <li><strong>24/7 AI-Powered Health Guidance:</strong> Get instant, personalized answers to your diet, nutrition, and wellness questions, anytime.</li>
+                    <li><strong>Real-Time Meal Analysis:</strong> Snap a photo of your meal and get an instant breakdown of calories and macros.</li>
+                    <li><strong>Personalized Motivation:</strong> Receive mindset coaching and motivational messages tailored to your progress and mood.</li>
+                    <li><strong>Advanced Q&A:</strong> Ask complex questions about food science, exercise physiology, and your health conditions.</li>
+                    <li><strong>Weekly Progress Review:</strong> Get an AI-generated summary of your week with actionable feedback.</li>
+                </ul>
+            </div>
+        </InfoModal>
 
       <Header 
         onLogSleepClick={() => setIsLogSleepModalOpen(true)} 
@@ -364,58 +389,78 @@ const App: React.FC = () => {
         )}
 
       <main className="p-4 sm:p-6 md:p-8 max-w-5xl mx-auto">
-        <div ref={navRef} className="relative flex justify-center mb-8 bg-orange-100/80 dark:bg-gray-800 rounded-full p-1 max-w-md sm:max-w-xl mx-auto shadow-inner">
-            <>
-              <div
-                className="absolute top-1 bottom-1 bg-white dark:bg-gray-700 rounded-full shadow transition-all duration-300 ease-in-out"
-                style={bubbleStyle}
-                role="presentation"
-              ></div>
-              <button
-                ref={plannerButtonRef}
-                onClick={() => setView('planner')}
-                className={`relative z-10 w-1/4 py-2 px-3 rounded-full text-xs sm:text-sm font-semibold transition-all duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-orange-400 focus:ring-opacity-50 active:scale-95 flex items-center justify-center gap-1 ${
-                  view === 'planner'
-                    ? 'text-orange-600 dark:text-orange-400'
-                    : 'text-gray-600 dark:text-gray-400 hover:text-orange-500/70 dark:hover:text-orange-400/70'
-                }`}
-              >
-                Diet Plan
-              </button>
-              <button
-                ref={ayurvedaButtonRef}
-                onClick={() => setView('ayurveda')}
-                className={`relative z-10 w-1/4 py-2 px-3 rounded-full text-xs sm:text-sm font-semibold transition-all duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-orange-400 focus:ring-opacity-50 active:scale-95 flex items-center justify-center gap-1 ${
-                  view === 'ayurveda'
-                    ? 'text-orange-600 dark:text-orange-400'
-                    : 'text-gray-600 dark:text-gray-400 hover:text-orange-500/70 dark:hover:text-orange-400/70'
-                }`}
-              >
-                <LeafIcon className="w-4 h-4" /> Ayurveda
-              </button>
-              <button
-                ref={workoutsButtonRef}
-                onClick={() => setView('workouts')}
-                className={`relative z-10 w-1/4 py-2 px-3 rounded-full text-xs sm:text-sm font-semibold transition-all duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-orange-400 focus:ring-opacity-50 active:scale-95 ${
-                  view === 'workouts'
-                    ? 'text-orange-600 dark:text-orange-400'
-                    : 'text-gray-600 dark:text-gray-400 hover:text-orange-500/70 dark:hover:text-orange-400/70'
-                }`}
-              >
-                Workouts
-              </button>
-               <button
-                ref={progressButtonRef}
-                onClick={() => setView('progress')}
-                className={`relative z-10 w-1/4 py-2 px-3 rounded-full text-xs sm:text-sm font-semibold transition-all duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-orange-400 focus:ring-opacity-50 active:scale-95 flex items-center justify-center gap-1 ${
-                  view === 'progress'
-                    ? 'text-orange-600 dark:text-orange-400'
-                    : 'text-gray-600 dark:text-gray-400 hover:text-orange-500/70 dark:hover:text-orange-400/70'
-                }`}
-              >
-                <ChartBarIcon className="w-4 h-4" /> Progress
-              </button>
-            </>
+        <div ref={navRef} className="relative flex justify-center items-center gap-1 mb-8 bg-orange-100/80 dark:bg-gray-800 rounded-full p-1 max-w-md sm:max-w-xl mx-auto shadow-inner">
+          <div
+            className="absolute top-1 bottom-1 bg-white dark:bg-gray-700 rounded-full shadow transition-all duration-300 ease-in-out"
+            style={bubbleStyle}
+            role="presentation"
+          ></div>
+          <button
+            ref={plannerButtonRef}
+            onClick={() => setView('planner')}
+            className={`${navButtonBaseClass} ${
+                view === 'planner' 
+                ? 'text-orange-600 dark:text-orange-400' 
+                : 'text-gray-600 dark:text-gray-400 hover:text-orange-500/70 dark:hover:text-orange-400/70'
+            }`}
+          >
+            {view === 'planner' ? (
+                <ForkAndSpoonIcon className="w-6 h-6 shrink-0" />
+            ) : (
+                <span className="whitespace-nowrap">Diet Plan</span>
+            )}
+          </button>
+          <button
+            ref={ayurvedaButtonRef}
+            onClick={() => setView('ayurveda')}
+            className={`${navButtonBaseClass} ${
+                view === 'ayurveda' 
+                ? 'text-orange-600 dark:text-orange-400' 
+                : 'text-gray-600 dark:text-gray-400 hover:text-orange-500/70 dark:hover:text-orange-400/70'
+            }`}
+          >
+            {view === 'ayurveda' ? (
+                <LeafIcon className="w-6 h-6 shrink-0" />
+            ) : (
+                <span className="whitespace-nowrap">Ayurveda</span>
+            )}
+          </button>
+          <button
+            onClick={() => setIsDrXzeModalOpen(true)}
+            className={`${navButtonBaseClass} text-gray-600 dark:text-gray-400 hover:text-orange-500/70 dark:hover:text-orange-400/70`}
+          >
+            <span className="whitespace-nowrap">Dr. Xze</span>
+          </button>
+          <button
+            ref={workoutsButtonRef}
+            onClick={() => setView('workouts')}
+            className={`${navButtonBaseClass} ${
+                view === 'workouts' 
+                ? 'text-orange-600 dark:text-orange-400' 
+                : 'text-gray-600 dark:text-gray-400 hover:text-orange-500/70 dark:hover:text-orange-400/70'
+            }`}
+          >
+            {view === 'workouts' ? (
+                <DumbbellIcon className="w-6 h-6 shrink-0" />
+            ) : (
+                <span className="whitespace-nowrap">Workouts</span>
+            )}
+          </button>
+           <button
+            ref={progressButtonRef}
+            onClick={() => setView('progress')}
+            className={`${navButtonBaseClass} ${
+                view === 'progress' 
+                ? 'text-orange-600 dark:text-orange-400' 
+                : 'text-gray-600 dark:text-gray-400 hover:text-orange-500/70 dark:hover:text-orange-400/70'
+            }`}
+          >
+            {view === 'progress' ? (
+                <ChartBarIcon className="w-6 h-6 shrink-0" />
+            ) : (
+                <span className="whitespace-nowrap">Progress</span>
+            )}
+          </button>
         </div>
 
         {view === 'planner' && <DietPlanner dietPlan={dietPlan} setDietPlan={setDietPlan} isSubscribed={isSubscribed} onOpenSubscriptionModal={handleOpenSubscriptionModal} />}
