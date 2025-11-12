@@ -9,12 +9,12 @@ const ObeCureLogo: React.FC = () => {
              <svg width="48" height="48" viewBox="0 0 100 100" className="drop-shadow-lg">
                 <defs>
                     <linearGradient id="logoGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                        <stop offset="0%" style={{stopColor: '#fbbf24', stopOpacity: 1}} />
-                        <stop offset="100%" style={{stopColor: '#f97316', stopOpacity: 1}} />
+                        <stop offset="0%" stopColor="#fbbf24" stopOpacity="1" />
+                        <stop offset="100%" stopColor="#f97316" stopOpacity="1" />
                     </linearGradient>
                 </defs>
-                <circle cx="50" cy="20" r="15" fill="url(#logoGradient)" />
-                <path d="M 25,40 C 10,50 10,85 30,95 L 70,95 C 90,85 90,50 75,40 C 70,55 60,65 50,65 C 40,65 30,55 25,40 Z" fill="url(#logoGradient)" />
+                <circle cx="50" cy="26" r="12" fill="url(#logoGradient)" />
+                <path d="M 30,42 C 18,50 18,78 34,86 L 66,86 C 82,78 82,50 70,42 C 66,54 58,62 50,62 C 42,62 34,54 30,42 Z" fill="url(#logoGradient)" />
             </svg>
             <div>
                 <span className="text-2xl sm:text-3xl font-bold tracking-tight text-gray-800 dark:text-gray-200">
