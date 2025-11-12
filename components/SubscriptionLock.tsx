@@ -21,6 +21,17 @@ const SubscriptionLock: React.FC<SubscriptionLockProps> = ({ onOpenSubscriptionM
             >
                 Subscribe Now
             </button>
+
+            <a
+                href="https://www.xzecure.co.in/buy"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block mt-6 p-4 rounded-lg bg-orange-50 dark:bg-orange-900/30 border-2 border-dashed border-orange-400/50 hover:border-orange-500 dark:hover:border-orange-400 hover:bg-orange-100/80 dark:hover:bg-orange-900/50 transition-all duration-300 group"
+            >
+                <p className="font-semibold text-orange-700 dark:text-orange-300 group-hover:text-orange-800 dark:group-hover:text-orange-200 transition-colors">
+                    Buy our starter pack to get 6 month free access of the app
+                </p>
+            </a>
         </div>
     );
 };

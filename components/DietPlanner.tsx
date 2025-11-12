@@ -294,7 +294,7 @@ const DietPlanner: React.FC<DietPlannerProps> = ({ isSubscribed, onOpenSubscript
 
                 if (delay > 0) {
                     const timerId = setTimeout(() => {
-                        registration.showNotification(title, { body, icon: '/vite.svg', tag });
+                        registration.showNotification(title, { body, icon: '/logo.svg', tag });
                     }, delay);
                     timerIdsRef.current.push(timerId);
                 }

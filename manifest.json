@@ -3,14 +3,15 @@
   "name": "ObeCure Diet Assistant",
   "icons": [
     {
-      "src": "/vite.svg",
+      "src": "/logo.svg",
       "type": "image/svg+xml",
-      "sizes": "192x192 512x512"
+      "sizes": "any",
+      "purpose": "any maskable"
     }
   ],
   "start_url": ".",
   "display": "standalone",
   "theme_color": "#f97316",
-  "background_color": "#fff7ed",
+  "background_color": "#1C2536",
   "description": "An application to generate personalized Indian diet plans and BioAdaptive recommendations."
 }
