@@ -214,6 +214,9 @@ const WorkoutTimer: React.FC<{ plan: WorkoutPlan; onFinish: (durationInSeconds: 
         if ('speechSynthesis' in window) speechSynthesis.cancel();
         setIsStopModalOpen(true);
     };
+    
+    const currentExercise = combinedWorkout[currentExerciseIndex];
+    const elapsedDuration = combinedWorkout.slice(0, currentExerciseIndex).reduce((sum, ex) => sum + ex.duration, 0) + (currentExercise.duration - secondsRemaining);
 
     const handleEndWorkout = () => {
         setIsStopModalOpen(false);
@@ -225,8 +228,6 @@ const WorkoutTimer: React.FC<{ plan: WorkoutPlan; onFinish: (durationInSeconds: 
         window.open(`https://www.youtube.com/results?search_query=${encodeURIComponent(exerciseName + ' tutorial')}`, '_blank', 'noopener,noreferrer');
     };
 
-    const currentExercise = combinedWorkout[currentExerciseIndex];
-    const elapsedDuration = combinedWorkout.slice(0, currentExerciseIndex).reduce((sum, ex) => sum + ex.duration, 0) + (currentExercise.duration - secondsRemaining);
     const progressPercentage = (elapsedDuration / totalDuration) * 100;
     
     const radius = 80;
@@ -241,8 +242,11 @@ const WorkoutTimer: React.FC<{ plan: WorkoutPlan; onFinish: (durationInSeconds: 
     }, [currentExercise.type]);
 
     return (
-        <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700">
+        <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 animate-fade-in-up">
             <StopWorkoutModal isOpen={isStopModalOpen} onContinue={() => { setIsStopModalOpen(false); handleStartPause(); }} onEnd={handleEndWorkout} />
+            
+            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mb-4"><div className="bg-orange-500 h-2 rounded-full transition-all duration-1000 ease-linear" style={{ width: `${progressPercentage}%` }}></div></div>
+
             <div className="text-center mb-4">
                 <p className="text-sm font-semibold text-orange-500 uppercase tracking-wider">{currentExercise.type}</p>
                 <p className="text-2xl font-bold my-1 text-gray-800 dark:text-gray-200">{currentExercise.name}</p>
@@ -264,7 +268,7 @@ const WorkoutTimer: React.FC<{ plan: WorkoutPlan; onFinish: (durationInSeconds: 
                     {currentExerciseIndex + 1 < combinedWorkout.length ? combinedWorkout[currentExerciseIndex + 1].name : "Workout Finish!"}
                 </p>
             </div>
-             <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 my-4"><div className="bg-orange-500 h-2 rounded-full" style={{ width: `${progressPercentage}%` }}></div></div>
+            
             <div className="flex justify-center items-center gap-4 sm:gap-6">
                 <button onClick={handleReset} aria-label="Reset Timer" className="text-gray-600 dark:text-gray-400 hover:text-orange-500 dark:hover:text-orange-400 transition-all active:scale-95"><ResetIcon className="w-8 h-8"/></button>
                 <button onClick={handleStartPause} aria-label={isTimerActive ? "Pause" : "Start"} className="bg-orange-500 text-white rounded-full p-4 shadow-lg hover:bg-orange-600 transition-transform transform hover:scale-105 active:scale-95">{isTimerActive ? <PauseIcon className="w-10 h-10"/> : <PlayIcon className="w-10 h-10"/>}</button>
@@ -288,34 +292,43 @@ const WorkoutTimer: React.FC<{ plan: WorkoutPlan; onFinish: (durationInSeconds: 
     );
 };
 
-const WorkoutSummary: React.FC<{ plan: WorkoutPlan; durationInSeconds: number; onRestart: () => void; }> = ({ plan, durationInSeconds, onRestart }) => {
-    const durationInMinutes = Math.round(durationInSeconds / 60);
+const WorkoutSummary: React.FC<{ plan: WorkoutPlan; duration: number; onRestart: () => void; onChangePlan: () => void; }> = ({ plan, duration, onRestart, onChangePlan }) => {
+     const durationMinutes = Math.floor(duration / 60);
+     const durationSeconds = duration % 60;
+     const quote = useMemo(() => motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)], []);
 
-    const handleShare = () => {
-        const message = `I just completed the ${plan.name} for ${durationInMinutes} minutes with ObeCure! Feeling great! 💪`;
-        window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
+     const getShareText = () => {
+        let text = `I just completed the "${plan.name}" on the ObeCure app! 🔥\n\n`;
+        text += `Duration: ${durationMinutes}m ${durationSeconds}s\n`;
+        text += `Feeling stronger already! #ObeCure #FitnessJourney`;
+        return encodeURIComponent(text);
     };
 
     return (
-        <div className="relative bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 animate-fade-in-up text-center overflow-hidden">
-            {[...Array(6)].map((_, i) => <Sparkle key={i} style={{ top: `${Math.random()*80+10}%`, left: `${Math.random()*80+10}%`, animationDelay: `${Math.random()}s` }} />)}
-            <h2 className="text-3xl font-bold text-green-500">Workout Complete!</h2>
-            <p className="text-gray-600 dark:text-gray-400 mt-2">Awesome work on finishing the</p>
-            <p className="text-xl font-semibold text-orange-500 my-2">{plan.name}</p>
-            <p className="text-5xl font-bold text-gray-800 dark:text-gray-200 my-4">{durationInMinutes}<span className="text-xl">min</span></p>
-            
-            <div className="my-6">
-                <p className="font-semibold text-gray-700 dark:text-gray-300 mb-3">How did that feel?</p>
-                <div className="flex justify-center gap-4">
-                    <button className="text-4xl p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition transform hover:scale-125 active:scale-110">😊</button>
-                    <button className="text-4xl p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition transform hover:scale-125 active:scale-110">😐</button>
-                    <button className="text-4xl p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition transform hover:scale-125 active:scale-110">🥵</button>
+        <div className="relative text-center animate-fade-in-up">
+            {Array.from({ length: 15 }).map((_, i) => (
+                <Sparkle key={i} style={{
+                    top: `${Math.random() * 100}%`,
+                    left: `${Math.random() * 100}%`,
+                    animationDelay: `${Math.random() * 1.5}s`
+                }} />
+            ))}
+            <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700">
+                <h2 className="text-3xl font-bold text-green-500">Workout Complete!</h2>
+                <p className="text-gray-600 dark:text-gray-400 mt-2">Awesome job! You've taken another step towards your goal.</p>
+                <div className="my-8 bg-gray-50 dark:bg-gray-700/50 p-6 rounded-lg">
+                    <p className="text-lg font-semibold text-gray-700 dark:text-gray-300">{plan.name}</p>
+                    <p className="text-5xl font-bold text-orange-500 my-2">{durationMinutes}<span className="text-2xl">m</span> {durationSeconds}<span className="text-2xl">s</span></p>
+                    <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Total Time</p>
                 </div>
-            </div>
-
-            <div className="space-y-3">
-                 <button onClick={handleShare} className="w-full flex items-center justify-center gap-2 bg-green-500 text-white font-bold py-3 px-6 rounded-lg hover:bg-green-600 transition-all shadow-md active:scale-95"><WhatsAppIcon className="w-6 h-6"/><span>Share Achievement</span></button>
-                 <button onClick={onRestart} className="w-full bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-bold py-3 px-6 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-all active:scale-95">Do Another Workout</button>
+                <p className="font-handwriting text-xl text-orange-600 dark:text-orange-400 mb-8">"{quote}"</p>
+                <div className="space-y-3">
+                    <a href={`https://wa.me/?text=${getShareText()}`} target="_blank" rel="noopener noreferrer" className="w-full flex items-center justify-center gap-2 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 font-bold py-3 px-4 rounded-lg hover:bg-green-200 dark:hover:bg-green-900/50 transition-all">
+                        <WhatsAppIcon className="w-5 h-5"/> Share Your Win
+                    </a>
+                    <button onClick={onRestart} className="w-full bg-orange-500 text-white font-bold py-3 px-6 rounded-lg hover:bg-orange-600 transition-all active:scale-95">Do It Again!</button>
+                    <button onClick={onChangePlan} className="w-full bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-bold py-3 px-6 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-all">Choose Another Workout</button>
+                </div>
             </div>
         </div>
     );
@@ -323,92 +336,83 @@ const WorkoutSummary: React.FC<{ plan: WorkoutPlan; durationInSeconds: number; o
 
 
 const Workouts: React.FC = () => {
-    type WorkoutView = 'selector' | 'briefing' | 'timer' | 'summary';
-    const [view, setView] = useState<WorkoutView>('selector');
+    const [view, setView] = useState<'selector' | 'briefing' | 'timer' | 'summary'>('selector');
     const [workoutPlan, setWorkoutPlan] = useState<WorkoutPlan | null>(null);
-    const [completedDuration, setCompletedDuration] = useState(0);
     const [toastInfo, setToastInfo] = useState<{ title: string; message: string; quote: string; } | null>(null);
-    const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
+    const [workoutDuration, setWorkoutDuration] = useState(0);
 
     useEffect(() => {
-        const savedPrefsRaw = localStorage.getItem(USER_PREFERENCES_KEY);
-        if (savedPrefsRaw) {
-            const savedPrefs = JSON.parse(savedPrefsRaw);
-            if (Array.isArray(savedPrefs.healthConditions)) {
-                setWorkoutPlan(getWorkoutPlanForConditions(savedPrefs.healthConditions));
-                setView('briefing');
+        try {
+            const savedPrefsRaw = localStorage.getItem(USER_PREFERENCES_KEY);
+            if (savedPrefsRaw) {
+                const savedPrefs = JSON.parse(savedPrefsRaw);
+                if (savedPrefs.healthConditions && savedPrefs.healthConditions.length > 0) {
+                    const plan = getWorkoutPlanForConditions(savedPrefs.healthConditions);
+                    setWorkoutPlan(plan);
+                    setView('briefing');
+                }
             }
+        } catch (e) {
+            console.error("Failed to load user preferences for workouts", e);
+            setView('selector');
         }
     }, []);
 
     const handlePlanSelected = (plan: WorkoutPlan) => {
         setWorkoutPlan(plan);
         setView('briefing');
-        // Save selection for next time
-        const savedPrefsRaw = localStorage.getItem(USER_PREFERENCES_KEY);
-        const savedPrefs = savedPrefsRaw ? JSON.parse(savedPrefsRaw) : {};
-        savedPrefs.healthConditions = plan.id === 'GENERAL' ? [] : [plan.id]; // Simplified mapping
-        localStorage.setItem(USER_PREFERENCES_KEY, JSON.stringify(savedPrefs));
     };
 
-    const handleWorkoutComplete = (durationInSeconds: number) => {
+    const handleFinish = (durationInSeconds: number) => {
         if (!workoutPlan) return;
+        setWorkoutDuration(durationInSeconds);
         const durationInMinutes = Math.round(durationInSeconds / 60);
-
-        if (durationInMinutes > 0) {
-            const newLog: WorkoutLogEntry = { date: new Date().toISOString().split('T')[0], name: workoutPlan.name, duration: durationInMinutes };
-            try {
-                const logsRaw = localStorage.getItem(WORKOUT_LOG_KEY);
-                let logs: WorkoutLogEntry[] = logsRaw ? JSON.parse(logsRaw) : [];
-                if (!logs.find(l => l.date === newLog.date && l.name === newLog.name)) {
-                    logs.push(newLog);
-                    localStorage.setItem(WORKOUT_LOG_KEY, JSON.stringify(logs));
-                }
-            } catch (e) { console.error("Failed to log workout", e); }
-            
-            setToastInfo({ title: "Workout Logged!", message: `Great job! ${durationInMinutes} mins of ${workoutPlan.name} added to your progress.`, quote: motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)] });
-        }
         
-        setCompletedDuration(durationInSeconds);
+        if(durationInMinutes > 0) {
+            const newLog: WorkoutLogEntry = {
+                date: new Date().toISOString().split('T')[0],
+                name: workoutPlan.name,
+                duration: durationInMinutes,
+            };
+            try {
+                const existingLogsRaw = localStorage.getItem(WORKOUT_LOG_KEY);
+                let logs: WorkoutLogEntry[] = existingLogsRaw ? JSON.parse(existingLogsRaw) : [];
+                logs.push(newLog);
+                const sevenDaysAgo = new Date();
+                sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+                const sevenDaysAgoStr = sevenDaysAgo.toISOString().split('T')[0];
+                const updatedLogs = logs.filter(log => log.date >= sevenDaysAgoStr);
+                localStorage.setItem(WORKOUT_LOG_KEY, JSON.stringify(updatedLogs));
+                setToastInfo({ title: "Workout Logged!", message: `Great job completing ${durationInMinutes} minutes!`, quote: "Consistency is your superpower." });
+            } catch (e) { console.error("Could not save workout log.", e); }
+        }
         setView('summary');
     };
 
-    const handleRestart = () => {
-        setView('selector');
+    const resetToSelector = () => {
         setWorkoutPlan(null);
-        setCompletedDuration(0);
+        setView('selector');
     };
 
-    let content;
-    switch(view) {
-        case 'selector':
-            content = <ConditionSelector onPlanSelected={handlePlanSelected} />;
-            break;
-        case 'briefing':
-            content = workoutPlan && <WorkoutBriefing plan={workoutPlan} onStart={() => setView('timer')} onChangePlan={handleRestart} />;
-            break;
-        case 'timer':
-            content = workoutPlan && <WorkoutTimer plan={workoutPlan} onFinish={handleWorkoutComplete} />;
-            break;
-        case 'summary':
-            content = workoutPlan && <WorkoutSummary plan={workoutPlan} durationInSeconds={completedDuration} onRestart={handleRestart} />;
-            break;
-        default:
-            content = <div>Loading...</div>;
-    }
+    const renderContent = () => {
+        switch (view) {
+            case 'selector':
+                return <ConditionSelector onPlanSelected={handlePlanSelected} />;
+            case 'briefing':
+                return workoutPlan && <WorkoutBriefing plan={workoutPlan} onStart={() => setView('timer')} onChangePlan={resetToSelector} />;
+            case 'timer':
+                return workoutPlan && <WorkoutTimer plan={workoutPlan} onFinish={handleFinish} />;
+            case 'summary':
+                return workoutPlan && <WorkoutSummary plan={workoutPlan} duration={workoutDuration} onRestart={() => setView('timer')} onChangePlan={resetToSelector} />;
+            default:
+                return null;
+        }
+    };
 
     return (
-        <div className="space-y-8">
-            <InfoModal isOpen={isInfoModalOpen} onClose={() => setIsInfoModalOpen(false)} title="Partner Gyms" message="No partnership near your location." />
-            {toastInfo && <SuccessToast title={toastInfo.title} message={toastInfo.message} quote={toastInfo.quote} onClose={() => setToastInfo(null)} />}
-            
-            {content}
-
-            <div className="mt-8 text-center">
-                <button onClick={() => setIsInfoModalOpen(true)} className="bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-bold py-3 px-8 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-all duration-300 shadow-md hover:shadow-lg active:scale-95">
-                    Workout at your partner gym
-                </button>
-            </div>
+        <div>
+            {toastInfo && <SuccessToast {...toastInfo} onClose={() => setToastInfo(null)} />}
+            {renderContent()}
         </div>
     );
 };
