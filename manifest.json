@@ -21,9 +21,68 @@
       "purpose": "any maskable"
     }
   ],
+  "id": "/",
   "start_url": ".",
   "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "scope": "/",
   "theme_color": "#f97316",
   "background_color": "#1C2536",
-  "description": "An application to generate personalized Indian diet plans and BioAdaptive recommendations."
+  "orientation": "portrait-primary",
+  "lang": "en-US",
+  "dir": "ltr",
+  "description": "An application to generate personalized Indian diet plans and BioAdaptive recommendations.",
+  "categories": ["health", "fitness", "food"],
+  "shortcuts": [
+    {
+      "name": "Create New Diet Plan",
+      "short_name": "New Plan",
+      "description": "Generate a new personalized diet plan.",
+      "url": "/?view=planner",
+      "icons": [{ "src": "/logo.svg", "sizes": "192x192" }]
+    },
+    {
+      "name": "View Workouts",
+      "short_name": "Workouts",
+      "description": "Access your workout plans.",
+      "url": "/?view=workouts",
+      "icons": [{ "src": "/logo.svg", "sizes": "192x192" }]
+    },
+    {
+      "name": "Log Sleep",
+      "short_name": "Log Sleep",
+      "description": "Log your sleep for the night.",
+      "url": "/?action=logsleep",
+      "icons": [{ "src": "/logo.svg", "sizes": "192x192" }]
+    }
+  ],
+  "share_target": {
+    "action": "/?action=share",
+    "method": "GET",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url"
+    }
+  },
+  "file_handlers": [
+    {
+      "action": "/?action=handlefile",
+      "accept": {
+        "image/*": [".jpg", ".jpeg", ".png", ".gif"]
+      }
+    }
+  ],
+  "launch_handler": {
+    "client_mode": ["navigate-existing", "auto"]
+  },
+  "protocol_handlers": [],
+  "prefer_related_applications": false,
+  "related_applications": [],
+  "iarc_rating_id": "",
+  "widgets": [],
+  "edge_side_panel": {
+    "preferred_width": 400
+  },
+  "scope_extensions": []
 }

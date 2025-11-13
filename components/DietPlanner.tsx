@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { DietPreference, DietPlan, Sex, ActivityLevel, DietType, HealthCondition, DrKenilsNote, ProgressEntry, DailyIntake, FastingEntry, Meal, WaterEntry, CustomMealLogEntry, MealType } from '../types';
 import { generateOfflineDietPlan as generateDietPlan, findSwapMeal } from '../services/offlinePlanGenerator';
-import { StarIcon } from './icons/StarIcon';
 import { drKenilsNotes } from '../data/notes';
 import DrKenilsNoteComponent from './DrKenilsNote';
 import GeneratingPlan from './GeneratingPlan';

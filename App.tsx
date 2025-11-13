@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import Header from './components/Header';
 import DietPlanner from './components/DietPlanner';
@@ -537,19 +538,23 @@ const App: React.FC = () => {
                   Connect with us
               </h3>
               <div className="flex justify-center items-center space-x-4 sm:space-x-6">
-                  <a href="https://www.xzecure.co.in" target="_blank" rel="noopener noreferrer" className="flex flex-col items-center text-gray-500 dark:text-gray-400 hover:text-orange-500 dark:hover:text-orange-400 transition-all duration-300 transform hover:scale-110 active:scale-95 opacity-0 animate-fade-in-up" style={{animationDelay: '200ms'}}>
+                  <a href="https://www.obeCure.com" target="_blank" rel="noopener noreferrer" className="flex flex-col items-center text-gray-500 dark:text-gray-400 hover:text-orange-500 dark:hover:text-orange-400 transition-all duration-300 transform hover:scale-110 active:scale-95 opacity-0 animate-fade-in-up" style={{animationDelay: '200ms'}}>
                       <WebsiteIcon className="w-7 h-7 sm:w-8 sm:h-8"/>
-                      <span className="text-xs mt-1">Website</span>
+                      <span className="text-xs mt-1">ObeCure</span>
                   </a>
-                  <a href="https://www.instagram.com/xzecure" target="_blank" rel="noopener noreferrer" className="flex flex-col items-center text-gray-500 dark:text-gray-400 hover:text-orange-500 dark:hover:text-orange-400 transition-all duration-300 transform hover:scale-110 active:scale-95 opacity-0 animate-fade-in-up" style={{animationDelay: '400ms'}}>
+                  <a href="https://www.xzecure.co.in" target="_blank" rel="noopener noreferrer" className="flex flex-col items-center text-gray-500 dark:text-gray-400 hover:text-orange-500 dark:hover:text-orange-400 transition-all duration-300 transform hover:scale-110 active:scale-95 opacity-0 animate-fade-in-up" style={{animationDelay: '400ms'}}>
+                      <WebsiteIcon className="w-7 h-7 sm:w-8 sm:h-8"/>
+                      <span className="text-xs mt-1">Xzecure</span>
+                  </a>
+                  <a href="https://www.instagram.com/xzecure" target="_blank" rel="noopener noreferrer" className="flex flex-col items-center text-gray-500 dark:text-gray-400 hover:text-orange-500 dark:hover:text-orange-400 transition-all duration-300 transform hover:scale-110 active:scale-95 opacity-0 animate-fade-in-up" style={{animationDelay: '600ms'}}>
                       <InstagramIcon className="w-7 h-7 sm:w-8 sm:h-8"/>
                       <span className="text-xs mt-1">@xzecure</span>
                   </a>
-                  <a href="https://www.instagram.com/askdr.xze" target="_blank" rel="noopener noreferrer" className="flex flex-col items-center text-gray-500 dark:text-gray-400 hover:text-orange-500 dark:hover:text-orange-400 transition-all duration-300 transform hover:scale-110 active:scale-95 opacity-0 animate-fade-in-up" style={{animationDelay: '600ms'}}>
+                  <a href="https://www.instagram.com/askdr.xze" target="_blank" rel="noopener noreferrer" className="flex flex-col items-center text-gray-500 dark:text-gray-400 hover:text-orange-500 dark:hover:text-orange-400 transition-all duration-300 transform hover:scale-110 active:scale-95 opacity-0 animate-fade-in-up" style={{animationDelay: '800ms'}}>
                       <InstagramIcon className="w-7 h-7 sm:w-8 sm:h-8"/>
                       <span className="text-xs mt-1">@askdr.xze</span>
                   </a>
-                  <a href="https://www.instagram.com/Xzeveda" target="_blank" rel="noopener noreferrer" className="flex flex-col items-center text-gray-500 dark:text-gray-400 hover:text-orange-500 dark:hover:text-orange-400 transition-all duration-300 transform hover:scale-110 active:scale-95 opacity-0 animate-fade-in-up" style={{animationDelay: '800ms'}}>
+                  <a href="https://www.instagram.com/Xzeveda" target="_blank" rel="noopener noreferrer" className="flex flex-col items-center text-gray-500 dark:text-gray-400 hover:text-orange-500 dark:hover:text-orange-400 transition-all duration-300 transform hover:scale-110 active:scale-95 opacity-0 animate-fade-in-up" style={{animationDelay: '1000ms'}}>
                       <InstagramIcon className="w-7 h-7 sm:w-8 sm:h-8"/>
                       <span className="text-xs mt-1">@Xzeveda</span>
                   </a>
