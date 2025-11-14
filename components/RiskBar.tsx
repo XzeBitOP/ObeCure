@@ -7,8 +7,15 @@ interface RiskBarProps {
 
 const RiskBar: React.FC<RiskBarProps> = ({ value, maxValue }) => {
   const percentage = (value / maxValue) * 100;
-  const VFI_LEVELS: Record<number, string> = { 3: 'Healthy', 6: 'Healthy', 9: 'Acceptable', 13: 'High', 18: 'Very High' };
-  const levelText = VFI_LEVELS[value as keyof typeof VFI_LEVELS] || 'Unknown';
+
+  let levelText: string;
+  if (value >= 13) {
+    levelText = 'Very High';
+  } else if (value >= 9) {
+    levelText = 'High';
+  } else {
+    levelText = 'Healthy';
+  }
   
   let colorClass = 'bg-green-500';
   if (value >= 13) colorClass = 'bg-red-500';

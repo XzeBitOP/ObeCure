@@ -79,15 +79,50 @@ export interface WaterEntry {
   glasses: number;
 }
 
+export interface MetabolicAgeAnalysis {
+  inputs: {
+    weight_kg: number;
+    height_cm: number;
+    age_years: number;
+    sex: "male" | "female";
+    waist_cm: number;
+    hip_cm?: number;
+    neck_cm?: number;
+    activity_level: "sedentary" | "light" | "moderate" | "heavy";
+    bodyFatPercent: number;
+    muscleMass_kg: number;
+  };
+  derived: {
+    BMI: number;
+    WHtR: number;
+    BMR: number;
+    MuscleIndex: number;
+  };
+  metabolicScore: number;
+  metabolicAge_clinical: number;
+  method: "clinical";
+  confidence: number;
+  contributors: { feature: string; impact: number }[];
+  explanation: string;
+  recommendation: string;
+}
+
+
 export interface BodyCompositionEntry {
     date: string; // YYYY-MM-DD
     bmi: number;
     bodyFatPercentage: number;
     leanBodyMass: number;
     muscleMass: number;
-    visceralFatIndex: number;
     proteinMass: number;
     proteinPercentage: number;
+    bmr: number;
+    whtr: number;
+    whr: number;
+    tbw: number;
+    fatMass: number;
+    visceralFatIndex: number;
+    metabolicAgeAnalysis?: MetabolicAgeAnalysis;
 }
 
 export interface FastingEntry {
