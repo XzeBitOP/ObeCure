@@ -575,6 +575,43 @@ const DietPlanner: React.FC<DietPlannerProps> = ({ isSubscribed, onOpenSubscript
         }, 1000);
     };
 
+    const handleSaveWeight = () => {
+        const weightNum = parseFloat(patientWeight);
+        const heightNum = parseFloat(height);
+
+        if (isNaN(weightNum) || weightNum <= 0) {
+            setToastInfo({ title: "Invalid Weight", message: "Please enter a valid weight.", quote: "Every detail matters." });
+            return;
+        }
+
+        const todayStr = new Date().toISOString().split('T')[0];
+        const newBmi = calculateBmi(weightNum, heightNum);
+
+        const newEntry: ProgressEntry = {
+            date: todayStr,
+            weight: weightNum,
+            bmi: newBmi,
+        };
+
+        try {
+            const progressDataRaw = localStorage.getItem(PROGRESS_DATA_KEY);
+            let progressData: ProgressEntry[] = progressDataRaw ? JSON.parse(progressDataRaw) : [];
+            
+            // Remove any existing entry for today before adding the new one
+            progressData = progressData.filter(e => e.date !== todayStr);
+            progressData.push(newEntry);
+            
+            progressData.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+            
+            localStorage.setItem(PROGRESS_DATA_KEY, JSON.stringify(progressData));
+
+            setToastInfo({ title: "Weight Saved!", message: `Your weight of ${weightNum.toFixed(1)} kg has been logged.`, quote: "One step at a time." });
+        } catch(e) {
+            console.error("Could not save progress data.", e);
+            setToastInfo({ title: "Error", message: "Could not save your weight.", quote: "Please try again." });
+        }
+    };
+
   const handleMealCheckChange = (mealRecipe: string) => {
     setCheckedMeals(prev => ({ ...prev, [mealRecipe]: !prev[mealRecipe] }));
   };
@@ -816,14 +853,19 @@ const DietPlanner: React.FC<DietPlannerProps> = ({ isSubscribed, onOpenSubscript
         
         <div className="min-h-[400px]">
           {formStep === 1 && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 animate-fade-in-up">
-              <div className="lg:col-span-2">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-fade-in-up">
+              <div className="md:col-span-2">
                 <label htmlFor="patientName" className={formLabelClass}>Patient Name</label>
                 <input ref={patientNameRef} onKeyDown={e => handleKeyDown(e, patientWeightRef)} id="patientName" type="text" value={patientName} onChange={(e) => setPatientName(e.target.value)} placeholder="e.g., Anjali Sharma" className={formInputClass}/>
               </div>
-              <div>
-                <label htmlFor="patientWeight" className={formLabelClass}>Weight (kg)<span className="text-red-500">*</span></label>
-                <input ref={patientWeightRef} onKeyDown={e => handleKeyDown(e, ageRef)} id="patientWeight" type="number" value={patientWeight} onChange={(e) => setPatientWeight(e.target.value)} placeholder="e.g., 75" required className={formInputClass}/>
+              <div className="md:col-span-2">
+                <label htmlFor="patientWeight" className={formLabelClass}>Current Weight (kg)<span className="text-red-500">*</span></label>
+                <div className="flex items-center gap-2">
+                    <input ref={patientWeightRef} onKeyDown={e => handleKeyDown(e, ageRef)} id="patientWeight" type="number" value={patientWeight} onChange={(e) => setPatientWeight(e.target.value)} placeholder="e.g., 75" required className={formInputClass}/>
+                    <button onClick={handleSaveWeight} className="bg-green-500 text-white font-bold py-3 px-4 rounded-lg hover:bg-green-600 transition-all active:scale-95 shadow-md">
+                        Save
+                    </button>
+                </div>
               </div>
               <div>
                  <label htmlFor="age" className={formLabelClass}>Age<span className="text-red-500">*</span></label>
@@ -844,7 +886,7 @@ const DietPlanner: React.FC<DietPlannerProps> = ({ isSubscribed, onOpenSubscript
                     </div>
                 )}
               </div>
-              <div className="lg:col-span-3">
+              <div className="md:col-span-2">
                 <label htmlFor="sex" className={formLabelClass}>Sex</label>
                 <select ref={sexRef} onKeyDown={e => handleKeyDown(e, nextButton1Ref)} id="sex" value={sex} onChange={(e) => setSex(e.target.value as Sex)} className={formInputClass}>
                   {Object.values(Sex).map((s) => (<option key={s} value={s}>{s}</option>))}

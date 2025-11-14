@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import Header from './components/Header';
 import DietPlanner from './components/DietPlanner';
@@ -459,7 +460,7 @@ const App: React.FC = () => {
             {view === 'progress' ? (
                 <ChartBarIcon className="w-6 h-6 shrink-0" />
             ) : (
-                <span className="whitespace-nowrap">Progress</span>
+                <span className="whitespace-nowrap">My Body</span>
             )}
           </button>
         </div>

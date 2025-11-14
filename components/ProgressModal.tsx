@@ -2,6 +2,10 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { ProgressEntry, DailyIntake, SleepEntry, FastingEntry, WorkoutLogEntry, WaterEntry } from '../types';
 import { WhatsAppIcon } from './icons/WhatsAppIcon';
 import WeeklyReportView from './WeeklyReportView';
+import { EditIcon } from './icons/EditIcon';
+import { TrashIcon } from './icons/TrashIcon';
+import { SaveIcon } from './icons/SaveIcon';
+import { CancelIcon } from './icons/CancelIcon';
 
 const PROGRESS_DATA_KEY = 'obeCureProgressData';
 const DAILY_INTAKE_KEY = 'obeCureDailyIntake';
@@ -177,11 +181,11 @@ const ProgressModal: React.FC<{ isOpen: boolean; onClose: () => void; }> = ({ is
   const [workoutLogs, setWorkoutLogs] = useState<WorkoutLogEntry[]>([]);
   const [waterData, setWaterData] = useState<WaterEntry[]>([]);
   const [showWeeklyReport, setShowWeeklyReport] = useState(false);
+  const [editingDate, setEditingDate] = useState<string | null>(null);
+  const [editData, setEditData] = useState({ weight: '', bmi: '' });
 
-  useEffect(() => {
-    if (isOpen) {
-      setShowWeeklyReport(false); // Reset to chart view on open
-      try {
+  const loadAllData = () => {
+     try {
         const progressRaw = localStorage.getItem(PROGRESS_DATA_KEY);
         setProgressData(progressRaw ? JSON.parse(progressRaw) : []);
         const intakeRaw = localStorage.getItem(DAILY_INTAKE_KEY);
@@ -197,6 +201,12 @@ const ProgressModal: React.FC<{ isOpen: boolean; onClose: () => void; }> = ({ is
       } catch (e) {
         console.error("Failed to parse progress data", e);
       }
+  }
+
+  useEffect(() => {
+    if (isOpen) {
+      setShowWeeklyReport(false); // Reset to chart view on open
+      loadAllData();
     }
   }, [isOpen]);
 
@@ -219,6 +229,42 @@ const ProgressModal: React.FC<{ isOpen: boolean; onClose: () => void; }> = ({ is
     });
     return Object.values(combined).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
   }, [progressData, intakeData, sleepData, fastingData, waterData]);
+
+    const handleEdit = (entry: ProgressEntry) => {
+        setEditingDate(entry.date);
+        setEditData({ weight: String(entry.weight), bmi: String(entry.bmi) });
+    };
+
+    const handleEditChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const { name, value } = e.target;
+        setEditData(prev => ({ ...prev, [name]: value }));
+    };
+
+    const handleSave = (dateToSave: string) => {
+        const updatedProgressData = progressData.map(entry => {
+            if (entry.date === dateToSave) {
+                return {
+                    ...entry,
+                    weight: parseFloat(editData.weight) || entry.weight,
+                    bmi: parseFloat(editData.bmi) || entry.bmi,
+                };
+            }
+            return entry;
+        });
+
+        updatedProgressData.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+        localStorage.setItem(PROGRESS_DATA_KEY, JSON.stringify(updatedProgressData));
+        setProgressData(updatedProgressData);
+        setEditingDate(null);
+    };
+
+    const handleDelete = (dateToDelete: string) => {
+        if (window.confirm('Are you sure you want to delete this entry?')) {
+            const updatedProgressData = progressData.filter(entry => entry.date !== dateToDelete);
+            localStorage.setItem(PROGRESS_DATA_KEY, JSON.stringify(updatedProgressData));
+            setProgressData(updatedProgressData);
+        }
+    };
 
   const getShareText = () => {
     if (progressData.length < 1) return encodeURIComponent("I'm starting my health journey with ObeCure!");
@@ -295,17 +341,37 @@ const ProgressModal: React.FC<{ isOpen: boolean; onClose: () => void; }> = ({ is
                 </>
             )}
 
-            {workoutLogs.length > 0 && !showWeeklyReport && (
-                <div className="mt-6">
-                    <h3 className="text-lg font-bold text-gray-700 dark:text-gray-300 mb-3 text-center sm:text-left">Recent Workouts</h3>
-                    <div className="space-y-2 max-h-40 overflow-y-auto pr-2">
-                        {workoutLogs.slice(-5).reverse().map((log, index) => (
-                            <div key={index} className="bg-gray-50 dark:bg-gray-700/50 p-3 rounded-lg flex justify-between items-center text-sm">
-                                <div>
-                                    <p className="font-semibold text-gray-800 dark:text-gray-200">{log.name}</p>
-                                    <p className="text-xs text-gray-500 dark:text-gray-400">{new Date(log.date + 'T00:00:00').toLocaleDateString('en-GB', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
-                                </div>
-                                <p className="font-bold text-orange-500 dark:text-orange-400">{log.duration} min</p>
+            {!showWeeklyReport && (
+                 <div className="mt-6">
+                    <h3 className="text-lg font-bold text-gray-700 dark:text-gray-300 mb-3 text-center sm:text-left">Data History</h3>
+                    <div className="space-y-2 max-h-48 overflow-y-auto pr-2">
+                        {progressData.slice().reverse().map(entry => (
+                            <div key={entry.date} className="bg-gray-50 dark:bg-gray-700/50 p-3 rounded-lg flex items-center justify-between text-sm">
+                                {editingDate === entry.date ? (
+                                    <>
+                                        <span className="font-semibold text-gray-800 dark:text-gray-200">{new Date(entry.date + 'T00:00:00').toLocaleDateString('en-GB', { month: 'short', day: 'numeric' })}</span>
+                                        <div className="flex items-center gap-2">
+                                            <input type="number" name="weight" value={editData.weight} onChange={handleEditChange} className="w-20 p-1 rounded bg-white dark:bg-gray-800 text-center" aria-label="Edit weight"/>
+                                            <input type="number" name="bmi" value={editData.bmi} onChange={handleEditChange} className="w-20 p-1 rounded bg-white dark:bg-gray-800 text-center" aria-label="Edit BMI"/>
+                                            <button onClick={() => handleSave(entry.date)} className="p-1 text-green-500 hover:text-green-700" aria-label="Save changes"><SaveIcon className="w-5 h-5" /></button>
+                                            <button onClick={() => setEditingDate(null)} className="p-1 text-gray-500 hover:text-gray-700" aria-label="Cancel editing"><CancelIcon className="w-5 h-5" /></button>
+                                        </div>
+                                    </>
+                                ) : (
+                                    <>
+                                        <div>
+                                            <p className="font-semibold text-gray-800 dark:text-gray-200">{new Date(entry.date + 'T00:00:00').toLocaleDateString('en-GB', { weekday: 'short', month: 'short', day: 'numeric' })}</p>
+                                        </div>
+                                        <div className="flex items-center gap-4">
+                                            <p><span className="font-bold">{entry.weight.toFixed(1)}</span> kg</p>
+                                            <p>BMI: <span className="font-bold">{entry.bmi.toFixed(1)}</span></p>
+                                            <div className="flex items-center gap-1">
+                                                <button onClick={() => handleEdit(entry)} className="p-1 text-blue-500 hover:text-blue-700" aria-label="Edit entry"><EditIcon className="w-5 h-5" /></button>
+                                                <button onClick={() => handleDelete(entry.date)} className="p-1 text-red-500 hover:text-red-700" aria-label="Delete entry"><TrashIcon className="w-5 h-5" /></button>
+                                            </div>
+                                        </div>
+                                    </>
+                                )}
                             </div>
                         ))}
                     </div>

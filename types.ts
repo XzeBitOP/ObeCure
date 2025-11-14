@@ -123,6 +123,13 @@ export interface BodyCompositionEntry {
     fatMass: number;
     visceralFatIndex: number;
     metabolicAgeAnalysis?: MetabolicAgeAnalysis;
+    muscleRate: number;
+    bodyWaterPercentage: number;
+    boneMass: number;
+    subcutaneousFatPercentage: number;
+    idealWeight: number;
+    obesityGrade: string;
+    bodyType: string;
 }
 
 export interface FastingEntry {

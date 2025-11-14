@@ -132,23 +132,45 @@ self.addEventListener('install', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
+  // We only want to handle GET requests
+  if (event.request.method !== 'GET') {
+    return;
+  }
+
   event.respondWith(
-    caches.match(event.request)
-      .then((response) => {
-        if (response) return response;
-        return fetch(event.request).then((response) => {
-            if (!response || response.status !== 200) return response;
-            if (response.type === 'opaque' || response.type === 'basic') {
-                const responseToCache = response.clone();
-                caches.open(CACHE_NAME).then((cache) => {
-                    cache.put(event.request, responseToCache);
-                });
-            }
-            return response;
-        });
-      })
+    (async () => {
+      const cache = await caches.open(CACHE_NAME);
+      const cachedResponse = await cache.match(event.request);
+
+      if (cachedResponse) {
+        // Return the cached response
+        return cachedResponse;
+      }
+
+      try {
+        // If not in cache, fetch from the network
+        const networkResponse = await fetch(event.request);
+        
+        // A response is a stream and can only be consumed once.
+        // We need to clone it to put one copy in cache and return one to the browser.
+        const responseToCache = networkResponse.clone();
+
+        // Cache the new response
+        await cache.put(event.request, responseToCache);
+
+        // Return the network response
+        return networkResponse;
+      } catch (error) {
+        // Handle network errors (e.g., offline)
+        console.error('Fetch failed:', error);
+        // We don't have an offline fallback page specified in the cache,
+        // so we just let the request fail.
+        throw error;
+      }
+    })()
   );
 });
+
 
 self.addEventListener('activate', (event) => {
     const cacheWhitelist = [CACHE_NAME];
