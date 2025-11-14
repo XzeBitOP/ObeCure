@@ -80,7 +80,7 @@ const urlsToCache = [
   '/services/googleFormSubmit.ts',
   '/components/icons/ForkAndSpoonIcon.tsx',
   '/components/icons/DumbbellIcon.tsx',
-  '/logo.svg',
+  '/logo.png',
   // External assets
   'https://cdn.tailwindcss.com',
   'https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Kalam:wght@400;700&display=swap',

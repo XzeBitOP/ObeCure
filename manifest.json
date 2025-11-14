@@ -3,21 +3,15 @@
   "name": "ObeCure Diet Assistant",
   "icons": [
     {
-      "src": "/logo.svg",
-      "type": "image/svg+xml",
-      "sizes": "any",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "/logo.svg",
+      "src": "/logo.png",
       "sizes": "192x192",
-      "type": "image/svg+xml",
+      "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/logo.svg",
+      "src": "/logo.png",
       "sizes": "512x512",
-      "type": "image/svg+xml",
+      "type": "image/png",
       "purpose": "any maskable"
     }
   ],
@@ -55,21 +49,21 @@
       "short_name": "New Plan",
       "description": "Generate a new personalized diet plan.",
       "url": "/?view=planner",
-      "icons": [{ "src": "/logo.svg", "sizes": "192x192" }]
+      "icons": [{ "src": "/logo.png", "sizes": "192x192" }]
     },
     {
       "name": "View Workouts",
       "short_name": "Workouts",
       "description": "Access your workout plans.",
       "url": "/?view=workouts",
-      "icons": [{ "src": "/logo.svg", "sizes": "192x192" }]
+      "icons": [{ "src": "/logo.png", "sizes": "192x192" }]
     },
     {
       "name": "Log Sleep",
       "short_name": "Log Sleep",
       "description": "Log your sleep for the night.",
       "url": "/?action=logsleep",
-      "icons": [{ "src": "/logo.svg", "sizes": "192x192" }]
+      "icons": [{ "src": "/logo.png", "sizes": "192x192" }]
     }
   ],
   "share_target": {
