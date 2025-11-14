@@ -11,6 +11,8 @@ import { WhatsAppIcon } from './icons/WhatsAppIcon';
 const USER_PREFERENCES_KEY = 'obeCureUserPreferences';
 const WORKOUT_LOG_KEY = 'obeCureWorkoutLog';
 
+const celebratoryQuotes = ["You're on fire! 🔥", "Amazing effort! ✨", "Keep pushing! 💪", "Great work! 🥳", "You got this! 🚀", "Feeling stronger! 💯"];
+
 // --- ICONS ---
 const PlayIcon = (props: React.SVGProps<SVGSVGElement>) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" {...props}><path d="M8 5v14l11-7z" /></svg>;
 const PauseIcon = (props: React.SVGProps<SVGSVGElement>) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" {...props}><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" /></svg>;
@@ -51,6 +53,17 @@ const StopWorkoutModal: React.FC<{ isOpen: boolean; onContinue: () => void; onEn
     </div>
   );
 };
+
+const CalorieBurnAnimation: React.FC<{ amount: number, quote: string }> = ({ amount, quote }) => {
+    return (
+        <div className="absolute inset-0 bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm flex flex-col items-center justify-center animate-fade-in z-20 text-center p-4">
+            <div className="text-6xl animate-flame" style={{ textShadow: '0 0 10px #f97316' }}>🔥</div>
+            <p className="text-2xl font-bold text-orange-500 mt-2 animate-bounce-in">~{Math.round(amount)} kcal burned!</p>
+            <p className="text-lg font-semibold text-gray-700 dark:text-gray-200 mt-2 animate-burn-in" style={{animationDelay: '0.3s'}}>{quote}</p>
+        </div>
+    );
+};
+
 
 // --- VIEW COMPONENTS ---
 
@@ -94,7 +107,8 @@ const WorkoutBriefing: React.FC<{ plan: WorkoutPlan; onStart: () => void; onChan
         const workTime = exercises.length * structure.work * structure.rounds;
         const restTime = (exercises.length - 1) * structure.rest * structure.rounds;
         const roundRestTime = (structure.roundRest || 0) * (structure.rounds - 1);
-        return Math.round((workTime + restTime + roundRestTime + (warmupDuration || 0) + (cooldownDuration || 0)) / 60);
+        const readyTime = warmupDuration ? 5 : 0; // 5s "get ready" time
+        return Math.round((workTime + restTime + roundRestTime + (warmupDuration || 0) + readyTime + (cooldownDuration || 0)) / 60);
     }, [plan]);
 
     return (
@@ -114,11 +128,12 @@ const WorkoutBriefing: React.FC<{ plan: WorkoutPlan; onStart: () => void; onChan
     );
 };
 
-const WorkoutTimer: React.FC<{ plan: WorkoutPlan; onFinish: (durationInSeconds: number) => void; }> = ({ plan, onFinish }) => {
+const WorkoutTimer: React.FC<{ plan: WorkoutPlan; onFinish: (durationInSeconds: number) => void; userWeight: number; }> = ({ plan, onFinish, userWeight }) => {
     const [currentExerciseIndex, setCurrentExerciseIndex] = useState(0);
     const [secondsRemaining, setSecondsRemaining] = useState(0);
     const [isTimerActive, setIsTimerActive] = useState(false);
     const [isStopModalOpen, setIsStopModalOpen] = useState(false);
+    const [caloriesBurned, setCaloriesBurned] = useState<{ key: number, amount: number, quote: string } | null>(null);
     const listRef = useRef<HTMLDivElement>(null);
     const timerWorkerRef = useRef<Worker | null>(null);
 
@@ -129,15 +144,27 @@ const WorkoutTimer: React.FC<{ plan: WorkoutPlan; onFinish: (durationInSeconds: 
 
     const combinedWorkout = useMemo(() => {
         const { exercises, structure, warmupDuration, cooldownDuration } = plan;
-        const fullWorkout: any[] = [{ name: 'Warm-up', type: 'Preparation', duration: warmupDuration || 180, description: 'Light cardio like marching in place, arm circles, and leg swings.' }];
+        const fullWorkout: any[] = [];
+        if (warmupDuration) {
+            fullWorkout.push({ name: 'Warm-up', type: 'Preparation', duration: warmupDuration, description: 'Light cardio like marching in place, arm circles, and leg swings.' });
+            fullWorkout.push({ name: 'Get Ready', type: 'Preparation', duration: 5, description: 'Prepare for the first exercise.', position: exercises[0].position });
+        }
         for (let i = 1; i <= structure.rounds; i++) {
             exercises.forEach((ex, index) => {
                 fullWorkout.push({ ...ex, type: `Round ${i}`.toUpperCase(), duration: structure.work });
-                if (index < exercises.length - 1) fullWorkout.push({ name: 'Rest', type: 'Rest', duration: structure.rest, description: 'Breathe. Get ready for the next exercise.' });
+                if (index < exercises.length - 1) {
+                    const nextExPosition = exercises[index + 1].position;
+                    fullWorkout.push({ name: 'Rest', type: 'Rest', duration: structure.rest, description: 'Breathe. Get ready for the next exercise.', position: nextExPosition });
+                }
             });
-            if (structure.roundRest && i < structure.rounds) fullWorkout.push({ name: 'Round Rest', type: 'Rest', duration: structure.roundRest, description: `Longer break before Round ${i+1}.` });
+            if (structure.roundRest && i < structure.rounds) {
+                 const nextExPosition = exercises[0].position;
+                fullWorkout.push({ name: 'Round Rest', type: 'Rest', duration: structure.roundRest, description: `Longer break before Round ${i+1}.`, position: nextExPosition });
+            }
         }
-        fullWorkout.push({ name: 'Cool-down', type: 'Recovery', duration: cooldownDuration || 180, description: 'Gentle stretches for major muscle groups. Hold each stretch.' });
+        if (cooldownDuration) {
+            fullWorkout.push({ name: 'Cool-down', type: 'Recovery', duration: cooldownDuration, description: 'Gentle stretches for major muscle groups. Hold each stretch.' });
+        }
         return fullWorkout;
     }, [plan]);
     
@@ -162,10 +189,24 @@ const WorkoutTimer: React.FC<{ plan: WorkoutPlan; onFinish: (durationInSeconds: 
             setSecondsRemaining(prev => {
                 if (prev <= 1) {
                     worker.postMessage({ command: 'stop' });
+                    const currentEx = combinedWorkout[exerciseIndexRef.current];
                     const nextIndex = exerciseIndexRef.current + 1;
+
+                    if (currentEx.type.startsWith('ROUND')) {
+                        // MET value for general calisthenics is ~7
+                        const calories = (7 * userWeight * 3.5 / 200) * (currentEx.duration / 60);
+                        const quote = celebratoryQuotes[Math.floor(Math.random() * celebratoryQuotes.length)];
+                        setCaloriesBurned({ key: Date.now(), amount: calories, quote });
+                        setTimeout(() => setCaloriesBurned(null), 4000);
+                    }
+                    
                     if (nextIndex < combinedWorkout.length) {
                         const nextEx = combinedWorkout[nextIndex];
-                        speak(nextEx.name);
+                        let speech = `Next up: ${nextEx.name}.`;
+                        if (nextEx.position) {
+                            speech = `${nextEx.position}. ${speech}`;
+                        }
+                        speak(speech);
                         setCurrentExerciseIndex(nextIndex);
                         setSecondsRemaining(nextEx.duration);
                         if (isTimerActiveRef.current) worker.postMessage({ command: 'start' });
@@ -181,7 +222,7 @@ const WorkoutTimer: React.FC<{ plan: WorkoutPlan; onFinish: (durationInSeconds: 
             });
         };
         return () => worker.terminate();
-    }, [combinedWorkout, onFinish, totalDuration]);
+    }, [combinedWorkout, onFinish, totalDuration, userWeight]);
     
     useEffect(() => {
         const currentItem = listRef.current?.children[currentExerciseIndex] as HTMLElement;
@@ -242,8 +283,9 @@ const WorkoutTimer: React.FC<{ plan: WorkoutPlan; onFinish: (durationInSeconds: 
     }, [currentExercise.type]);
 
     return (
-        <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 animate-fade-in-up">
+        <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 animate-fade-in-up relative">
             <StopWorkoutModal isOpen={isStopModalOpen} onContinue={() => { setIsStopModalOpen(false); handleStartPause(); }} onEnd={handleEndWorkout} />
+            {caloriesBurned && <CalorieBurnAnimation key={caloriesBurned.key} amount={caloriesBurned.amount} quote={caloriesBurned.quote} />}
             
             <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mb-4"><div className="bg-orange-500 h-2 rounded-full transition-all duration-1000 ease-linear" style={{ width: `${progressPercentage}%` }}></div></div>
 
@@ -340,12 +382,16 @@ const Workouts: React.FC = () => {
     const [workoutPlan, setWorkoutPlan] = useState<WorkoutPlan | null>(null);
     const [toastInfo, setToastInfo] = useState<{ title: string; message: string; quote: string; } | null>(null);
     const [workoutDuration, setWorkoutDuration] = useState(0);
+    const [userWeight, setUserWeight] = useState<number>(70); // Default average weight
 
     useEffect(() => {
         try {
             const savedPrefsRaw = localStorage.getItem(USER_PREFERENCES_KEY);
             if (savedPrefsRaw) {
                 const savedPrefs = JSON.parse(savedPrefsRaw);
+                if (savedPrefs.patientWeight) {
+                    setUserWeight(parseFloat(savedPrefs.patientWeight));
+                }
                 if (savedPrefs.healthConditions && savedPrefs.healthConditions.length > 0) {
                     const plan = getWorkoutPlanForConditions(savedPrefs.healthConditions);
                     setWorkoutPlan(plan);
@@ -401,7 +447,7 @@ const Workouts: React.FC = () => {
             case 'briefing':
                 return workoutPlan && <WorkoutBriefing plan={workoutPlan} onStart={() => setView('timer')} onChangePlan={resetToSelector} />;
             case 'timer':
-                return workoutPlan && <WorkoutTimer plan={workoutPlan} onFinish={handleFinish} />;
+                return workoutPlan && <WorkoutTimer plan={workoutPlan} onFinish={handleFinish} userWeight={userWeight} />;
             case 'summary':
                 return workoutPlan && <WorkoutSummary plan={workoutPlan} duration={workoutDuration} onRestart={() => setView('timer')} onChangePlan={resetToSelector} />;
             default:

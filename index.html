@@ -200,6 +200,41 @@
         animation: slideInRight 0.3s ease-out forwards;
       }
 
+      @keyframes fadeOut {
+        from { opacity: 1; transform: scale(1); }
+        to { opacity: 0; transform: scale(0.95); }
+      }
+      .animate-fade-out {
+        animation: fadeOut 0.3s ease-out forwards;
+      }
+
+      @keyframes evaporate {
+        to {
+          transform: scale(0.8) translateY(-20px);
+          opacity: 0;
+          filter: blur(5px);
+        }
+      }
+      .animate-evaporate {
+        animation: evaporate 0.5s ease-in forwards;
+      }
+
+      @keyframes burn-in {
+        from {
+          opacity: 0;
+          filter: blur(10px);
+          transform: translateY(20px);
+        }
+        to {
+          opacity: 1;
+          filter: blur(0);
+          transform: translateY(0);
+        }
+      }
+      .animate-burn-in {
+        animation: burn-in 0.6s ease-out forwards;
+      }
+
       /* Zen Processing Animation */
       @keyframes zen-lines-draw {
           to { stroke-dashoffset: 0; }

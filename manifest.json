@@ -21,6 +21,22 @@
       "purpose": "any maskable"
     }
   ],
+  "screenshots": [
+    {
+      "src": "/screenshots/Screenshot phone.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Interactive mobile diet planner and workout timer"
+    },
+    {
+      "src": "/screenshots/Screenshot desktop.jpg",
+      "sizes": "1920x1080",
+      "type": "image/jpeg",
+      "form_factor": "wide",
+      "label": "Desktop view of the progress and body composition charts"
+    }
+  ],
   "id": "/",
   "start_url": ".",
   "display": "standalone",

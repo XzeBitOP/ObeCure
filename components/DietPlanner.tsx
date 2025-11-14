@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { DietPreference, DietPlan, Sex, ActivityLevel, DietType, HealthCondition, DrKenilsNote, ProgressEntry, DailyIntake, FastingEntry, Meal, WaterEntry, CustomMealLogEntry, MealType } from '../types';
-import { generateOfflineDietPlan as generateDietPlan, findSwapMeal } from '../services/offlinePlanGenerator';
+import { findTwoMealOptions, findSwapMeal } from '../services/offlinePlanGenerator';
 import { drKenilsNotes } from '../data/notes';
 import DrKenilsNoteComponent from './DrKenilsNote';
 import GeneratingPlan from './GeneratingPlan';
@@ -12,13 +12,13 @@ import { LunchIcon } from './icons/LunchIcon';
 import { DinnerIcon } from './icons/DinnerIcon';
 import { SnackIcon } from './icons/SnackIcon';
 import { WhatsAppIcon } from './icons/WhatsAppIcon';
-import { SwapIcon } from './icons/SwapIcon';
 import { OBE_CURE_SPECIAL_MEALS } from '../data/specialMeals';
 import { WaterIcon } from './icons/WaterIcon';
-import { HeartIcon } from './icons/HeartIcon';
 import LogMealModal from './LogMealModal';
 import { HistoryIcon } from './icons/HistoryIcon';
 import MealHistoryModal from './MealHistoryModal';
+import { SwapIcon } from './icons/SwapIcon';
+import { HeartIcon } from './icons/HeartIcon';
 
 
 const USER_PREFERENCES_KEY = 'obeCureUserPreferences';
@@ -26,12 +26,11 @@ const PROGRESS_DATA_KEY = 'obeCureProgressData';
 const DAILY_INTAKE_KEY = 'obeCureDailyIntake';
 const FASTING_DATA_KEY = 'obeCureFastingData';
 const WATER_INTAKE_KEY = 'obeCureWaterIntake';
-const FAVORITE_MEALS_KEY = 'obeCureFavoriteMeals';
 const MANUAL_MEAL_LOG_KEY = 'obeCureManualMealLog';
 const DIET_PLAN_KEY = 'obeCureDailyDietPlan';
+const FAVORITE_MEALS_KEY = 'obeCureFavoriteMeals';
 
 
-// FIX: Add missing getActivityFactor function
 const getActivityFactor = (level: ActivityLevel): number => {
     switch (level) {
         case ActivityLevel.SEDENTARY: return 1.2;
@@ -42,6 +41,8 @@ const getActivityFactor = (level: ActivityLevel): number => {
     }
 };
 
+type GenerationStep = 'form' | 'selecting' | 'done';
+
 interface DietPlannerProps {
   isSubscribed: boolean;
   onOpenSubscriptionModal: () => void;
@@ -49,8 +50,9 @@ interface DietPlannerProps {
   setDietPlan: (plan: DietPlan | null) => void;
 }
 
-const DietPlanner: React.FC<DietPlannerProps> = ({ isSubscribed, onOpenSubscriptionModal, dietPlan, setDietPlan }) => {
-  const [step, setStep] = useState(1);
+const DietPlanner: React.FC<DietPlannerProps> = ({ isSubscribed, onOpenSubscriptionModal, dietPlan: finalDietPlan, setDietPlan: setFinalDietPlan }) => {
+  const [formStep, setFormStep] = useState(1);
+  const [generationStep, setGenerationStep] = useState<GenerationStep>('form');
   const [patientName, setPatientName] = useState<string>('');
   const [patientWeight, setPatientWeight] = useState<string>('');
   const [targetWeight, setTargetWeight] = useState<string>('');
@@ -73,16 +75,23 @@ const DietPlanner: React.FC<DietPlannerProps> = ({ isSubscribed, onOpenSubscript
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [estimatedDuration, setEstimatedDuration] = useState<number | null>(null);
+  
+  const [mealOptions, setMealOptions] = useState<Meal[] | null>(null);
+  const [selectedOptionIndex, setSelectedOptionIndex] = useState<number | null>(null);
+  const [animatingOutIndex, setAnimatingOutIndex] = useState<number | null>(null);
+  const [currentSelectionIndex, setCurrentSelectionIndex] = useState(0);
+  const [calorieTarget, setCalorieTarget] = useState(0);
+  const [builtPlan, setBuiltPlan] = useState<Meal[]>([]);
+  const [favoriteMeals, setFavoriteMeals] = useState<string[]>([]);
+
 
   const [checkedMeals, setCheckedMeals] = useState<Record<string, boolean>>({});
-  const [expandedMealIndex, setExpandedMealIndex] = useState<number | null>(null);
   const [waterGlasses, setWaterGlasses] = useState<number>(0);
   const [toastInfo, setToastInfo] = useState<{ title: string; message: string; quote: string; } | null>(null);
   const [isLogging, setIsLogging] = useState(false);
   const [logSuccess, setLogSuccess] = useState(false);
   
   const [showNotificationPrompt, setShowNotificationPrompt] = useState(false);
-  const [favoriteMeals, setFavoriteMeals] = useState<string[]>([]);
   const [isLogMealModalOpen, setIsLogMealModalOpen] = useState(false);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
 
@@ -122,6 +131,9 @@ const DietPlanner: React.FC<DietPlannerProps> = ({ isSubscribed, onOpenSubscript
     try {
       const savedPrefsRaw = localStorage.getItem(USER_PREFERENCES_KEY);
       const savedPrefs = savedPrefsRaw ? JSON.parse(savedPrefsRaw) : {};
+
+      const favsRaw = localStorage.getItem(FAVORITE_MEALS_KEY);
+      setFavoriteMeals(favsRaw ? JSON.parse(favsRaw) : []);
 
       setPatientName(savedPrefs.patientName || '');
       setTargetWeight(savedPrefs.targetWeight || '');
@@ -166,25 +178,23 @@ const DietPlanner: React.FC<DietPlannerProps> = ({ isSubscribed, onOpenSubscript
               setWaterGlasses(todayEntry.glasses);
           }
       }
-
-      const savedFavoritesRaw = localStorage.getItem(FAVORITE_MEALS_KEY);
-      if (savedFavoritesRaw) {
-        setFavoriteMeals(JSON.parse(savedFavoritesRaw));
-      }
-
     } catch (e) {
       console.error("Failed to parse data from localStorage", e);
     }
   }, []);
   
+  useEffect(() => {
+      if (finalDietPlan) {
+        setGenerationStep('done');
+        setBuiltPlan(finalDietPlan.meals);
+      }
+  }, [finalDietPlan]);
+
     useEffect(() => {
-        if (dietPlan) {
-            // When a new plan is loaded, initialize all meals as checked
-            // but don't overwrite existing checked state for meals that are still in the plan
+        if (builtPlan.length > 0) {
             setCheckedMeals(prev => {
                 const newCheckedState = { ...prev };
-                dietPlan.meals.forEach(meal => {
-                    // If a meal is new to the checked state object, default it to checked.
+                builtPlan.forEach(meal => {
                     if (newCheckedState[meal.recipe] === undefined) {
                         newCheckedState[meal.recipe] = true;
                     }
@@ -192,7 +202,7 @@ const DietPlanner: React.FC<DietPlannerProps> = ({ isSubscribed, onOpenSubscript
                 return newCheckedState;
             });
         }
-    }, [dietPlan]);
+    }, [builtPlan]);
 
   useEffect(() => {
     const prefsToSave = {
@@ -204,12 +214,12 @@ const DietPlanner: React.FC<DietPlannerProps> = ({ isSubscribed, onOpenSubscript
   }, [patientName, patientWeight, targetWeight, height, age, sex, activityLevel, preference, dietType, healthConditions, fastingStartHour, fastingStartPeriod, fastingEndHour, fastingEndPeriod, heightUnit, heightFt, heightIn]);
 
   useEffect(() => {
-    if (isLoading) {
+    if (isLoading || generationStep === 'selecting') {
       setTimeout(() => {
         resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }, 100);
     }
-  }, [isLoading]);
+  }, [isLoading, generationStep]);
 
    useEffect(() => {
     const weightNum = parseFloat(patientWeight);
@@ -232,14 +242,14 @@ const DietPlanner: React.FC<DietPlannerProps> = ({ isSubscribed, onOpenSubscript
     } else {
         setEstimatedDuration(null);
     }
-  }, [patientWeight, targetWeight, height, age, sex, activityLevel, dietType, step]);
+  }, [patientWeight, targetWeight, height, age, sex, activityLevel, dietType, formStep]);
 
     useEffect(() => {
     return () => {
         timerIdsRef.current.forEach(clearTimeout);
         timerIdsRef.current = [];
     };
-    }, [dietPlan]);
+    }, [finalDietPlan]);
 
     // --- Auto-scroll and Focus Logic ---
     const focusAndScroll = (ref: React.RefObject<HTMLElement>) => {
@@ -257,16 +267,18 @@ const DietPlanner: React.FC<DietPlannerProps> = ({ isSubscribed, onOpenSubscript
     };
 
     useEffect(() => {
-        let focusRef: React.RefObject<HTMLElement> | null = null;
-        if (step === 1) focusRef = patientNameRef;
-        else if (step === 2) focusRef = targetWeightRef;
-        else if (step === 3) focusRef = preferenceRef;
+        if (generationStep === 'form') {
+            let focusRef: React.RefObject<HTMLElement> | null = null;
+            if (formStep === 1) focusRef = patientNameRef;
+            else if (formStep === 2) focusRef = targetWeightRef;
+            else if (formStep === 3) focusRef = preferenceRef;
 
-        if (focusRef?.current && formContainerRef.current) {
-            formContainerRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            setTimeout(() => focusRef!.current?.focus(), 400); // Delay for scroll animation
+            if (focusRef?.current && formContainerRef.current) {
+                formContainerRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                setTimeout(() => focusRef!.current?.focus(), 400); // Delay for scroll animation
+            }
         }
-    }, [step]);
+    }, [formStep, generationStep]);
 
 
     const scheduleMealReminders = (plan: DietPlan) => {
@@ -330,8 +342,8 @@ const DietPlanner: React.FC<DietPlannerProps> = ({ isSubscribed, onOpenSubscript
         
         const permission = await Notification.requestPermission();
         if (permission === 'granted') {
-            if (dietPlan) {
-                scheduleMealReminders(dietPlan);
+            if (finalDietPlan) {
+                scheduleMealReminders(finalDietPlan);
             }
         } else {
             setToastInfo({ title: "Notifications Blocked", message: "You can enable them in your browser settings if you change your mind.", quote: "Every choice is a step forward." });
@@ -427,89 +439,144 @@ const DietPlanner: React.FC<DietPlannerProps> = ({ isSubscribed, onOpenSubscript
         return getBmiCategory(bmi);
     }
     return null;
-  }, [patientWeight, height, age, step]);
+  }, [patientWeight, height, age, formStep]);
 
-  const handleGeneratePlan = () => {
-    setIsLoading(true);
-    setError(null);
-    setDrKenilsNote(null);
-    setExpandedMealIndex(null);
+  const mealSlotsToFill: (MealType | 'Special')[] = useMemo(() => {
+      let slots: (MealType | 'Special')[] = dietType === DietType.WEIGHT_GAIN 
+        ? ['Breakfast', 'Snack', 'Lunch', 'Snack', 'Dinner'] 
+        : ['Breakfast', 'Lunch', 'Dinner', 'Snack'];
+      
+      if (dietType !== DietType.WEIGHT_GAIN) {
+          const specialIndex = Math.random() > 0.5 ? 1 : 2; // Replace Lunch or Dinner
+          slots[specialIndex] = 'Special';
+      }
+      return slots;
+  }, [dietType]);
 
-    setTimeout(() => {
-        try {
-            const fastingStartTime = `${fastingStartHour}:00 ${fastingStartPeriod}`;
-            const fastingEndTime = `${fastingEndHour}:00 ${fastingEndPeriod}`;
-            const plan = generateDietPlan({ patientWeight, height, age, sex, activityLevel, preference, healthConditions, dietType, fastingStartTime, fastingEndTime, favoriteMeals });
-            if (!plan || plan.meals.length === 0) {
-              setError('Sorry, we couldn\'t find a suitable diet plan with the selected criteria. Please try different options.');
-              setIsLoading(false);
-              return;
-            }
-            setDietPlan(plan);
-            const planDataToSave = {
-                date: new Date().toISOString().split('T')[0],
-                plan: plan,
-            };
-            localStorage.setItem(DIET_PLAN_KEY, JSON.stringify(planDataToSave));
-
-            const randomNote = drKenilsNotes[Math.floor(Math.random() * drKenilsNotes.length)];
-            setDrKenilsNote(randomNote);
-            const weightNum = parseFloat(patientWeight);
-            const heightNum = parseFloat(height);
-            if (weightNum > 0 && heightNum > 0) {
-                const bmi = calculateBmi(weightNum, heightNum);
-                const newProgressEntry: ProgressEntry = { date: new Date().toISOString().split('T')[0], weight: weightNum, bmi: bmi };
-                const existingDataRaw = localStorage.getItem(PROGRESS_DATA_KEY);
-                let existingData: ProgressEntry[] = existingDataRaw ? JSON.parse(existingDataRaw) : [];
-                const todayEntryIndex = existingData.findIndex(entry => entry.date === newProgressEntry.date);
-                if (todayEntryIndex > -1) { existingData[todayEntryIndex] = newProgressEntry; } else { existingData.push(newProgressEntry); }
-                localStorage.setItem(PROGRESS_DATA_KEY, JSON.stringify(existingData));
-            }
-            const to24Hour = (hour: number, period: string) => {
-                if (period === 'PM' && hour < 12) return hour + 12;
-                if (period === 'AM' && hour === 12) return 0;
-                return hour;
-            };
-            const startHour24 = to24Hour(parseInt(fastingStartHour), fastingStartPeriod);
-            const endHour24 = to24Hour(parseInt(fastingEndHour), fastingEndPeriod);
-            let duration = endHour24 - startHour24;
-            if (duration < 0) duration += 24;
-            const newFastingEntry: FastingEntry = { date: new Date().toISOString().split('T')[0], startTime: fastingStartTime, endTime: fastingEndTime, duration: duration };
-            const existingFastingRaw = localStorage.getItem(FASTING_DATA_KEY);
-            let existingFastingData: FastingEntry[] = existingFastingRaw ? JSON.parse(existingFastingRaw) : [];
-            const todayFastingIndex = existingFastingData.findIndex(entry => entry.date === newFastingEntry.date);
-            if (todayFastingIndex > -1) { existingFastingData[todayFastingIndex] = newFastingEntry; } else { existingFastingData.push(newFastingEntry); }
-            localStorage.setItem(FASTING_DATA_KEY, JSON.stringify(existingFastingData));
-
-            if ('Notification' in window) {
-                if (Notification.permission === 'default') {
-                    setShowNotificationPrompt(true);
-                } else if (Notification.permission === 'granted') {
-                    scheduleMealReminders(plan);
-                }
-            }
-        } catch (err) {
-            console.error(err);
-            setError('An unexpected error occurred while generating the plan. Please check your inputs.');
-        } finally {
-            setIsLoading(false);
+  const generateOptionsForIndex = async (index: number, currentMeals: Meal[], totalTarget: number) => {
+        if (index >= mealSlotsToFill.length) {
+            finishPlanGeneration(currentMeals);
+            return;
         }
-    }, 5000);
-  };
+
+        const slotType = mealSlotsToFill[index];
+        const remainingCalories = totalTarget - currentMeals.reduce((sum, meal) => sum + meal.calories, 0);
+        const remainingSlots = mealSlotsToFill.length - index;
+        const slotCalorieTarget = remainingCalories / remainingSlots;
+
+        let options: Meal[] = [];
+        if (slotType === 'Special') {
+            const specialMealsCopy = [...OBE_CURE_SPECIAL_MEALS];
+            const option1 = specialMealsCopy.splice(Math.floor(Math.random() * specialMealsCopy.length), 1)[0];
+            const option2 = specialMealsCopy.splice(Math.floor(Math.random() * specialMealsCopy.length), 1)[0];
+            options = [option1, option2].map(m => ({ ...m, time: 'N/A', mealType: 'Lunch' })); // Placeholder type, will be corrected
+        } else {
+            options = findTwoMealOptions({ preference, healthConditions, dietType, favoriteMealNames: favoriteMeals }, slotType, slotCalorieTarget, currentMeals.map(m => m.recipe));
+        }
+
+        if (options.length < 2) {
+            setError("Couldn't find enough meal options. Please try adjusting your preferences.");
+            setGenerationStep('form');
+            setFormStep(3);
+            return;
+        }
+        setMealOptions(options);
+    };
+    
+    const handleSelectOption = (selectedMeal: Meal, optionIndex: number) => {
+        setSelectedOptionIndex(optionIndex);
+        setAnimatingOutIndex(1 - optionIndex); // Animate the other card
+
+// FIX: Refactored meal type and time assignment to be type-safe.
+// The original logic was reusing a variable for different purposes, causing type errors.
+        setTimeout(() => {
+            const timeMap: Record<string, string> = { 'Breakfast': '09:00 AM', 'Lunch': '01:00 PM', 'Dinner': '08:00 PM', 'Snack1': '11:00 AM', 'Snack2': '04:00 PM' };
+            const slotType = mealSlotsToFill[currentSelectionIndex];
+            let finalMealType: MealType;
+            let timeKey: string;
+
+            if (slotType === 'Snack') {
+                finalMealType = 'Snack';
+                timeKey = builtPlan.some(m => m.mealType === 'Snack') ? 'Snack2' : 'Snack1';
+            } else if (slotType === 'Special') {
+                finalMealType = builtPlan.some(m => m.mealType === 'Lunch') ? 'Dinner' : 'Lunch';
+                timeKey = finalMealType;
+            } else {
+                finalMealType = slotType;
+                timeKey = slotType;
+            }
+            
+            const mealWithTime: Meal = { ...selectedMeal, mealType: finalMealType, time: timeMap[timeKey] };
+
+            const newPlan = [...builtPlan, mealWithTime];
+            setBuiltPlan(newPlan);
+            
+            const nextIndex = currentSelectionIndex + 1;
+            setCurrentSelectionIndex(nextIndex);
+            setMealOptions(null);
+            setSelectedOptionIndex(null);
+            setAnimatingOutIndex(null);
+
+            generateOptionsForIndex(nextIndex, newPlan, calorieTarget);
+        }, 500); // Wait for evaporate animation
+    };
+
+    const finishPlanGeneration = (finalMeals: Meal[]) => {
+        const totalCalories = finalMeals.reduce((sum, meal) => sum + meal.calories, 0);
+        const totalMacros = finalMeals.reduce((totals, meal) => ({
+            protein: totals.protein + meal.macros.protein,
+            carbohydrates: totals.carbohydrates + meal.macros.carbohydrates,
+            fat: totals.fat + meal.macros.fat,
+        }), { protein: 0, carbohydrates: 0, fat: 0 });
+
+        const finalPlanObject: DietPlan = { meals: finalMeals, totalCalories, totalMacros };
+        setFinalDietPlan(finalPlanObject);
+
+        const planDataToSave = { date: new Date().toISOString().split('T')[0], plan: finalPlanObject };
+        localStorage.setItem(DIET_PLAN_KEY, JSON.stringify(planDataToSave));
+
+        const randomNote = drKenilsNotes[Math.floor(Math.random() * drKenilsNotes.length)];
+        setDrKenilsNote(randomNote);
+
+        if ('Notification' in window) {
+            if (Notification.permission === 'default') setShowNotificationPrompt(true);
+            else if (Notification.permission === 'granted') scheduleMealReminders(finalPlanObject);
+        }
+
+        setGenerationStep('done');
+    };
+
+    const handleBeginGeneration = () => {
+        setIsLoading(true);
+        setError(null);
+        setDrKenilsNote(null);
+        
+        setTimeout(() => {
+            try {
+                // Calculate total target
+                const weightNum = parseFloat(patientWeight);
+                const heightNum = parseFloat(height);
+                const ageNum = parseFloat(age);
+                const bmr = (10 * weightNum) + (6.25 * heightNum) - (5 * ageNum) + (sex === Sex.MALE ? 5 : -161);
+                const tdee = bmr * getActivityFactor(activityLevel);
+                const target = dietType === DietType.WEIGHT_GAIN ? tdee + 400 : tdee - 500;
+                setCalorieTarget(target);
+
+                // Start selection process
+                setBuiltPlan([]);
+                setCurrentSelectionIndex(0);
+                setGenerationStep('selecting');
+                generateOptionsForIndex(0, [], target);
+            } catch (err) {
+                 setError('An unexpected error occurred. Please check your inputs.');
+            } finally {
+                setIsLoading(false);
+            }
+        }, 1000);
+    };
 
   const handleMealCheckChange = (mealRecipe: string) => {
     setCheckedMeals(prev => ({ ...prev, [mealRecipe]: !prev[mealRecipe] }));
-  };
-
-  const handleToggleFavorite = (meal: Meal) => {
-    const recipeId = meal.recipe;
-    setFavoriteMeals(prev => {
-        const newFavorites = prev.includes(recipeId)
-            ? prev.filter(id => id !== recipeId)
-            : [...prev, recipeId];
-        localStorage.setItem(FAVORITE_MEALS_KEY, JSON.stringify(newFavorites));
-        return newFavorites;
-    });
   };
   
   const handleWaterChange = (amount: number) => {
@@ -563,13 +630,13 @@ const DietPlanner: React.FC<DietPlannerProps> = ({ isSubscribed, onOpenSubscript
   };
 
   const handleLogIntake = () => {
-    if (!dietPlan) return;
+    if (!finalDietPlan) return;
     setIsLogging(true);
     setLogSuccess(false);
     
     setTimeout(() => {
         const todayStr = new Date().toISOString().split('T')[0];
-        const eatenMeals = dietPlan.meals.filter(meal => checkedMeals[meal.recipe] ?? true);
+        const eatenMeals = finalDietPlan.meals.filter(meal => checkedMeals[meal.recipe] ?? true);
         const loggedMealsCalories = eatenMeals.reduce((sum, meal) => sum + meal.calories, 0);
         
         const customMealsRaw = localStorage.getItem(MANUAL_MEAL_LOG_KEY);
@@ -590,7 +657,7 @@ const DietPlanner: React.FC<DietPlannerProps> = ({ isSubscribed, onOpenSubscript
             loggedMeals: eatenMeals.map(({ name, calories }) => ({ name, calories })), 
             otherCalories: customCaloriesToday, 
             totalIntake: totalIntake, 
-            targetCalories: dietPlan.totalCalories 
+            targetCalories: finalDietPlan.totalCalories 
         };
 
         try {
@@ -617,64 +684,13 @@ const DietPlanner: React.FC<DietPlannerProps> = ({ isSubscribed, onOpenSubscript
     }, 1000);
   };
 
-    const handleSwapMeal = (mealIndexToSwap: number) => {
-        if (!isSubscribed) {
-            onOpenSubscriptionModal();
-            return;
-        }
-        if (!dietPlan) return;
-
-        const mealToSwap = dietPlan.meals[mealIndexToSwap];
-        let newMeal: Meal | null = null;
-
-        if (mealToSwap.name === 'ObeCure Special Meal') {
-            const otherSpecialMeals = OBE_CURE_SPECIAL_MEALS.filter(m => m.recipe !== mealToSwap.recipe);
-            if (otherSpecialMeals.length > 0) {
-                const randomSpecialMeal = otherSpecialMeals[Math.floor(Math.random() * otherSpecialMeals.length)];
-                newMeal = {
-                    ...randomSpecialMeal,
-                    time: mealToSwap.time,
-                    mealType: mealToSwap.mealType,
-                };
-            }
-        } else {
-            newMeal = findSwapMeal(mealToSwap, dietPlan.meals, { preference, healthConditions, dietType, mealType: mealToSwap.mealType, favoriteMeals });
-        }
-
-        if (newMeal) {
-            const newMeals = [...dietPlan.meals];
-            newMeals[mealIndexToSwap] = newMeal;
-
-            const newTotalCalories = newMeals.reduce((sum, meal) => sum + meal.calories, 0);
-            const newTotalMacros = newMeals.reduce((totals, meal) => ({
-                protein: totals.protein + meal.macros.protein,
-                carbohydrates: totals.carbohydrates + meal.macros.carbohydrates,
-                fat: totals.fat + meal.macros.fat,
-            }), { protein: 0, carbohydrates: 0, fat: 0 });
-            
-            const newPlan = {
-                meals: newMeals,
-                totalCalories: newTotalCalories,
-                totalMacros: newTotalMacros
-            };
-            setDietPlan(newPlan);
-            const planDataToSave = {
-                date: new Date().toISOString().split('T')[0],
-                plan: newPlan,
-            };
-            localStorage.setItem(DIET_PLAN_KEY, JSON.stringify(planDataToSave));
-        } else {
-             setToastInfo({ title: "No Swap Found", message: "Could not find a suitable alternative meal for your criteria. Try again later!", quote: "Variety is the spice of life, but consistency is the main course." });
-        }
-    };
-
   const getShareText = () => {
-    if (!dietPlan) return '';
+    if (!finalDietPlan) return '';
     let shareText = `*ObeCure Diet Plan for ${patientName || 'Patient'} (${patientWeight} kg)*\n\n`;
     shareText += `*Eating Window:* ${fastingStartHour}:00 ${fastingStartPeriod} - ${fastingEndHour}:00 ${fastingEndPeriod}\n`;
-    shareText += `*Target: ~${dietPlan.totalCalories} kcal*\n`;
-    shareText += `*Macros (P/C/F): ${dietPlan.totalMacros.protein}g / ${dietPlan.totalMacros.carbohydrates}g / ${dietPlan.totalMacros.fat}g*\n\n`;
-    dietPlan.meals.forEach(meal => {
+    shareText += `*Target: ~${finalDietPlan.totalCalories} kcal*\n`;
+    shareText += `*Macros (P/C/F): ${finalDietPlan.totalMacros.protein}g / ${finalDietPlan.totalMacros.carbohydrates}g / ${finalDietPlan.totalMacros.fat}g*\n\n`;
+    finalDietPlan.meals.forEach(meal => {
         const isSpecial = meal.name.includes('ObeCure Special Meal');
         shareText += `*${isSpecial ? '⭐ ' : ''}${meal.name}* (${meal.time ? `~${meal.time}` : ''} | ~${meal.calories} kcal):\n`;
         shareText += `${meal.recipe}\n`;
@@ -684,7 +700,7 @@ const DietPlanner: React.FC<DietPlannerProps> = ({ isSubscribed, onOpenSubscript
     shareText += `Generated by ObeCure Diet Assistant.`;
     return encodeURIComponent(shareText);
   };
-  
+
   const getMealIcon = (time?: string) => {
     if (!time) return SnackIcon;
     const hour = parseInt(time.split(':')[0]);
@@ -694,6 +710,46 @@ const DietPlanner: React.FC<DietPlannerProps> = ({ isSubscribed, onOpenSubscript
     if (hour >= 7 && period === 'PM') return DinnerIcon;
     return SnackIcon;
   };
+
+  const handleToggleFavorite = (mealName: string) => {
+    const newFavorites = favoriteMeals.includes(mealName)
+        ? favoriteMeals.filter(name => name !== mealName)
+        : [...favoriteMeals, mealName];
+    setFavoriteMeals(newFavorites);
+    localStorage.setItem(FAVORITE_MEALS_KEY, JSON.stringify(newFavorites));
+    const toastTitle = newFavorites.includes(mealName) ? "Added to Favorites!" : "Removed from Favorites";
+    setToastInfo({ title: toastTitle, message: `${mealName} has been updated in your favorites list.`, quote: "Your preferences help us learn!" });
+  };
+  
+  const handleSwapMeal = (mealIndex: number) => {
+    if (!finalDietPlan) return;
+    const mealToSwap = finalDietPlan.meals[mealIndex];
+    const newMeal = findSwapMeal({
+        preference, healthConditions, dietType,
+        mealType: mealToSwap.mealType,
+        calorieTarget: mealToSwap.calories,
+        currentPlanMeals: finalDietPlan.meals
+    });
+
+    if (newMeal) {
+        const newMeals = [...finalDietPlan.meals];
+        newMeals[mealIndex] = newMeal;
+
+        const totalCalories = newMeals.reduce((sum, meal) => sum + meal.calories, 0);
+        const totalMacros = newMeals.reduce((totals, meal) => ({
+            protein: totals.protein + meal.macros.protein,
+            carbohydrates: totals.carbohydrates + meal.macros.carbohydrates,
+            fat: totals.fat + meal.macros.fat,
+        }), { protein: 0, carbohydrates: 0, fat: 0 });
+
+        const newPlan = { ...finalDietPlan, meals: newMeals, totalCalories, totalMacros };
+        setFinalDietPlan(newPlan);
+        setToastInfo({ title: "Meal Swapped!", message: `${mealToSwap.name} was swapped with ${newMeal.name}.`, quote: "Variety is the spice of life!" });
+    } else {
+        setToastInfo({ title: "Swap Failed", message: "Couldn't find a suitable replacement meal right now. Please try again later.", quote: "Sometimes the first choice is the best choice." });
+    }
+  };
+
 
   const validateStep = (currentStep: number): React.RefObject<HTMLElement> | null => {
     if (currentStep === 1) {
@@ -705,17 +761,17 @@ const DietPlanner: React.FC<DietPlannerProps> = ({ isSubscribed, onOpenSubscript
   };
 
   const handleNext = () => {
-      const invalidFieldRef = validateStep(step);
+      const invalidFieldRef = validateStep(formStep);
       if (invalidFieldRef) {
         setError("Please fill in all required (*) fields before proceeding.");
         focusAndScroll(invalidFieldRef);
         setTimeout(() => setError(null), 3000);
       } else {
         if(error) setError(null);
-        setStep(prev => prev < 3 ? prev + 1 : prev);
+        setFormStep(prev => prev < 3 ? prev + 1 : prev);
       }
   };
-  const handleBack = () => setStep(prev => prev > 1 ? prev - 1 : prev);
+  const handleBack = () => setFormStep(prev => prev > 1 ? prev - 1 : prev);
   
   const formInputClass = "w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition";
   const formLabelClass = "block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2";
@@ -739,25 +795,27 @@ const DietPlanner: React.FC<DietPlannerProps> = ({ isSubscribed, onOpenSubscript
             isOpen={isHistoryModalOpen}
             onClose={() => setIsHistoryModalOpen(false)}
         />
+
+      {generationStep === 'form' && (
       <div ref={formContainerRef} className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 scroll-mt-20">
         <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 dark:text-gray-200 text-center">{plannerTitle}</h1>
         <p className="mt-2 text-gray-600 dark:text-gray-400 mb-8 text-center max-w-prose mx-auto">
-            {step === 1 && "Let's start with your basic information to create your profile."}
-            {step === 2 && "Now, tell us about your health goals and any existing conditions."}
-            {step === 3 && "Finally, let's set your dietary and fasting preferences."}
+            {formStep === 1 && "Let's start with your basic information to create your profile."}
+            {formStep === 2 && "Now, tell us about your health goals and any existing conditions."}
+            {formStep === 3 && "Finally, let's set your dietary and fasting preferences."}
         </p>
 
         <div className="mb-8">
             <div className="flex justify-between mb-1">
-                <span className="text-sm font-semibold text-gray-600 dark:text-gray-400">Step {step} of 3</span>
+                <span className="text-sm font-semibold text-gray-600 dark:text-gray-400">Step {formStep} of 3</span>
             </div>
             <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                <div className="bg-orange-500 h-2 rounded-full transition-all duration-300" style={{ width: `${(step / 3) * 100}%` }}></div>
+                <div className="bg-orange-500 h-2 rounded-full transition-all duration-300" style={{ width: `${(formStep / 3) * 100}%` }}></div>
             </div>
         </div>
         
         <div className="min-h-[400px]">
-          {step === 1 && (
+          {formStep === 1 && (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 animate-fade-in-up">
               <div className="lg:col-span-2">
                 <label htmlFor="patientName" className={formLabelClass}>Patient Name</label>
@@ -795,7 +853,7 @@ const DietPlanner: React.FC<DietPlannerProps> = ({ isSubscribed, onOpenSubscript
             </div>
           )}
 
-          {step === 2 && (
+          {formStep === 2 && (
              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-fade-in-up">
                 <div className="md:col-span-2">
                     <label htmlFor="targetWeight" className={formLabelClass}>Target Weight (kg)</label>
@@ -827,7 +885,7 @@ const DietPlanner: React.FC<DietPlannerProps> = ({ isSubscribed, onOpenSubscript
             </div>
           )}
 
-          {step === 3 && (
+          {formStep === 3 && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-fade-in-up">
                 <div className="md:col-span-2">
                     <label htmlFor="preference" className={formLabelClass}>Food Preference</label>
@@ -886,50 +944,82 @@ const DietPlanner: React.FC<DietPlannerProps> = ({ isSubscribed, onOpenSubscript
         {error && <div className="mt-4 text-sm text-center text-red-500 animate-fade-in">{error}</div>}
 
         <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row-reverse gap-4">
-          {step < 3 && (
-            <button ref={step === 1 ? nextButton1Ref : nextButton2Ref} onClick={handleNext} className="w-full bg-orange-500 text-white font-bold py-3 px-6 rounded-lg hover:bg-orange-600 transition-all duration-300 active:scale-95 shadow-md">Next Step &rarr;</button>
+          {formStep < 3 && (
+            <button ref={formStep === 1 ? nextButton1Ref : nextButton2Ref} onClick={handleNext} className="w-full bg-orange-500 text-white font-bold py-3 px-6 rounded-lg hover:bg-orange-600 transition-all duration-300 active:scale-95 shadow-md">Next Step &rarr;</button>
           )}
 
-          {step === 3 && (
+          {formStep === 3 && (
             <div className="flex flex-col sm:flex-row gap-4 w-full">
-                <button ref={generateButtonRef} onClick={handleGeneratePlan} disabled={isLoading} className="w-full bg-orange-500 text-white font-bold py-3 px-6 rounded-lg hover:bg-orange-600 transition-all duration-300 disabled:bg-orange-300 disabled:cursor-not-allowed flex items-center justify-center space-x-2 shadow-md hover:shadow-lg dark:hover:bg-orange-600 flex-grow active:scale-95">
+                <button ref={generateButtonRef} onClick={handleBeginGeneration} disabled={isLoading} className="w-full bg-orange-500 text-white font-bold py-3 px-6 rounded-lg hover:bg-orange-600 transition-all duration-300 disabled:bg-orange-300 disabled:cursor-not-allowed flex items-center justify-center space-x-2 shadow-md hover:shadow-lg dark:hover:bg-orange-600 flex-grow active:scale-95">
                 {isLoading ? (
                     <><svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg><span>Generating...</span></>
-                ) : ( <span>Generate Diet Plan</span> )}
+                ) : ( <span>Build My Diet Plan</span> )}
                 </button>
             </div>
           )}
-          {step > 1 && (
+          {formStep > 1 && (
             <button onClick={handleBack} className="w-full sm:w-auto bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-bold py-3 px-6 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-all duration-300 active:scale-95 shadow-md">&larr; Back</button>
           )}
         </div>
       </div>
+      )}
+
        <div ref={resultsRef} className="mt-8">
         {isLoading && <GeneratingPlan />}
-        {error && !isLoading && (
+
+        {generationStep === 'selecting' && (
+            <div className="animate-fade-in-up">
+                <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 mb-6">
+                    <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-200 text-center">
+                        Choose Your {mealSlotsToFill[currentSelectionIndex] === 'Special' ? 'Special Meal' : mealSlotsToFill[currentSelectionIndex]}
+                    </h2>
+                    <p className="text-center text-gray-500 dark:text-gray-400 mt-1">Step {currentSelectionIndex + 1} of {mealSlotsToFill.length}</p>
+                </div>
+                {mealOptions && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {mealOptions.map((meal, index) => (
+                             <div 
+                                key={index} 
+                                onClick={() => handleSelectOption(meal, index)}
+                                className={`p-6 rounded-lg shadow-lg border-2 transition-all duration-300 cursor-pointer hover:shadow-xl hover:border-orange-500 hover:-translate-y-1 ${ animatingOutIndex === index ? 'animate-evaporate' : 'animate-fade-in-up'} ${selectedOptionIndex === index ? 'border-orange-500 scale-105' : 'border-transparent bg-gray-50 dark:bg-gray-700/50'}`}
+                             >
+                                <h4 className="font-bold text-lg text-gray-800 dark:text-gray-200">{meal.name}</h4>
+                                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{meal.recipe}</p>
+                                <div className="text-xs mt-2 flex flex-wrap gap-x-3 gap-y-1 text-gray-500 dark:text-gray-400">
+                                    <span>🔥 {meal.calories} kcal</span>
+                                    <span>💪 P: {meal.macros.protein}g</span>
+                                    <span>🍞 C: {meal.macros.carbohydrates}g</span>
+                                    <span>🥑 F: {meal.macros.fat}g</span>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
+        )}
+        
+        {error && !isLoading && generationStep === 'form' && (
             <div className="mt-8 bg-red-50 dark:bg-red-900/20 p-6 rounded-xl shadow-lg border border-red-200 dark:border-red-700 text-center">
                 <h3 className="text-xl font-bold text-red-600 dark:text-red-400">Oops!</h3>
                 <p className="mt-2 text-red-700 dark:text-red-300">{error}</p>
-                <button onClick={() => setStep(3)} className="mt-4 bg-orange-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-orange-600 transition-all">
+                <button onClick={() => setFormStep(3)} className="mt-4 bg-orange-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-orange-600 transition-all">
                     &larr; Go Back and Adjust
                 </button>
             </div>
         )}
-        {dietPlan && !isLoading && (
+        {generationStep === 'done' && finalDietPlan && !isLoading && (
             <div className="animate-fade-in-up">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
                     <div>
                         <h3 className="text-xl font-bold text-gray-700 dark:text-gray-300 mb-3">Today's Meal Plan</h3>
                         <div className="space-y-4">
-                            {dietPlan.meals.map((meal, index) => {
+                            {finalDietPlan.meals.map((meal, index) => {
                                 const Icon = getMealIcon(meal.time);
                                 const isSpecial = meal.name.includes('Special');
-                                const isExpanded = expandedMealIndex === index;
                                 return (
                                 <div 
                                     key={index} 
-                                    onClick={() => setExpandedMealIndex(isExpanded ? null : index)}
-                                    className={`relative p-6 rounded-lg shadow-sm border-l-4 transition-all duration-300 cursor-pointer ${isSpecial ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-400' : 'bg-gray-50 dark:bg-gray-700/50 border-gray-300 dark:border-gray-600'}`}
+                                    className={`relative p-6 rounded-lg shadow-sm border-l-4 transition-all duration-300 ${isSpecial ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-400' : 'bg-gray-50 dark:bg-gray-700/50 border-gray-300 dark:border-gray-600'}`}
                                 >
                                     <div className="flex items-start">
                                         <div className="mr-4 mt-1">
@@ -949,20 +1039,11 @@ const DietPlanner: React.FC<DietPlannerProps> = ({ isSubscribed, onOpenSubscript
                                             </div>
                                         </div>
                                     </div>
-                                    {isExpanded && (
-                                        <div 
-                                            className="absolute top-2 right-2 flex items-center gap-1 animate-fade-in"
-                                            onClick={(e) => e.stopPropagation()}
-                                        >
-                                           <button onClick={() => handleToggleFavorite(meal)} title={favoriteMeals.includes(meal.recipe) ? 'Remove from favorites' : 'Add to favorites'}>
-                                               <HeartIcon isFavorite={favoriteMeals.includes(meal.recipe)} className="w-5 h-5 text-gray-400 hover:text-red-500 transition-colors" />
-                                           </button>
-                                           <button onClick={() => handleSwapMeal(index)} title="Swap this meal">
-                                               <SwapIcon className="w-5 h-5 text-gray-400 hover:text-orange-500 transition-colors"/>
-                                           </button>
-                                            <input type="checkbox" checked={checkedMeals[meal.recipe] ?? true} onChange={() => handleMealCheckChange(meal.recipe)} className="h-4 w-4 rounded border-gray-300 text-orange-500 focus:ring-orange-400 ml-1"/>
-                                        </div>
-                                    )}
+                                    <div className="absolute top-2 right-2 flex items-center gap-1">
+                                      <button onClick={() => handleToggleFavorite(meal.name)} className="p-1 text-gray-400 hover:text-orange-500 transition-colors"><HeartIcon isFavorite={favoriteMeals.includes(meal.name)} /></button>
+                                      <button onClick={() => handleSwapMeal(index)} className="p-1 text-gray-400 hover:text-orange-500 transition-colors"><SwapIcon className="w-5 h-5"/></button>
+                                      <input type="checkbox" checked={checkedMeals[meal.recipe] ?? true} onChange={() => handleMealCheckChange(meal.recipe)} className="h-4 w-4 rounded border-gray-300 text-orange-500 focus:ring-orange-400 ml-1"/>
+                                    </div>
                                 </div>
                             )})}
                         </div>
@@ -971,11 +1052,11 @@ const DietPlanner: React.FC<DietPlannerProps> = ({ isSubscribed, onOpenSubscript
                          <div className="sticky top-20 z-10">
                              <div className="p-4 bg-orange-50 dark:bg-orange-900/20 rounded-lg border border-orange-200 dark:border-orange-800 text-center mb-4">
                                 <h4 className="font-bold text-orange-800 dark:text-orange-200">Total Intake</h4>
-                                <p className="text-3xl font-bold text-orange-600 dark:text-orange-400">{dietPlan.totalCalories} kcal</p>
+                                <p className="text-3xl font-bold text-orange-600 dark:text-orange-400">{finalDietPlan.totalCalories} kcal</p>
                                 <div className="text-xs mt-1 flex justify-center gap-x-3 text-orange-700 dark:text-orange-300">
-                                    <span>P: {dietPlan.totalMacros.protein}g</span>
-                                    <span>C: {dietPlan.totalMacros.carbohydrates}g</span>
-                                    <span>F: {dietPlan.totalMacros.fat}g</span>
+                                    <span>P: {finalDietPlan.totalMacros.protein}g</span>
+                                    <span>C: {finalDietPlan.totalMacros.carbohydrates}g</span>
+                                    <span>F: {finalDietPlan.totalMacros.fat}g</span>
                                 </div>
                              </div>
                              
