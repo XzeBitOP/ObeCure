@@ -34,15 +34,8 @@ const BaselineForm: React.FC<BaselineFormProps> = ({ onSave, existingProfile }) 
                 waist_cm: String(existingProfile.baseline.waist_cm || ''),
                 diet_pattern: existingProfile.baseline.diet_pattern,
                 caffeine_sensitivity: existingProfile.baseline.caffeine_sensitivity,
-                // FIX: Correctly merge optional properties from existingProfile with default values to satisfy the state's inferred type which expects all properties to be required.
-                conditions: {
-                    gerd: false, ibs: false, thyroid: 'none', diabetes: false,
-                    ...existingProfile.baseline.conditions
-                },
-                contra: {
-                    pregnant: false, breastfeeding: false, under18: false,
-                    ...existingProfile.baseline.contra
-                },
+                conditions: { ...existingProfile.baseline.conditions },
+                contra: { ...existingProfile.baseline.contra },
                 goals: [...existingProfile.goals],
             });
         } else {
@@ -120,11 +113,7 @@ const BaselineForm: React.FC<BaselineFormProps> = ({ onSave, existingProfile }) 
                 waist_cm: formData.waist_cm ? parseFloat(formData.waist_cm) : undefined,
                 diet_pattern: formData.diet_pattern as "vegetarian" | "mixed",
                 caffeine_sensitivity: formData.caffeine_sensitivity as "low" | "medium" | "high",
-                // FIX: Explicitly cast the 'thyroid' property to its specific union type to resolve the 'string' vs. union type mismatch on assignment.
-                conditions: {
-                    ...formData.conditions,
-                    thyroid: formData.conditions.thyroid as "none" | "hypo" | "hyper",
-                },
+                conditions: formData.conditions,
                 contra: formData.contra
             },
             goals: formData.goals,
