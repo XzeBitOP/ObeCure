@@ -15,10 +15,11 @@ const formLabelClass = "block text-sm font-semibold text-gray-700 dark:text-gray
 
 const BaselineForm: React.FC<BaselineFormProps> = ({ onSave, existingProfile }) => {
     const [step, setStep] = useState(1);
+    // FIX: Explicitly type initial state fields to prevent type widening and ensure compatibility with the UserProfile type.
     const [formData, setFormData] = useState({
-        name: '', age: '', sex: 'Female', height_cm: '', weight_kg: '', waist_cm: '',
-        diet_pattern: 'vegetarian', caffeine_sensitivity: 'medium',
-        conditions: { gerd: false, ibs: false, thyroid: 'none', diabetes: false },
+        name: '', age: '', sex: 'Female' as 'Male' | 'Female' | 'Other', height_cm: '', weight_kg: '', waist_cm: '',
+        diet_pattern: 'vegetarian' as 'vegetarian' | 'mixed', caffeine_sensitivity: 'medium' as 'low' | 'medium' | 'high',
+        conditions: { gerd: false, ibs: false, thyroid: 'none' as 'none' | 'hypo' | 'hyper', diabetes: false },
         contra: { pregnant: false, breastfeeding: false, under18: false },
         goals: [] as string[],
     });
@@ -34,8 +35,21 @@ const BaselineForm: React.FC<BaselineFormProps> = ({ onSave, existingProfile }) 
                 waist_cm: String(existingProfile.baseline.waist_cm || ''),
                 diet_pattern: existingProfile.baseline.diet_pattern,
                 caffeine_sensitivity: existingProfile.baseline.caffeine_sensitivity,
-                conditions: { ...existingProfile.baseline.conditions },
-                contra: { ...existingProfile.baseline.contra },
+                // FIX: Provide default values for conditions and contra before spreading from existingProfile.
+                // This ensures the object shape matches the state's type, which expects non-optional properties.
+                conditions: {
+                    gerd: false,
+                    ibs: false,
+                    thyroid: 'none',
+                    diabetes: false,
+                    ...existingProfile.baseline.conditions,
+                },
+                contra: {
+                    pregnant: false,
+                    breastfeeding: false,
+                    under18: false,
+                    ...existingProfile.baseline.contra,
+                },
                 goals: [...existingProfile.goals],
             });
         } else {
@@ -94,9 +108,17 @@ const BaselineForm: React.FC<BaselineFormProps> = ({ onSave, existingProfile }) 
         }
     };
     
-    const handleRadioChange = (e: React.ChangeEvent<HTMLInputElement>, category: 'conditions' | 'contra') => {
+    const handleRadioChange = (e: React.ChangeEvent<HTMLInputElement>, category: 'conditions') => {
         const { name, value } = e.target;
-        setFormData(prev => ({ ...prev, [category]: { ...prev[category], [name]: value } }));
+        if (category === 'conditions' && name === 'thyroid') {
+            setFormData(prev => ({ 
+                ...prev, 
+                conditions: { 
+                    ...prev.conditions, 
+                    thyroid: value as 'none' | 'hypo' | 'hyper' 
+                } 
+            }));
+        }
     }
 
     const handleSubmit = () => {
@@ -105,14 +127,13 @@ const BaselineForm: React.FC<BaselineFormProps> = ({ onSave, existingProfile }) 
             id: existingProfile?.id || crypto.randomUUID(),
             name: formData.name,
             age: parseInt(formData.age),
-            sex: formData.sex as "Male" | "Female" | "Other",
+            sex: formData.sex,
             height_cm: parseInt(formData.height_cm),
-            // FIX: Added missing properties to conform to UserProfile type
             baseline: {
                 weight_kg: parseFloat(formData.weight_kg),
                 waist_cm: formData.waist_cm ? parseFloat(formData.waist_cm) : undefined,
-                diet_pattern: formData.diet_pattern as "vegetarian" | "mixed",
-                caffeine_sensitivity: formData.caffeine_sensitivity as "low" | "medium" | "high",
+                diet_pattern: formData.diet_pattern,
+                caffeine_sensitivity: formData.caffeine_sensitivity,
                 conditions: formData.conditions,
                 contra: formData.contra
             },

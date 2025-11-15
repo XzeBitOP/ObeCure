@@ -1,4 +1,4 @@
-import { ActivityLevel, BodyCompositionEntry, Sex, MetabolicAgeAnalysis } from '../types';
+import { ActivityLevel, BodyCompositionEntry, Sex, MetabolicAgeAnalysis, DietType } from '../types';
 
 interface CalculationInputs {
     age: number;
@@ -9,6 +9,7 @@ interface CalculationInputs {
     neck: number; // cm
     hip: number; // cm
     activityLevel: ActivityLevel;
+    dietType: DietType;
     ethnicity: string;
     tg?: number; // Triglycerides mg/dL
     hdl?: number; // HDL-C mg/dL
@@ -168,7 +169,6 @@ const getBodyType = (bodyFat: number, muscleRate: number, gender: number): strin
     const fatHigh = isMale ? 25 : 32;
     
     const muscleNormal = isMale ? [33, 39] : [24, 30];
-    const muscleHigh = isMale ? 40 : 31;
 
     if (bodyFat >= fatHigh && muscleRate < muscleNormal[0]) return 'Obese';
     if (bodyFat >= fatHigh && muscleRate >= muscleNormal[0]) return 'Strong Obese';
@@ -178,15 +178,81 @@ const getBodyType = (bodyFat: number, muscleRate: number, gender: number): strin
     return 'Healthy';
 }
 
+const getIdealBodyFatRange = (age: number, gender: number): [number, number] => {
+    const isMale = gender === 1;
+    if (isMale) {
+        if (age <= 29) return [11, 21];
+        if (age <= 39) return [12, 22];
+        if (age <= 49) return [14, 24];
+        if (age <= 59) return [15, 25];
+        return [16, 26];
+    } else { // Female
+        if (age <= 29) return [16, 28];
+        if (age <= 39) return [17, 29];
+        if (age <= 49) return [18, 30];
+        if (age <= 59) return [19, 31];
+        return [20, 32];
+    }
+};
+
+const calculateProteinRequirement = (weight: number, activityLevel: ActivityLevel, dietType: DietType): { low: number, high: number } => {
+    if (dietType !== DietType.WEIGHT_GAIN) { // Fat loss goal
+        return { low: parseFloat((weight * 1.8).toFixed(1)), high: parseFloat((weight * 2.2).toFixed(1)) };
+    }
+    switch (activityLevel) {
+        case ActivityLevel.SEDENTARY:
+            return { low: parseFloat((weight * 1.0).toFixed(1)), high: parseFloat((weight * 1.0).toFixed(1)) };
+        case ActivityLevel.LIGHTLY_ACTIVE:
+            return { low: parseFloat((weight * 1.2).toFixed(1)), high: parseFloat((weight * 1.4).toFixed(1)) };
+        case ActivityLevel.MODERATELY_ACTIVE:
+            return { low: parseFloat((weight * 1.4).toFixed(1)), high: parseFloat((weight * 1.6).toFixed(1)) };
+        case ActivityLevel.VERY_ACTIVE:
+            return { low: parseFloat((weight * 1.6).toFixed(1)), high: parseFloat((weight * 1.8).toFixed(1)) };
+        default:
+            return { low: parseFloat((weight * 1.2).toFixed(1)), high: parseFloat((weight * 1.4).toFixed(1)) };
+    }
+};
+
+const calculateFFMI = (lbm: number, height: number): { ffmi: number, classification: string } => {
+    if (height <= 0) return { ffmi: 0, classification: 'N/A' };
+    const heightM = height / 100;
+    const ffmi = lbm / (heightM * heightM);
+    let classification = 'Average';
+    if (ffmi > 25) classification = 'Suspiciously High';
+    else if (ffmi > 20) classification = 'Muscular';
+    else if (ffmi < 18) classification = 'Below Average';
+    return { ffmi, classification };
+};
+
+const getBodyShape = (whr: number, gender: number): 'Android (Apple)' | 'Gynoid (Pear)' => {
+    const isMale = gender === 1;
+    if (isMale) {
+        return whr > 0.90 ? 'Android (Apple)' : 'Gynoid (Pear)';
+    } else {
+        return whr > 0.85 ? 'Android (Apple)' : 'Gynoid (Pear)';
+    }
+};
+
+const calculateMetabolicRiskScore = (bmi: number, whtr: number, bodyFatPercentage: number, visceralFatIndex: number, age: number, gender: number): number => {
+    const norm = (val: number, good: number, bad: number) => clamp(((val - good) / (bad - good)) * 100, 0, 100);
+    const bmiScore = norm(bmi, 23, 35);
+    const whtrScore = norm(whtr, 0.5, 0.7);
+    const isMale = gender === 1;
+    const fatGood = isMale ? (age < 40 ? 11 : 14) : (age < 40 ? 16 : 18);
+    const fatBad = isMale ? (age < 40 ? 25 : 28) : (age < 40 ? 32 : 35);
+    const bfScore = norm(bodyFatPercentage, fatGood, fatBad);
+    const viScore = norm(visceralFatIndex, 8, 15);
+    const ageScore = norm(age, 20, 70);
+    const riskScore = bmiScore * 0.10 + whtrScore * 0.30 + bfScore * 0.20 + viScore * 0.30 + ageScore * 0.10;
+    return Math.round(clamp(riskScore, 0, 100));
+};
+
 export const calculateAllMetrics = (inputs: CalculationInputs): BodyCompositionEntry => {
-    const { age, gender, height, weight, waist, neck, hip, tg, hdl, activityLevel, ethnicity } = inputs;
+    const { age, gender, height, weight, waist, neck, hip, tg, hdl, activityLevel, dietType, ethnicity } = inputs;
     
     const bmi = calculateBmi(weight, height);
-
-    // Deurenberg BMI-based body fat formula
     let bodyFatPercentage = (1.20 * bmi) + (0.23 * age) - (10.8 * gender) - 5.4;
     bodyFatPercentage = Math.max(0, Math.min(100, bodyFatPercentage));
-
     const fatMass = weight * (bodyFatPercentage / 100);
     const leanBodyMass = weight - fatMass;
 
@@ -194,38 +260,32 @@ export const calculateAllMetrics = (inputs: CalculationInputs): BodyCompositionE
         ? (10 * weight) + (6.25 * height) - (5 * age) + 5
         : (10 * weight) + (6.25 * height) - (5 * age) - 161;
 
-    if (ethnicity === 'South Asian') {
-        bmr *= 0.94;
-    }
+    if (ethnicity === 'South Asian') { bmr *= 0.94; }
 
     const whtr = height > 0 ? waist / height : 0;
     const whr = hip > 0 ? waist / hip : 0;
-
     const muscleMass = gender === 1 ? leanBodyMass * 0.57 : leanBodyMass * 0.48;
     const muscleRate = (muscleMass / weight) * 100;
     const proteinMass = leanBodyMass * 0.17;
     const proteinPercentage = (proteinMass / weight) * 100;
-
     const tbw = gender === 1 
         ? 2.447 - (0.09516 * age) + (0.1074 * height) + (0.3362 * weight)
         : -2.097 + (0.1069 * height) + (0.2466 * weight);
     const bodyWaterPercentage = (tbw / weight) * 100;
-    
     const visceralFatIndex = Math.round(clamp((whtr - 0.4) * 40 + 5, 1, 30));
-
-    // Estimations
-    const boneMass = leanBodyMass * 0.15; // A common clinical estimation
-    const subcutaneousFatMass = fatMass * 0.85; // Visceral fat is typically 10-20% of total
+    const boneMass = leanBodyMass * 0.15;
+    const subcutaneousFatMass = fatMass * 0.85;
     const subcutaneousFatPercentage = (subcutaneousFatMass / weight) * 100;
-
     const heightInches = height / 2.54;
-    const idealWeight = gender === 1 
-        ? 50 + 2.3 * (heightInches - 60) // Devine formula for men
-        : 45.5 + 2.3 * (heightInches - 60); // Devine formula for women
-
+    const idealWeight = gender === 1 ? 50 + 2.3 * (heightInches - 60) : 45.5 + 2.3 * (heightInches - 60);
     const obesityGrade = getObesityGrade(bmi);
     const bodyType = getBodyType(bodyFatPercentage, muscleRate, gender);
-
+    const { ffmi, classification: ffmiClassification } = calculateFFMI(leanBodyMass, height);
+    const idealBodyFatPercentageRange = getIdealBodyFatRange(age, gender);
+    const dailyProteinRequirement = calculateProteinRequirement(weight, activityLevel, dietType);
+    const dailyWaterRequirement = parseFloat(((weight * 35) / 1000).toFixed(1));
+    const bodyShape = getBodyShape(whr, gender);
+    const metabolicRiskScore = calculateMetabolicRiskScore(bmi, whtr, bodyFatPercentage, visceralFatIndex, age, gender);
 
     let activity_level_str: "sedentary" | "light" | "moderate" | "heavy" = "light";
     if (activityLevel === ActivityLevel.SEDENTARY) activity_level_str = "sedentary";
@@ -234,21 +294,10 @@ export const calculateAllMetrics = (inputs: CalculationInputs): BodyCompositionE
     if (activityLevel === ActivityLevel.VERY_ACTIVE) activity_level_str = "heavy";
 
     const metabolicAgeAnalysis = calculateMetabolicAge({
-        age_years: age,
-        sex: gender === 1 ? "male" : "female",
-        height_cm: height,
-        weight_kg: weight,
-        waist_cm: waist,
-        neck_cm: neck,
-        hip_cm: hip,
-        activity_level: activity_level_str,
-        bodyFatPercent: bodyFatPercentage,
-        muscleMass_kg: muscleMass,
-        triglycerides_mgdl: tg,
-        hdl_mgdl: hdl,
-        ethnicity: ethnicity,
+        age_years: age, sex: gender === 1 ? "male" : "female", height_cm: height, weight_kg: weight,
+        waist_cm: waist, neck_cm: neck, hip_cm: hip, activity_level: activity_level_str,
+        bodyFatPercent: bodyFatPercentage, muscleMass_kg: muscleMass, triglycerides_mgdl: tg, hdl_mgdl: hdl, ethnicity: ethnicity,
     });
-
 
     return {
         date: new Date().toISOString().split('T')[0],
@@ -265,7 +314,6 @@ export const calculateAllMetrics = (inputs: CalculationInputs): BodyCompositionE
         fatMass: parseFloat(fatMass.toFixed(1)),
         visceralFatIndex: visceralFatIndex,
         metabolicAgeAnalysis,
-        // New fields
         muscleRate: parseFloat(muscleRate.toFixed(1)),
         bodyWaterPercentage: parseFloat(bodyWaterPercentage.toFixed(1)),
         boneMass: parseFloat(boneMass.toFixed(1)),
@@ -273,5 +321,13 @@ export const calculateAllMetrics = (inputs: CalculationInputs): BodyCompositionE
         idealWeight: parseFloat(idealWeight.toFixed(1)),
         obesityGrade,
         bodyType,
+        // New fields
+        ffmi: parseFloat(ffmi.toFixed(1)),
+        ffmiClassification,
+        idealBodyFatPercentageRange,
+        dailyProteinRequirement,
+        dailyWaterRequirement,
+        bodyShape,
+        metabolicRiskScore,
     };
 };

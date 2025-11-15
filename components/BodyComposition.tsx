@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { BodyCompositionEntry, DailyIntake, Sex, WaterEntry, ProgressEntry, ActivityLevel, DietPreference, DietType, HealthCondition } from '../types';
 import * as calculator from '../services/bodyCompositionCalculator';
 import PieChart from './PieChart';
 import SuccessToast from './SuccessToast';
 import { ChevronDownIcon } from './icons/ChevronDownIcon';
+import TrendGraph from './TrendGraph';
 
 const USER_PREFERENCES_KEY = 'obeCureUserPreferences';
 const BODY_COMPOSITION_KEY = 'obeCureBodyComposition';
@@ -13,10 +14,10 @@ const PROGRESS_DATA_KEY = 'obeCureProgressData';
 
 const StatCard: React.FC<{ title: string; value: string; unit: string; description?: string; colorClass?: string; size?: 'normal' | 'large' }> = 
 ({ title, value, unit, description, colorClass = 'text-orange-500', size = 'normal' }) => (
-    <div className="bg-gray-50 dark:bg-gray-700/50 p-3 rounded-lg text-center h-full flex flex-col justify-center">
+    <div className="bg-gray-50 dark:bg-gray-700/50 p-2 rounded-lg text-center h-full flex flex-col justify-center">
         <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{title}</p>
-        <p className={`${size === 'large' ? 'text-4xl' : 'text-3xl'} font-bold ${colorClass} my-1`}>
-            {value} <span className={`${size === 'large' ? 'text-xl' : 'text-lg'} font-medium text-gray-600 dark:text-gray-300`}>{unit}</span>
+        <p className={`${size === 'large' ? 'text-4xl' : 'text-2xl'} font-bold ${colorClass} my-1`}>
+            {value} <span className={`${size === 'large' ? 'text-xl' : 'text-base'} font-medium text-gray-600 dark:text-gray-300`}>{unit}</span>
         </p>
         {description && <p className="text-xs text-gray-500 dark:text-gray-400">{description}</p>}
     </div>
@@ -63,6 +64,7 @@ const BodyComposition: React.FC<{ onOpenHistory: () => void; }> = ({ onOpenHisto
         fastingEndPeriod: 'PM',
     });
     const [results, setResults] = useState<BodyCompositionEntry | null>(null);
+    const [history, setHistory] = useState<BodyCompositionEntry[]>([]);
     const [error, setError] = useState<string | null>(null);
     const [toastInfo, setToastInfo] = useState<{ title: string; message: string; quote: string; } | null>(null);
     const [dailyStats, setDailyStats] = useState<{ hydration: number, tdee: number, bmr: number, intake: number, target: number }>({ hydration: 0, tdee: 0, bmr: 0, intake: 0, target: 0 });
@@ -119,9 +121,9 @@ const BodyComposition: React.FC<{ onOpenHistory: () => void; }> = ({ onOpenHisto
             dietType: prefs.dietType || DietType.BALANCED,
             healthConditions: prefs.healthConditions || [],
             fastingStartHour: prefs.fastingStartHour || '10',
-            fastingStartPeriod: prefs.fastingStartPeriod || 'AM',
-            fastingEndHour: prefs.fastingEndHour || '6',
-            fastingEndPeriod: prefs.fastingEndPeriod || 'PM',
+            fastingStartPeriod: 'AM',
+            fastingEndHour: '6',
+            fastingEndPeriod: 'PM',
         };
         setInputs(loadedInputs);
 
@@ -138,10 +140,12 @@ const BodyComposition: React.FC<{ onOpenHistory: () => void; }> = ({ onOpenHisto
         const historyRaw = localStorage.getItem(BODY_COMPOSITION_KEY);
         if (historyRaw) {
             try {
-                const history: BodyCompositionEntry[] = JSON.parse(historyRaw);
-                if (history.length > 0) {
-                    const latestEntry = history[history.length - 1];
-                    if (latestEntry.date === new Date().toISOString().split('T')[0]) {
+                const historyData: BodyCompositionEntry[] = JSON.parse(historyRaw);
+                setHistory(historyData);
+                if (historyData.length > 0) {
+                    const latestEntry = historyData[historyData.length - 1];
+                    // Auto-load latest results if they are from today and match current weight
+                    if (latestEntry.date === new Date().toISOString().split('T')[0] && parseFloat(loadedInputs.weight) === parseFloat(latestEntry.metabolicAgeAnalysis?.inputs.weight_kg.toFixed(1) || '0')) {
                         setResults(latestEntry);
                     }
                 }
@@ -171,7 +175,6 @@ const BodyComposition: React.FC<{ onOpenHistory: () => void; }> = ({ onOpenHisto
     const handleSaveAndCalculate = () => {
         setError(null);
         
-        // --- 1. Save all inputs to localStorage ---
         try {
             localStorage.setItem(USER_PREFERENCES_KEY, JSON.stringify(inputs));
         } catch (e) {
@@ -180,8 +183,7 @@ const BodyComposition: React.FC<{ onOpenHistory: () => void; }> = ({ onOpenHisto
             return;
         }
 
-        // --- 2. Perform Calculations ---
-        const { age, sex, height, weight, waist, neck, hip, tg, hdl, activityLevel } = inputs;
+        const { age, sex, height, weight, waist, neck, hip, tg, hdl, activityLevel, dietType } = inputs;
         const ageNum = parseInt(age, 10);
         const heightNum = parseFloat(height);
         const weightNum = parseFloat(weight);
@@ -212,49 +214,52 @@ const BodyComposition: React.FC<{ onOpenHistory: () => void; }> = ({ onOpenHisto
             tg: tgNum, 
             hdl: hdlNum, 
             activityLevel,
+            dietType,
             ethnicity: inputs.ethnicity
         });
         setResults(calculatedResults);
+        
+        const tdee = calculator.calculateTDEE({ weight: weightNum, height: heightNum, age: ageNum, sex: sex as Sex, activityLevel: activityLevel as ActivityLevel });
+        setDailyStats(prev => ({ ...prev, tdee: Math.round(tdee) }));
 
         const today = new Date().toISOString().split('T')[0];
-
-        // Save full body composition data
+        
         const historyRaw = localStorage.getItem(BODY_COMPOSITION_KEY);
-        let history: BodyCompositionEntry[] = historyRaw ? JSON.parse(historyRaw) : [];
-        const todayIndex = history.findIndex(e => e.date === today);
-        if (todayIndex > -1) { history[todayIndex] = calculatedResults; } else { history.push(calculatedResults); }
-        history.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-        if (history.length > 15) { history = history.slice(history.length - 15); }
-        localStorage.setItem(BODY_COMPOSITION_KEY, JSON.stringify(history));
+        let updatedHistory: BodyCompositionEntry[] = historyRaw ? JSON.parse(historyRaw) : [];
+        const todayIndex = updatedHistory.findIndex(e => e.date === today);
+        if (todayIndex > -1) { updatedHistory[todayIndex] = calculatedResults; } else { updatedHistory.push(calculatedResults); }
+        updatedHistory.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+        if (updatedHistory.length > 30) { updatedHistory = updatedHistory.slice(updatedHistory.length - 30); }
+        localStorage.setItem(BODY_COMPOSITION_KEY, JSON.stringify(updatedHistory));
+        setHistory(updatedHistory);
 
-        // Save simple progress data for chart
         const newProgressEntry: ProgressEntry = { date: today, weight: weightNum, bmi: calculatedResults.bmi };
         const progressHistoryRaw = localStorage.getItem(PROGRESS_DATA_KEY);
         let progressHistory: ProgressEntry[] = progressHistoryRaw ? JSON.parse(progressHistoryRaw) : [];
         const progressTodayIndex = progressHistory.findIndex(e => e.date === today);
         if (progressTodayIndex > -1) { progressHistory[progressTodayIndex] = newProgressEntry; } else { progressHistory.push(newProgressEntry); }
         progressHistory.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-        if (progressHistory.length > 15) { progressHistory = progressHistory.slice(progressHistory.length - 15); }
+        if (progressHistory.length > 30) { progressHistory = progressHistory.slice(progressHistory.length - 30); }
         localStorage.setItem(PROGRESS_DATA_KEY, JSON.stringify(progressHistory));
 
         setToastInfo({ title: "Profile Saved & Calculated!", message: "Your body composition has been updated.", quote: "Knowledge is the first step towards change." });
     };
     
-    const weightNum = parseFloat(inputs.weight);
-    const pieData = (results && weightNum > 0) ? [
+    const pieData = (results && parseFloat(inputs.weight) > 0) ? [
         { label: 'Fat', value: results.bodyFatPercentage, color: '#f87171' },
         { label: 'Muscle', value: results.muscleRate, color: '#fb923c' },
-        { label: 'Lean (Other)', value: 100 - results.bodyFatPercentage - results.muscleRate, color: '#a78bfa' },
+        { label: 'Other (Bone/Water)', value: Math.max(0, 100 - results.bodyFatPercentage - results.muscleRate), color: '#a78bfa' },
     ] : [];
 
-    const isHighBmi = results && results.bmi >= 25;
+    const isHighBmi = results && results.bmi >= 23;
     const isHighBodyFat = results && (inputs.sex === Sex.MALE ? results.bodyFatPercentage > 25 : results.bodyFatPercentage > 32);
-    
-    const viGlow = results ? (results.visceralFatIndex >= 13 ? 'animate-glowing-red' : results.visceralFatIndex >= 9 ? 'animate-glowing-yellow' : '') : '';
-    
+    const isHighWHR = results && (inputs.sex === Sex.MALE ? results.whr > 0.9 : results.whr > 0.85);
+    const isHighWHtR = results && results.whtr > 0.5;
+
+    const riskColor = (score: number) => score > 75 ? 'animate-glowing-red text-red-500' : score > 50 ? 'animate-glowing-yellow text-yellow-500' : 'text-green-500';
+
     const formInputClass = "w-full p-2 text-sm bg-white dark:bg-gray-700 rounded-md border border-gray-300 dark:border-gray-600 focus:ring-orange-400";
     const formLabelClass = "block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1";
-
 
     return (
         <div className="space-y-6 animate-fade-in">
@@ -273,7 +278,6 @@ const BodyComposition: React.FC<{ onOpenHistory: () => void; }> = ({ onOpenHisto
                             <div><label className={formLabelClass}>Target Wt. (kg)</label><input type="number" name="targetWeight" value={inputs.targetWeight} onChange={handleInputChange} className={formInputClass} /></div>
                         </div>
                     </AccordionSection>
-
                     <AccordionSection title="Body Measurements (for accuracy)">
                         <div className="grid grid-cols-3 gap-4">
                             <div><label className={formLabelClass}>Waist (cm)*</label><input type="number" name="waist" value={inputs.waist} onChange={handleInputChange} required className={formInputClass} /></div>
@@ -281,101 +285,83 @@ const BodyComposition: React.FC<{ onOpenHistory: () => void; }> = ({ onOpenHisto
                             <div><label className={formLabelClass}>Neck (cm)*</label><input type="number" name="neck" value={inputs.neck} onChange={handleInputChange} required className={formInputClass} /></div>
                         </div>
                     </AccordionSection>
-
                     <AccordionSection title="Diet & Lifestyle">
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                              <div><label className={formLabelClass}>Activity Level</label><select name="activityLevel" value={inputs.activityLevel} onChange={handleInputChange} className={formInputClass}>{Object.values(ActivityLevel).map(a=><option key={a} value={a}>{a}</option>)}</select></div>
                              <div><label className={formLabelClass}>Food Preference</label><select name="preference" value={inputs.preference} onChange={handleInputChange} className={formInputClass}>{Object.values(DietPreference).map(p=><option key={p} value={p}>{p}</option>)}</select></div>
                              <div><label className={formLabelClass}>Diet Goal</label><select name="dietType" value={inputs.dietType} onChange={handleInputChange} className={formInputClass}>{Object.values(DietType).map(t=><option key={t} value={t}>{t}</option>)}</select></div>
                         </div>
-                         <div className="mt-4"><label className={formLabelClass}>Intermittent Fasting Window (optional)</label>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div><span className="text-xs font-medium text-gray-500 dark:text-gray-400">Start Eating At</span><div className="flex gap-2 mt-1"><select name="fastingStartHour" value={inputs.fastingStartHour} onChange={handleInputChange} className={formInputClass}>{Array.from({ length: 12 }, (_, i) => i + 1).map(h => <option key={`start-h-${h}`} value={h}>{h}</option>)}</select><select name="fastingStartPeriod" value={inputs.fastingStartPeriod} onChange={handleInputChange} className={formInputClass}><option value="AM">AM</option><option value="PM">PM</option></select></div></div>
-                                <div><span className="text-xs font-medium text-gray-500 dark:text-gray-400">Stop Eating At</span><div className="flex gap-2 mt-1"><select name="fastingEndHour" value={inputs.fastingEndHour} onChange={handleInputChange} className={formInputClass}>{Array.from({ length: 12 }, (_, i) => i + 1).map(h => <option key={`end-h-${h}`} value={h}>{h}</option>)}</select><select name="fastingEndPeriod" value={inputs.fastingEndPeriod} onChange={handleInputChange} className={formInputClass}><option value="AM">AM</option><option value="PM">PM</option></select></div></div>
-                            </div>
-                        </div>
                     </AccordionSection>
-
-                    <AccordionSection title="Health Profile">
-                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label className={formLabelClass}>Existing Health Conditions (optional)</label>
-                                <div className="grid grid-cols-2 gap-x-4 gap-y-2 p-2 bg-white dark:bg-gray-800 rounded-lg max-h-32 overflow-y-auto">
-                                    {Object.values(HealthCondition).map((condition) => (
-                                    <label key={condition} className="flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-300 cursor-pointer">
-                                        <input type="checkbox" checked={inputs.healthConditions.includes(condition)} onChange={() => handleConditionChange(condition)} className="h-4 w-4 rounded border-gray-300 text-orange-500 focus:ring-orange-400"/>
-                                        <span>{condition}</span>
-                                    </label>
-                                    ))}
-                                </div>
-                            </div>
-                             <div className="space-y-4">
-                                <div><label className={formLabelClass}>Smoker</label><select name="smoker" value={inputs.smoker} onChange={handleInputChange} className={formInputClass}><option value="no">No</option><option value="yes">Yes</option></select></div>
-                                <div><label className={formLabelClass}>Alcohol</label><select name="alcohol" value={inputs.alcohol} onChange={handleInputChange} className={formInputClass}><option value="no">No</option><option value="yes">Yes</option></select></div>
-                             </div>
-                         </div>
-                    </AccordionSection>
-                    
-                     <AccordionSection title="Advanced Lab Data (Optional)">
-                        <div className="grid grid-cols-3 gap-4">
-                            <div><label className={formLabelClass}>Triglycerides (mg/dL)</label><input type="number" name="tg" value={inputs.tg} onChange={handleInputChange} className={formInputClass} /></div>
-                            <div><label className={formLabelClass}>HDL-C (mg/dL)</label><input type="number" name="hdl" value={inputs.hdl} onChange={handleInputChange} className={formInputClass} /></div>
-                            <div><label className={formLabelClass}>Ethnicity</label><select name="ethnicity" value={inputs.ethnicity} onChange={handleInputChange} className={formInputClass}><option>South Asian</option><option>East Asian</option><option>Caucasian</option><option>African</option><option>Hispanic</option><option>Other</option></select></div>
-                        </div>
-                     </AccordionSection>
                 </div>
-
                 {error && <p className="text-red-500 text-sm text-center mt-4">{error}</p>}
                 <button onClick={handleSaveAndCalculate} className="w-full mt-6 bg-orange-500 text-white font-bold py-3 px-4 rounded-lg hover:bg-orange-600 transition shadow-md active:scale-95">Save Profile & Recalculate</button>
             </div>
 
-            <p className="text-center text-sm font-semibold text-orange-500 bg-orange-50 dark:bg-orange-900/30 py-2 px-4 rounded-lg">🥳Good News- We are 95% Accurate to traditional Body Composition scan.</p>
-
             {results && (
                 <div className="space-y-6">
-                    <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700">
-                         <h3 className="text-xl font-bold text-gray-800 dark:text-gray-200 mb-4 text-center">Key Metrics</h3>
-                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                            <StatCard title="BMI" value={results.bmi.toFixed(1)} unit="" description={results.obesityGrade} colorClass={`text-indigo-500 ${isHighBmi ? 'animate-glowing-indigo' : ''}`} />
-                            <StatCard title="Body Fat" value={results.bodyFatPercentage.toFixed(1)} unit="%" colorClass={`text-red-500 ${isHighBodyFat ? 'animate-glowing-red' : ''}`} />
-                            <StatCard title="Muscle Rate" value={results.muscleRate.toFixed(1)} unit="%" colorClass="text-orange-500" />
-                            {results.metabolicAgeAnalysis && <StatCard title="Metabolic Age" value={String(results.metabolicAgeAnalysis.metabolicAge_clinical)} unit="yrs" description={`Actual: ${inputs.age}`} colorClass="text-teal-500" />}
+                    <AccordionSection title="Key Metrics" defaultOpen={true}>
+                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                            <StatCard title="BMI" value={results.bmi.toFixed(1)} unit="" description={results.obesityGrade} colorClass={`text-indigo-500 ${isHighBmi ? 'animate-glowing-indigo' : ''}`} size="large" />
+                            <StatCard title="Body Fat" value={results.bodyFatPercentage.toFixed(1)} unit="%" colorClass={`text-red-500 ${isHighBodyFat ? 'animate-glowing-red' : ''}`} size="large" />
+                            <StatCard title="Muscle Rate" value={results.muscleRate.toFixed(1)} unit="%" colorClass="text-orange-500" size="large" />
+                            {results.metabolicAgeAnalysis && <StatCard title="Metabolic Age" value={String(results.metabolicAgeAnalysis.metabolicAge_clinical)} unit="yrs" description={`Actual: ${inputs.age}`} colorClass="text-teal-500" size="large" />}
                         </div>
-                    </div>
+                    </AccordionSection>
+
+                    <AccordionSection title="Metabolic Profile" defaultOpen={true}>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-2">
+                            <StatCard title="Basal Metabolic Rate" value={String(results.bmr)} unit="kcal" description="Energy your body burns at complete rest." />
+                            <StatCard title="Ideal Weight" value={results.idealWeight.toFixed(1)} unit="kg" description="Healthy weight for your height." />
+                            <StatCard title="Daily Energy Needs" value={String(dailyStats.tdee)} unit="kcal" description="Estimated calories for maintenance." />
+                        </div>
+                    </AccordionSection>
                     
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700">
-                             <h3 className="text-xl font-bold text-gray-800 dark:text-gray-200 mb-4 text-center">Composition Breakdown</h3>
-                             <div className="grid grid-cols-2 gap-4">
-                                <StatCard title="Body Water" value={results.bodyWaterPercentage.toFixed(1)} unit="%" />
-                                <StatCard title="Protein Rate" value={results.proteinPercentage.toFixed(1)} unit="%" />
-                                <StatCard title="Subcutaneous Fat" value={results.subcutaneousFatPercentage.toFixed(1)} unit="%" />
-                                <StatCard title="Visceral Fat" value={String(results.visceralFatIndex)} unit="index" colorClass={viGlow.includes('red') ? 'text-red-500' : viGlow.includes('yellow') ? 'text-yellow-500' : 'text-green-500'} />
-                             </div>
+                    <AccordionSection title="Health & Risk Indicators" defaultOpen={true}>
+                         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                            <StatCard title="Metabolic Risk" value={String(results.metabolicRiskScore)} unit="/ 100" colorClass={riskColor(results.metabolicRiskScore)} description={results.metabolicRiskScore > 75 ? 'High Risk' : results.metabolicRiskScore > 50 ? 'Moderate Risk' : 'Low Risk'} />
+                            <StatCard title="Visceral Fat" value={String(results.visceralFatIndex)} unit="index" colorClass={results.visceralFatIndex >= 13 ? 'text-red-500' : results.visceralFatIndex >= 9 ? 'text-yellow-500' : 'text-green-500'} description={results.visceralFatIndex >= 9 ? 'High' : 'Healthy'}/>
+                            <StatCard title="Waist-Hip Ratio" value={results.whr.toFixed(2)} unit="" colorClass={isHighWHR ? 'text-yellow-500' : 'text-green-500'} description={isHighWHR ? 'High Risk' : 'Low Risk'}/>
+                            <StatCard title="Waist-Height Ratio" value={results.whtr.toFixed(2)} unit="" colorClass={isHighWHtR ? 'text-yellow-500' : 'text-green-500'} description={isHighWHtR ? 'High Risk' : 'Low Risk'} />
                         </div>
-                        <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700">
-                            <h3 className="text-xl font-bold text-gray-800 dark:text-gray-200 mb-4 text-center">Mass Breakdown</h3>
-                             <div className="grid grid-cols-2 gap-4">
+                    </AccordionSection>
+                    
+                     <AccordionSection title="Fitness & Hydration Goals">
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                            <StatCard title="FFMI" value={results.ffmi.toFixed(1)} unit="" description={results.ffmiClassification} />
+                            <StatCard title="Protein Req." value={`${results.dailyProteinRequirement.low}-${results.dailyProteinRequirement.high}`} unit="g/day" />
+                            <StatCard title="Water Req." value={results.dailyWaterRequirement.toFixed(1)} unit="Liters" />
+                            <StatCard title="Ideal Fat %" value={`${results.idealBodyFatPercentageRange[0]}-${results.idealBodyFatPercentageRange[1]}`} unit="%" />
+                        </div>
+                     </AccordionSection>
+
+                    <AccordionSection title="Body Composition Breakdown">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+                            <PieChart data={pieData} />
+                            <div className="grid grid-cols-2 gap-3">
                                 <StatCard title="Fat Mass" value={results.fatMass.toFixed(1)} unit="kg" />
                                 <StatCard title="Muscle Mass" value={results.muscleMass.toFixed(1)} unit="kg" />
                                 <StatCard title="Weight w/o Fat" value={results.leanBodyMass.toFixed(1)} unit="kg" />
                                 <StatCard title="Protein Mass" value={results.proteinMass.toFixed(1)} unit="kg" />
                                 <StatCard title="Bone Mass" value={results.boneMass.toFixed(1)} unit="kg" />
-                             </div>
+                                <StatCard title="Body Water" value={results.bodyWaterPercentage.toFixed(1)} unit="%" />
+                            </div>
                         </div>
-                    </div>
+                    </AccordionSection>
 
-                    <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700">
-                        <h3 className="text-xl font-bold text-gray-800 dark:text-gray-200 mb-4 text-center">Health & Risk Indicators</h3>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <StatCard title="BMR" value={String(results.bmr)} unit="kcal" description="Resting Energy" />
-                            <StatCard title="Standard Weight" value={results.idealWeight.toFixed(1)} unit="kg" description="Ideal for height" />
-                            <StatCard title="Body Type" value={results.bodyType} unit="" />
+                    <AccordionSection title="Body Shape & Type">
+                        <div className="grid grid-cols-2 gap-4">
+                           <StatCard title="Body Type" value={results.bodyType} unit="" />
+                           <StatCard title="Body Shape" value={results.bodyShape} unit={results.bodyShape === 'Android (Apple)' ? '🍎' : '🍐'} />
                         </div>
-                    </div>
+                    </AccordionSection>
+
+                    {history.length > 1 && (
+                        <AccordionSection title="Fat vs Muscle Trend" defaultOpen={true}>
+                           <TrendGraph history={history} />
+                        </AccordionSection>
+                    )}
                 </div>
             )}
-
             <button onClick={onOpenHistory} className="w-full text-center py-3 font-semibold text-gray-600 dark:text-gray-400 hover:text-orange-500 transition">
                 View Full Progress History &rarr;
             </button>

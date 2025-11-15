@@ -130,6 +130,14 @@ export interface BodyCompositionEntry {
     idealWeight: number;
     obesityGrade: string;
     bodyType: string;
+    // New fields
+    ffmi: number;
+    ffmiClassification: string;
+    idealBodyFatPercentageRange: [number, number];
+    dailyProteinRequirement: { low: number; high: number };
+    dailyWaterRequirement: number; // in Liters
+    bodyShape: 'Android (Apple)' | 'Gynoid (Pear)';
+    metabolicRiskScore: number;
 }
 
 export interface FastingEntry {
