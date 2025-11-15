@@ -1,0 +1,298 @@
+import { Sex } from '../types';
+
+export interface BloodTest {
+  id: string;
+  name: string;
+  unit: string;
+  normalRangeText: string;
+  highMeaning: string;
+  lowMeaning: string;
+  parseRange: (sex?: Sex) => { low?: number; high?: number; note?: string };
+}
+
+const parseSimpleRange = (rangeStr: string): { low?: number; high?: number } => {
+    if (rangeStr.includes('–')) {
+        const [low, high] = rangeStr.split('–').map(s => parseFloat(s.trim()));
+        return { low, high };
+    }
+    if (rangeStr.startsWith('<')) {
+        return { high: parseFloat(rangeStr.replace('<', '').trim()) };
+    }
+    if (rangeStr.startsWith('>')) {
+        return { low: parseFloat(rangeStr.replace('>', '').trim()) };
+    }
+    return {};
+};
+
+export const bloodTestData: BloodTest[] = [
+    {
+        id: 'fbg',
+        name: '1️⃣ Fasting Blood Glucose (FBG)',
+        unit: 'mg/dL',
+        normalRangeText: '70–99',
+        highMeaning: 'Body not handling sugar → insulin resistance, prediabetes.',
+        lowMeaning: 'Low sugar → weakness, long fasting, medication effect.',
+        parseRange: () => parseSimpleRange('70–99'),
+    },
+    {
+        id: 'hba1c',
+        name: '2️⃣ HbA1c',
+        unit: '%',
+        normalRangeText: '< 5.7',
+        highMeaning: 'Sugar high for months → prediabetes/diabetes.',
+        lowMeaning: 'Usually normal, sometimes anemia.',
+        parseRange: () => parseSimpleRange('< 5.7'),
+    },
+    {
+        id: 'fastingInsulin',
+        name: '3️⃣ Fasting Insulin',
+        unit: 'µIU/mL',
+        normalRangeText: '2–20',
+        highMeaning: 'Insulin resistance, belly fat.',
+        lowMeaning: 'Low insulin production.',
+        parseRange: () => parseSimpleRange('2–20'),
+    },
+    {
+        id: 'homaIr',
+        name: '4️⃣ HOMA-IR',
+        unit: '—',
+        normalRangeText: '< 1.0',
+        highMeaning: 'Strong insulin resistance.',
+        lowMeaning: 'Healthy insulin sensitivity.',
+        parseRange: () => parseSimpleRange('< 1.0'),
+    },
+    {
+        id: 'tg',
+        name: '5️⃣ Triglycerides (TG)',
+        unit: 'mg/dL',
+        normalRangeText: '< 150',
+        highMeaning: 'High sugar intake, fatty liver, insulin resistance.',
+        lowMeaning: 'Usually OK.',
+        parseRange: () => parseSimpleRange('< 150'),
+    },
+    {
+        id: 'hdl',
+        name: '6️⃣ HDL (Good Cholesterol)',
+        unit: 'mg/dL',
+        normalRangeText: 'Men > 40, Women > 50',
+        highMeaning: 'Good heart protection.',
+        lowMeaning: 'Higher heart risk, metabolic syndrome.',
+        parseRange: (sex?: Sex) => sex === Sex.MALE ? { low: 40 } : { low: 50 },
+    },
+    {
+        id: 'ldl',
+        name: '7️⃣ LDL (Bad Cholesterol)',
+        unit: 'mg/dL',
+        normalRangeText: '< 100',
+        highMeaning: 'Heart risk, diet issues, genetics.',
+        lowMeaning: 'Usually fine.',
+        parseRange: () => parseSimpleRange('< 100'),
+    },
+    {
+        id: 'totalCholesterol',
+        name: '8️⃣ Total Cholesterol',
+        unit: 'mg/dL',
+        normalRangeText: '< 200',
+        highMeaning: 'Higher cardiovascular risk.',
+        lowMeaning: 'Generally fine.',
+        parseRange: () => parseSimpleRange('< 200'),
+    },
+    {
+        id: 'alt',
+        name: '9️⃣ ALT (SGPT)',
+        unit: 'U/L',
+        normalRangeText: '< 40',
+        highMeaning: 'Fatty liver, liver stress.',
+        lowMeaning: 'Normal.',
+        parseRange: () => parseSimpleRange('< 40'),
+    },
+    {
+        id: 'ast',
+        name: '🔟 AST (SGOT)',
+        unit: 'U/L',
+        normalRangeText: '< 40',
+        highMeaning: 'Liver/muscle stress.',
+        lowMeaning: 'Normal.',
+        parseRange: () => parseSimpleRange('< 40'),
+    },
+    {
+        id: 'ggt',
+        name: '1️⃣1️⃣ GGT',
+        unit: 'U/L',
+        normalRangeText: 'Men < 55, Women < 38',
+        highMeaning: 'Best marker of fatty liver.',
+        lowMeaning: 'Normal.',
+        parseRange: (sex?: Sex) => sex === Sex.MALE ? { high: 55 } : { high: 38 },
+    },
+    {
+        id: 'crp',
+        name: '1️⃣2️⃣ CRP (C-reactive protein)',
+        unit: 'mg/L',
+        normalRangeText: '< 3',
+        highMeaning: 'Inflammation, obesity, infection, heart risk.',
+        lowMeaning: 'Healthy.',
+        parseRange: () => parseSimpleRange('< 3'),
+    },
+    {
+        id: 'il6',
+        name: '1️⃣3️⃣ IL-6 (Interleukin-6)',
+        unit: 'pg/mL',
+        normalRangeText: '< 7',
+        highMeaning: 'Deep chronic inflammation.',
+        lowMeaning: 'Healthy.',
+        parseRange: () => parseSimpleRange('< 7'),
+    },
+    {
+        id: 'cortisol',
+        name: '1️⃣4️⃣ Cortisol (Morning)',
+        unit: 'µg/dL',
+        normalRangeText: '6–18',
+        highMeaning: 'Stress, poor sleep, belly fat gain.',
+        lowMeaning: 'Fatigue, low energy.',
+        parseRange: () => parseSimpleRange('6–18'),
+    },
+    {
+        id: 'tsh',
+        name: '1️⃣5️⃣ TSH',
+        unit: 'µIU/mL',
+        normalRangeText: '0.5–4.5',
+        highMeaning: 'Slow thyroid → weight gain.',
+        lowMeaning: 'Overactive thyroid → weight loss.',
+        parseRange: () => parseSimpleRange('0.5–4.5'),
+    },
+    {
+        id: 'freeT3',
+        name: '1️⃣6️⃣ Free T3',
+        unit: 'pg/mL',
+        normalRangeText: '2.3–4.2',
+        highMeaning: 'Overactive thyroid.',
+        lowMeaning: 'Slow metabolism.',
+        parseRange: () => parseSimpleRange('2.3–4.2'),
+    },
+    {
+        id: 'freeT4',
+        name: '1️⃣7️⃣ Free T4',
+        unit: 'ng/dL',
+        normalRangeText: '0.8–1.8',
+        highMeaning: 'Hyperthyroid.',
+        lowMeaning: 'Hypothyroid.',
+        parseRange: () => parseSimpleRange('0.8–1.8'),
+    },
+    {
+        id: 'reverseT3',
+        name: '1️⃣8️⃣ Reverse T3 (rT3)',
+        unit: 'ng/dL',
+        normalRangeText: '10–24',
+        highMeaning: 'Stress-blocked metabolism.',
+        lowMeaning: 'Normal.',
+        parseRange: () => parseSimpleRange('10–24'),
+    },
+    {
+        id: 'cPeptide',
+        name: '1️⃣9️⃣ Fasting C-Peptide',
+        unit: 'ng/mL',
+        normalRangeText: '0.8–3.5',
+        highMeaning: 'Insulin resistance (pancreas overworking).',
+        lowMeaning: 'Low insulin production.',
+        parseRange: () => parseSimpleRange('0.8–3.5'),
+    },
+    {
+        id: 'leptin',
+        name: '2️⃣0️⃣ Fasting Leptin',
+        unit: 'ng/mL',
+        normalRangeText: 'Men < 10, Women < 20',
+        highMeaning: 'Leptin resistance → hunger, fat gain.',
+        lowMeaning: 'Low fat stores or under-eating.',
+        parseRange: (sex?: Sex) => sex === Sex.MALE ? { high: 10 } : { high: 20 },
+    },
+    {
+        id: 'adiponectin',
+        name: '2️⃣1️⃣ Adiponectin',
+        unit: 'µg/mL',
+        normalRangeText: '5–10',
+        highMeaning: 'Very good metabolism.',
+        lowMeaning: 'Insulin resistance.',
+        parseRange: () => parseSimpleRange('5–10'),
+    },
+    {
+        id: 'ghrelin',
+        name: '2️⃣2️⃣ Ghrelin',
+        unit: 'pg/mL',
+        normalRangeText: '100–720',
+        highMeaning: 'Hunger hormone high → cravings.',
+        lowMeaning: 'Reduced appetite.',
+        parseRange: () => parseSimpleRange('100–720'),
+    },
+    {
+        id: 'freeTestosterone',
+        name: '2️⃣3️⃣ Free Testosterone (Men)',
+        unit: 'ng/dL (or pg/mL)',
+        normalRangeText: 'Lab-specific (general total: 300–1000)',
+        highMeaning: 'Good muscle building capacity.',
+        lowMeaning: 'Fatigue, belly fat, low metabolism.',
+        parseRange: () => ({ note: 'Ranges vary by lab. Compare with your lab\'s reference.' }),
+    },
+    {
+        id: 'dheas',
+        name: '2️⃣4️⃣ DHEA-S',
+        unit: 'µg/dL',
+        normalRangeText: 'Age-specific',
+        highMeaning: 'PCOS (women), stress.',
+        lowMeaning: 'Fatigue, low energy.',
+        parseRange: () => ({ note: 'Range is age-dependent. Please consult your report.' }),
+    },
+    {
+        id: 'prolactin',
+        name: '2️⃣5️⃣ Prolactin',
+        unit: 'ng/mL',
+        normalRangeText: '< 20',
+        highMeaning: 'Weight gain, stress, hormonal imbalance.',
+        lowMeaning: 'Usually not important.',
+        parseRange: () => parseSimpleRange('< 20'),
+    },
+    {
+        id: 'b12',
+        name: '2️⃣6️⃣ Vitamin B12',
+        unit: 'pg/mL',
+        normalRangeText: '200–900',
+        highMeaning: 'Supplements.',
+        lowMeaning: 'Fatigue, nerve issues, slow metabolism.',
+        parseRange: () => parseSimpleRange('200–900'),
+    },
+    {
+        id: 'ferritin',
+        name: '2️⃣7️⃣ Ferritin (Iron Stores)',
+        unit: 'ng/mL',
+        normalRangeText: 'Men 30–300, Women 15–200',
+        highMeaning: 'Inflammation, fatty liver.',
+        lowMeaning: 'Fatigue, hair fall.',
+        parseRange: (sex?: Sex) => sex === Sex.MALE ? { low: 30, high: 300 } : { low: 15, high: 200 },
+    },
+    {
+        id: 'magnesium',
+        name: '2️⃣8️⃣ Magnesium',
+        unit: 'mg/dL',
+        normalRangeText: '1.7–2.2',
+        highMeaning: 'Rare.',
+        lowMeaning: 'Cravings, poor sleep, cramps.',
+        parseRange: () => parseSimpleRange('1.7–2.2'),
+    },
+    {
+        id: 'zinc',
+        name: '2️⃣9️⃣ Zinc',
+        unit: 'µg/dL',
+        normalRangeText: '70–120',
+        highMeaning: 'Rare.',
+        lowMeaning: 'Low immunity, increased appetite.',
+        parseRange: () => parseSimpleRange('70–120'),
+    },
+    {
+        id: 'uricAcid',
+        name: '3️⃣0️⃣ Uric Acid',
+        unit: 'mg/dL',
+        normalRangeText: 'Men 3.5–7.0, Women 2.5–6.0',
+        highMeaning: 'Belly fat, high sugar/fructose intake, gout risk.',
+        lowMeaning: 'Usually fine.',
+        parseRange: (sex?: Sex) => sex === Sex.MALE ? { low: 3.5, high: 7.0 } : { low: 2.5, high: 6.0 },
+    },
+];

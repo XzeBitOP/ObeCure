@@ -93,6 +93,9 @@ const urlsToCache = [
   '/components/bioadaptive/GeneratingBioPlan.tsx',
   '/components/icons/StarIcon.tsx',
   '/components/ThemeToggle.tsx',
+  '/components/BloodReportEvaluator.tsx',
+  '/data/bloodTests.ts',
+  '/components/icons/ClipboardListIcon.tsx',
   // PWA Icons
   '/icons/icon-16x16.png',
   '/icons/icon-32x32.png',

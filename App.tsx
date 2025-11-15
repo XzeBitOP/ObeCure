@@ -1,5 +1,6 @@
 
 
+
 import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import Header from './components/Header';
 import DietPlanner from './components/DietPlanner';
@@ -28,6 +29,7 @@ import { ForkAndSpoonIcon } from './components/icons/ForkAndSpoonIcon';
 import { DumbbellIcon } from './components/icons/DumbbellIcon';
 import InfoModal from './components/InfoModal';
 import { BrainIcon } from './components/icons/BrainIcon';
+import BloodReportEvaluator from './components/BloodReportEvaluator';
 
 type View = 'planner' | 'ayurveda' | 'workouts' | 'progress' | 'community';
 
@@ -496,6 +498,10 @@ const App: React.FC = () => {
               <span className="font-bold text-yellow-200">Doctor certified</span> Wellness supplement and <span className="font-bold text-yellow-200">Ayurvedic product</span> coming soon...&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
               <span className="font-bold text-yellow-200">Doctor certified</span> Wellness supplement and <span className="font-bold text-yellow-200">Ayurvedic product</span> coming soon...&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
             </p>
+          </div>
+
+          <div className="max-w-5xl mx-auto px-4 sm:px-6 md:px-8 pb-8 mb-8">
+             <BloodReportEvaluator />
           </div>
           
           <div className="max-w-5xl mx-auto px-4 sm:px-6 md:px-8 pb-8 grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
