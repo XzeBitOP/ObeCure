@@ -10,6 +10,7 @@ export interface WorkoutPlan {
   id: keyof typeof WORKOUT_PLANS_DATA;
   name: string;
   details: string[];
+  difficulty: 'Beginner' | 'Intermediate' | 'Advanced';
   exercises: WorkoutExercise[];
   structure: {
     work: number;
@@ -27,6 +28,7 @@ export const WORKOUT_PLANS_DATA: Record<string, WorkoutPlan> = {
     id: 'GENERAL',
     name: 'Workout for General Obesity',
     details: ['30–40 min', 'Improves Mobility', 'Boosts Metabolism'],
+    difficulty: 'Beginner',
     warmupDuration: 300, // 5 min
     cooldownDuration: 300, // 5 min
     exercises: [
@@ -42,6 +44,7 @@ export const WORKOUT_PLANS_DATA: Record<string, WorkoutPlan> = {
     id: 'HYPERTENSION',
     name: 'Workout for Hypertension',
     details: ['20–25 min', 'Lowers Blood Pressure', 'Relaxing'],
+    difficulty: 'Beginner',
     warmupDuration: 180, // 3 min
     cooldownDuration: 300, // 5 min
     exercises: [
@@ -57,6 +60,7 @@ export const WORKOUT_PLANS_DATA: Record<string, WorkoutPlan> = {
     id: 'DIABETES',
     name: 'Workout for Diabetes Management',
     details: ['30 min', 'Enhances Insulin Sensitivity', 'Weight Control'],
+    difficulty: 'Intermediate',
     warmupDuration: 180, // 3 min
     cooldownDuration: 300, // 5 min
     exercises: [
@@ -74,6 +78,7 @@ export const WORKOUT_PLANS_DATA: Record<string, WorkoutPlan> = {
     id: 'THYROID',
     name: 'Workout for Hypothyroidism',
     details: ['30 min', 'Boosts Metabolism', 'Reduces Stiffness'],
+    difficulty: 'Intermediate',
     warmupDuration: 120, // 2 min
     cooldownDuration: 300, // 5 min
     exercises: [
@@ -89,6 +94,7 @@ export const WORKOUT_PLANS_DATA: Record<string, WorkoutPlan> = {
     id: 'PCOS',
     name: 'Workout for PCOS & Hormonal Balance',
     details: ['35 min', 'Improves Insulin Resistance', 'Reduces Stress'],
+    difficulty: 'Intermediate',
     warmupDuration: 300, // 5 min
     cooldownDuration: 300, // 5 min
     exercises: [
@@ -104,6 +110,7 @@ export const WORKOUT_PLANS_DATA: Record<string, WorkoutPlan> = {
     id: 'KNEE_PAIN',
     name: 'Workout for Arthritis / Joint Pain',
     details: ['25–30 min', 'Low Joint Stress', 'Maintains Mobility'],
+    difficulty: 'Beginner',
     warmupDuration: 180, // 3 min
     cooldownDuration: 300, // 5 min
     exercises: [
@@ -119,6 +126,7 @@ export const WORKOUT_PLANS_DATA: Record<string, WorkoutPlan> = {
     id: 'HEART_DISEASE',
     name: 'Workout for Heart Health (Stable)',
     details: ['20–30 min', 'Safe & Gentle', 'Improves Circulation'],
+    difficulty: 'Beginner',
     warmupDuration: 300, // 5 min
     cooldownDuration: 300, // 5 min
     exercises: [
@@ -134,6 +142,7 @@ export const WORKOUT_PLANS_DATA: Record<string, WorkoutPlan> = {
     id: 'LOW_MOBILITY',
     name: 'Workout for Low Mobility (Beginner)',
     details: ['10–20 min', 'Very Low Impact', 'Builds Foundational Strength'],
+    difficulty: 'Beginner',
     warmupDuration: 120, // 2 min
     cooldownDuration: 300, // 5 min
     exercises: [

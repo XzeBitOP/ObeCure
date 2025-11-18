@@ -4,6 +4,9 @@ import CongratulationsModal from './CongratulationsModal';
 import { Sex } from '../types';
 import { YouTubeIcon } from './icons/YouTubeIcon';
 import { submitToGoogleForm } from '../services/googleFormSubmit';
+import LegalModal from './LegalModal';
+import { termsAndConditions } from '../data/terms';
+import { privacyPolicy } from '../data/privacy';
 
 const motivationalQuotes = [
     "You don’t need to be perfect — just persistent.",
@@ -57,6 +60,10 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
     phone: '',
     patientWeight: '',
   });
+  
+  const [termsAgreed, setTermsAgreed] = useState(false);
+  const [isTermsModalOpen, setIsTermsModalOpen] = useState(false);
+  const [isPrivacyModalOpen, setIsPrivacyModalOpen] = useState(false);
 
   const [isSubscriptionModalOpen, setIsSubscriptionModalOpen] = useState(false);
   const [isCongratsModalOpen, setIsCongratsModalOpen] = useState(false);
@@ -110,6 +117,10 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
     if (!formData.patientWeight) {
         alert("Please fill in your current weight to begin.");
         focusAndScroll(patientWeightRef);
+        return;
+    }
+    if (!termsAgreed) {
+        alert("You must agree to the Terms of Service and Privacy Policy to continue.");
         return;
     }
 
@@ -184,6 +195,18 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
           months={unlockedMonths}
           quote="Your journey starts now! Let's get your profile set up."
         />
+      <LegalModal 
+            isOpen={isTermsModalOpen}
+            onClose={() => setIsTermsModalOpen(false)}
+            title={termsAndConditions.title}
+            content={termsAndConditions.content}
+        />
+        <LegalModal 
+            isOpen={isPrivacyModalOpen}
+            onClose={() => setIsPrivacyModalOpen(false)}
+            title={privacyPolicy.title}
+            content={privacyPolicy.content}
+        />
       <div className="min-h-screen flex items-center justify-center bg-orange-50/50 dark:bg-gray-900 p-4 animate-fade-in">
           <div className="w-full max-w-md">
               <div className="bg-white dark:bg-gray-800 p-6 sm:p-8 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700">
@@ -217,8 +240,20 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
                       </div>
                   </div>
 
+                  <div className="mt-6">
+                      <label className="flex items-center text-xs text-gray-500 dark:text-gray-400">
+                          <input 
+                              type="checkbox" 
+                              checked={termsAgreed}
+                              onChange={(e) => setTermsAgreed(e.target.checked)}
+                              className="h-4 w-4 rounded border-gray-300 text-orange-500 focus:ring-orange-400 mr-2 shrink-0"
+                          />
+                          <span>I have read and agree to the <button type="button" onClick={() => setIsTermsModalOpen(true)} className="underline text-orange-500 hover:text-orange-600">Terms of Service</button> and <button type="button" onClick={() => setIsPrivacyModalOpen(true)} className="underline text-orange-500 hover:text-orange-600">Privacy Policy</button>.</span>
+                      </label>
+                  </div>
+
                   <div className="mt-6 space-y-3">
-                      <button ref={beginButtonRef} onClick={handleBegin} className="w-full bg-orange-500 text-white font-bold py-3 px-6 rounded-lg hover:bg-orange-600 transition-all active:scale-95 shadow-md">Let's Begin &rarr;</button>
+                      <button ref={beginButtonRef} onClick={handleBegin} disabled={!termsAgreed} className="w-full bg-orange-500 text-white font-bold py-3 px-6 rounded-lg hover:bg-orange-600 transition-all active:scale-95 shadow-md disabled:bg-orange-300 disabled:cursor-not-allowed">Let's Begin &rarr;</button>
                       <button onClick={() => setIsSubscriptionModalOpen(true)} className="w-full bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-bold py-3 px-6 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-all active:scale-95">Redeem Subscription &rarr;</button>
                       <a 
                           href="https://youtube.com/playlist?list=PLNhXSgyaqlx8IaP9dM9AiMXXXdNqs7_ae&si=vCFz1FUbs5R5HtA" 

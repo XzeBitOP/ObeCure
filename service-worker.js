@@ -96,6 +96,15 @@ const urlsToCache = [
   '/components/BloodReportEvaluator.tsx',
   '/data/bloodTests.ts',
   '/components/icons/ClipboardListIcon.tsx',
+  // New Gamification & Workout Program files
+  '/components/icons/TrophyIcon.tsx',
+  '/data/workoutPrograms.ts',
+  '/data/achievements.ts',
+  '/data/challenges.ts',
+  '/components/GamificationView.tsx',
+  // Feature Explanation files
+  '/components/FeatureExplanation.tsx',
+  '/components/icons/InfoIcon.tsx',
   // PWA Icons
   '/icons/icon-16x16.png',
   '/icons/icon-32x32.png',
@@ -208,4 +217,60 @@ self.addEventListener('notificationclick', event => {
             return clients.openWindow('/');
         })
     );
+});
+
+
+// --- NOTIFICATION LOGIC ---
+
+// Using a global object to hold timeout IDs. This is fragile if the SW terminates,
+// but is the standard approach without Notification Triggers API.
+const scheduledTimeouts = {};
+
+const scheduleNotification = (tag, title, options, delay) => {
+    // Clear any previously scheduled timeout for this tag to prevent duplicates
+    if (scheduledTimeouts[tag]) {
+        clearTimeout(scheduledTimeouts[tag]);
+    }
+
+    // Schedule the new notification
+    scheduledTimeouts[tag] = setTimeout(() => {
+        self.registration.showNotification(title, { ...options, tag });
+        delete scheduledTimeouts[tag]; // Clean up
+    }, delay);
+};
+
+self.addEventListener('message', (event) => {
+    if (event.data && event.data.type === 'SCHEDULE_REMINDERS') {
+        const now = new Date();
+
+        // --- Morning Reminder (7 AM) ---
+        const morningReminderTime = new Date();
+        morningReminderTime.setHours(7, 0, 0, 0);
+        if (now < morningReminderTime) {
+            const delay = morningReminderTime.getTime() - now.getTime();
+            scheduleNotification('morning-reminder', '☀️ Good Morning!', {
+                body: "Time to generate today's personalized meal plan.",
+                icon: '/icons/icon-192x192.png'
+            }, delay);
+        }
+
+        // --- Evening Reminder (8 PM) ---
+        const eveningReminderTime = new Date();
+        eveningReminderTime.setHours(20, 0, 0, 0); // 8 PM
+        if (now < eveningReminderTime) {
+            const delay = eveningReminderTime.getTime() - now.getTime();
+            scheduleNotification('evening-reminder', '🌙 Good Evening!', {
+                body: "Don't forget to log your meals for today to track your progress!",
+                icon: '/icons/icon-192x192.png'
+            }, delay);
+        }
+
+        // --- Inactivity Reminder (48 hours) ---
+        // This timer is reset every time the user opens the app.
+        const twoDaysInMillis = 2 * 24 * 60 * 60 * 1000;
+        scheduleNotification('inactivity-reminder', "👋 We miss you!", {
+            body: "Let's get back on track with your health journey.",
+            icon: '/icons/icon-192x192.png'
+        }, twoDaysInMillis);
+    }
 });

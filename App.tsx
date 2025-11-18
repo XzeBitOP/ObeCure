@@ -1,6 +1,3 @@
-
-
-
 import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import Header from './components/Header';
 import DietPlanner from './components/DietPlanner';
@@ -30,6 +27,11 @@ import { DumbbellIcon } from './components/icons/DumbbellIcon';
 import InfoModal from './components/InfoModal';
 import { BrainIcon } from './components/icons/BrainIcon';
 import BloodReportEvaluator from './components/BloodReportEvaluator';
+import { InfoIcon } from './components/icons/InfoIcon';
+import FeatureExplanation from './components/FeatureExplanation';
+import LegalModal from './components/LegalModal';
+import { termsAndConditions } from './data/terms';
+import { privacyPolicy } from './data/privacy';
 
 type View = 'planner' | 'ayurveda' | 'workouts' | 'progress' | 'community';
 
@@ -110,10 +112,15 @@ const App: React.FC = () => {
 
   const [isNotificationUnread, setIsNotificationUnread] = useState(true);
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+  const [showNotificationBanner, setShowNotificationBanner] = useState(false);
 
   const [streak, setStreak] = useState(0);
   const [dailyQuote, setDailyQuote] = useState('');
   const [isDrXzeModalOpen, setIsDrXzeModalOpen] = useState(false);
+  const [isFeaturesModalOpen, setIsFeaturesModalOpen] = useState(false);
+
+  const [isTermsModalOpen, setIsTermsModalOpen] = useState(false);
+  const [isPrivacyModalOpen, setIsPrivacyModalOpen] = useState(false);
 
   const handleToggleNotification = () => {
     setIsNotificationOpen(prev => !prev);
@@ -130,6 +137,17 @@ const App: React.FC = () => {
   const [bubbleStyle, setBubbleStyle] = useState({ opacity: 0, left: 0, width: 0 });
 
   useEffect(() => {
+    // --- Notification setup ---
+    if ('Notification' in window && 'serviceWorker' in navigator) {
+        if (Notification.permission === 'default') {
+            setShowNotificationBanner(true);
+        } else if (Notification.permission === 'granted') {
+            navigator.serviceWorker.ready.then(registration => {
+                registration.active?.postMessage({ type: 'SCHEDULE_REMINDERS' });
+            });
+        }
+    }
+
     // Streak calculation logic
     try {
         const streakDataRaw = localStorage.getItem(STREAK_KEY);
@@ -182,6 +200,22 @@ const App: React.FC = () => {
         console.error("Failed to load diet plan from storage", e);
     }
   }, []);
+  
+  const handleRequestNotificationPermission = async () => {
+    if (!('Notification' in window) || !('serviceWorker' in navigator)) {
+        alert('This browser does not support notifications.');
+        return;
+    }
+    
+    const permission = await Notification.requestPermission();
+    setShowNotificationBanner(false);
+    
+    if (permission === 'granted') {
+        navigator.serviceWorker.ready.then(registration => {
+            registration.active?.postMessage({ type: 'SCHEDULE_REMINDERS' });
+        });
+    }
+  };
 
   useEffect(() => {
     const expiryTimestamp = localStorage.getItem(SUBSCRIPTION_KEY);
@@ -378,6 +412,37 @@ const App: React.FC = () => {
                 </ul>
             </div>
         </InfoModal>
+        <InfoModal
+            isOpen={isFeaturesModalOpen}
+            onClose={() => setIsFeaturesModalOpen(false)}
+            title="How ObeCure Works"
+            buttonText="Close"
+            size="xl"
+        >
+            <FeatureExplanation />
+        </InfoModal>
+        <LegalModal 
+            isOpen={isTermsModalOpen}
+            onClose={() => setIsTermsModalOpen(false)}
+            title={termsAndConditions.title}
+            content={termsAndConditions.content}
+        />
+        <LegalModal 
+            isOpen={isPrivacyModalOpen}
+            onClose={() => setIsPrivacyModalOpen(false)}
+            title={privacyPolicy.title}
+            content={privacyPolicy.content}
+        />
+      
+      {showNotificationBanner && (
+        <div className="bg-orange-100 dark:bg-orange-900/50 border-b-2 border-orange-200 dark:border-orange-800 p-3 text-center text-sm text-orange-800 dark:text-orange-200 flex flex-col sm:flex-row justify-center items-center gap-2 sm:gap-4 animate-fade-in">
+            <span>Enable reminders to stay on track with your goals!</span>
+            <div className="flex gap-2">
+                <button onClick={handleRequestNotificationPermission} className="font-bold bg-orange-500 text-white px-3 py-1 rounded-md text-xs hover:bg-orange-600 transition">Enable</button>
+                <button onClick={() => setShowNotificationBanner(false)} className="font-semibold text-gray-600 dark:text-gray-300 px-3 py-1 rounded-md text-xs hover:bg-orange-200/50 dark:hover:bg-orange-800/50 transition">Later</button>
+            </div>
+        </div>
+      )}
 
       <Header 
         onLogSleepClick={() => setIsLogSleepModalOpen(true)} 
@@ -540,6 +605,16 @@ const App: React.FC = () => {
             </div>
           </div>
 
+          <div className="max-w-5xl mx-auto mb-12 px-4">
+            <button
+                onClick={() => setIsFeaturesModalOpen(true)}
+                className="w-full flex items-center justify-center gap-3 text-center p-4 bg-gray-100 dark:bg-gray-800 rounded-lg shadow-sm hover:bg-gray-200 dark:hover:bg-gray-700 transition-transform transform hover:-translate-y-1"
+            >
+                <InfoIcon className="w-6 h-6 text-orange-500" />
+                <span className="font-semibold text-gray-700 dark:text-gray-200">How ObeCure Works: A Guide for Everyone & Doctors</span>
+            </button>
+          </div>
+
           <div className="mb-6">
               <h3 className="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-4 font-handwriting">
                   Connect with us
@@ -568,6 +643,11 @@ const App: React.FC = () => {
               </div>
           </div>
           <p>&copy; {new Date().getFullYear()} ObeCure. All rights reserved.</p>
+          <div className="mt-2 text-xs">
+              <button onClick={() => setIsTermsModalOpen(true)} className="underline hover:text-orange-500">Terms & Conditions</button>
+              <span className="mx-2">|</span>
+              <button onClick={() => setIsPrivacyModalOpen(true)} className="underline hover:text-orange-500">Privacy Policy</button>
+          </div>
           <p className="mt-1">Disclaimer: This is not medical advice. Consult a healthcare professional before starting any diet or workout plan.</p>
       </footer>
     </div>

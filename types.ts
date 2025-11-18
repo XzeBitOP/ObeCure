@@ -280,3 +280,41 @@ export interface DailyPlan {
   shared_at?: string;
   created_at: string;
 }
+
+
+// --- New Gamification & Workout Program Types ---
+
+export interface Achievement {
+    id: string;
+    title: string;
+    description: string;
+    criteria: {
+        type: 'streak' | 'workouts_completed' | 'diet_logs' | 'weight_logs' | 'weight_lost' | 'community_posts';
+        value: number;
+    };
+}
+
+export interface Challenge {
+    id: string;
+    title: string;
+    goal: number;
+    current: number;
+    unit: 'workouts' | 'days' | 'glasses' | 'hours';
+    completed: boolean;
+}
+
+export interface UserGamificationProfile {
+    unlockedAchievements: string[]; // array of achievement IDs
+    currentChallenges: Challenge[];
+    challengeWeekId: string; // e.g., "2024-28" for week 28 of 2024
+}
+
+export interface WorkoutProgram {
+    id: string;
+    name: string;
+    description: string;
+    durationWeeks: number;
+    daysPerWeek: number;
+    intensity: 'Low' | 'Moderate' | 'High';
+    schedule: (string | null)[]; // Array of WorkoutPlan IDs or null for rest
+}

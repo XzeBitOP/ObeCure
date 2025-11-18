@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { BodyCompositionEntry, DailyIntake, Sex, WaterEntry, ProgressEntry, ActivityLevel, DietPreference, DietType, HealthCondition } from '../types';
 import * as calculator from '../services/bodyCompositionCalculator';
 import PieChart from './PieChart';
@@ -62,12 +62,17 @@ const BodyComposition: React.FC<{ onOpenHistory: () => void; }> = ({ onOpenHisto
         fastingStartPeriod: 'AM',
         fastingEndHour: '6',
         fastingEndPeriod: 'PM',
+        heartRate: '',
+        bpSystolic: '',
+        bpDiastolic: '',
+        spO2: '',
     });
     const [results, setResults] = useState<BodyCompositionEntry | null>(null);
     const [history, setHistory] = useState<BodyCompositionEntry[]>([]);
     const [error, setError] = useState<string | null>(null);
     const [toastInfo, setToastInfo] = useState<{ title: string; message: string; quote: string; } | null>(null);
     const [dailyStats, setDailyStats] = useState<{ hydration: number, tdee: number, bmr: number, intake: number, target: number }>({ hydration: 0, tdee: 0, bmr: 0, intake: 0, target: 0 });
+    const resultsRef = useRef<HTMLDivElement>(null);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
@@ -124,6 +129,10 @@ const BodyComposition: React.FC<{ onOpenHistory: () => void; }> = ({ onOpenHisto
             fastingStartPeriod: 'AM',
             fastingEndHour: '6',
             fastingEndPeriod: 'PM',
+            heartRate: prefs.heartRate || '',
+            bpSystolic: prefs.bpSystolic || '',
+            bpDiastolic: prefs.bpDiastolic || '',
+            spO2: prefs.spO2 || '',
         };
         setInputs(loadedInputs);
 
@@ -171,6 +180,14 @@ const BodyComposition: React.FC<{ onOpenHistory: () => void; }> = ({ onOpenHisto
             } catch(e) { console.error("Could not parse daily intake.", e)}
         }
     }, []);
+
+    useEffect(() => {
+        if (results) {
+            setTimeout(() => {
+                 resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }, 100);
+        }
+    }, [results]);
 
     const handleSaveAndCalculate = () => {
         setError(null);
@@ -285,6 +302,26 @@ const BodyComposition: React.FC<{ onOpenHistory: () => void; }> = ({ onOpenHisto
                             <div><label className={formLabelClass}>Neck (cm)*</label><input type="number" name="neck" value={inputs.neck} onChange={handleInputChange} required className={formInputClass} /></div>
                         </div>
                     </AccordionSection>
+                    <AccordionSection title="Vitals (Optional)">
+                        <div className="grid grid-cols-3 gap-4">
+                            <div>
+                                <label className={formLabelClass}>Heart Rate (bpm)</label>
+                                <input type="number" name="heartRate" value={inputs.heartRate} onChange={handleInputChange} className={formInputClass} />
+                            </div>
+                            <div>
+                                <label className={formLabelClass}>Blood Pressure</label>
+                                <div className="flex items-center gap-2">
+                                    <input type="number" name="bpSystolic" value={inputs.bpSystolic} onChange={handleInputChange} placeholder="Sys" className={formInputClass} />
+                                    <span>/</span>
+                                    <input type="number" name="bpDiastolic" value={inputs.bpDiastolic} onChange={handleInputChange} placeholder="Dia" className={formInputClass} />
+                                </div>
+                            </div>
+                            <div>
+                                <label className={formLabelClass}>Blood Oxygen (SpO₂%)</label>
+                                <input type="number" name="spO2" value={inputs.spO2} onChange={handleInputChange} className={formInputClass} />
+                            </div>
+                        </div>
+                    </AccordionSection>
                     <AccordionSection title="Diet & Lifestyle">
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                              <div><label className={formLabelClass}>Activity Level</label><select name="activityLevel" value={inputs.activityLevel} onChange={handleInputChange} className={formInputClass}>{Object.values(ActivityLevel).map(a=><option key={a} value={a}>{a}</option>)}</select></div>
@@ -298,7 +335,7 @@ const BodyComposition: React.FC<{ onOpenHistory: () => void; }> = ({ onOpenHisto
             </div>
 
             {results && (
-                <div className="space-y-6">
+                <div ref={resultsRef} className="space-y-6 mt-6 scroll-mt-20">
                     <AccordionSection title="Key Metrics" defaultOpen={true}>
                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                             <StatCard title="BMI" value={results.bmi.toFixed(1)} unit="" description={results.obesityGrade} colorClass={`text-indigo-500 ${isHighBmi ? 'animate-glowing-indigo' : ''}`} size="large" />

@@ -1,15 +1,16 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { HealthCondition, WorkoutLogEntry } from '../types';
-import { getWorkoutPlanForConditions, WorkoutPlan } from '../data/workouts';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { WorkoutLogEntry, WorkoutProgram, HealthCondition } from '../types';
+import { WORKOUT_PLANS_DATA, WorkoutPlan } from '../data/workouts';
+import { WORKOUT_PROGRAMS_DATA } from '../data/workoutPrograms';
 import { StopIcon } from './icons/StopIcon';
 import SuccessToast from './SuccessToast';
 import { motivationalQuotes } from '../data/quotes';
 import { YouTubeIcon } from './icons/YouTubeIcon';
-import InfoModal from './InfoModal';
 import { WhatsAppIcon } from './icons/WhatsAppIcon';
 
 const USER_PREFERENCES_KEY = 'obeCureUserPreferences';
 const WORKOUT_LOG_KEY = 'obeCureWorkoutLog';
+const CURRENT_PROGRAM_KEY = 'obeCureCurrentProgram';
 
 const celebratoryQuotes = ["You're on fire! 🔥", "Amazing effort! ✨", "Keep pushing! 💪", "Great work! 🥳", "You got this! 🚀", "Feeling stronger! 💯"];
 
@@ -37,7 +38,8 @@ const workerScript = `
   };
 `;
 
-// --- MODAL COMPONENTS ---
+// --- MODAL & VIEW COMPONENTS ---
+
 const StopWorkoutModal: React.FC<{ isOpen: boolean; onContinue: () => void; onEnd: () => void; }> = ({ isOpen, onContinue, onEnd }) => {
   if (!isOpen) return null;
   return (
@@ -64,65 +66,39 @@ const CalorieBurnAnimation: React.FC<{ amount: number, quote: string }> = ({ amo
     );
 };
 
+const WorkoutSummary: React.FC<{ plan: WorkoutPlan; duration: number; onRestart: () => void; onChangeProgram: () => void; }> = ({ plan, duration, onRestart, onChangeProgram }) => {
+     const durationMinutes = Math.floor(duration / 60);
+     const durationSeconds = duration % 60;
+     const quote = useMemo(() => motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)], []);
 
-// --- VIEW COMPONENTS ---
-
-const ConditionSelector: React.FC<{ onPlanSelected: (plan: WorkoutPlan) => void }> = ({ onPlanSelected }) => {
-    const [selection, setSelection] = useState<HealthCondition[]>([]);
-    const [isNone, setIsNone] = useState(false);
-
-    const handleConditionChange = (condition: HealthCondition) => {
-        setIsNone(false);
-        setSelection(prev => prev.includes(condition) ? prev.filter(c => c !== condition) : [...prev, condition]);
+     const getShareText = () => {
+        let text = `I just completed the "${plan.name}" on the ObeCure app! 🔥\n\n`;
+        text += `Duration: ${durationMinutes}m ${durationSeconds}s\n`;
+        text += `Feeling stronger already! #ObeCure #FitnessJourney`;
+        return encodeURIComponent(text);
     };
-    const handleNoneChange = () => { setSelection([]); setIsNone(true); };
-    const handleSubmit = () => { onPlanSelected(getWorkoutPlanForConditions(selection)); };
 
     return (
-        <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 animate-fade-in">
-            <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-2">Personalize Your Workout</h2>
-            <p className="text-gray-600 dark:text-gray-400 mb-6">Select any existing health conditions to get a tailored workout plan. This helps us recommend safe and effective exercises.</p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                {Object.values(HealthCondition).map((condition) => (
-                    <label key={condition} className="flex items-center space-x-3 text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
-                        <input type="checkbox" checked={selection.includes(condition)} onChange={() => handleConditionChange(condition)} className="h-5 w-5 rounded border-gray-300 text-orange-500 focus:ring-orange-400"/>
-                        <span>{condition}</span>
-                    </label>
-                ))}
-            </div>
-             <label className="flex items-center space-x-3 text-sm text-gray-700 dark:text-gray-300 cursor-pointer p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg mt-4">
-                <input type="checkbox" checked={isNone} onChange={handleNoneChange} className="h-5 w-5 rounded border-gray-300 text-orange-500 focus:ring-orange-400"/>
-                <span className="font-semibold">None of the above (General Plan)</span>
-            </label>
-            <button onClick={handleSubmit} disabled={selection.length === 0 && !isNone} className="mt-6 w-full bg-orange-500 text-white font-bold py-3 px-6 rounded-lg hover:bg-orange-600 transition-all duration-300 disabled:bg-orange-300 disabled:cursor-not-allowed shadow-md active:scale-95">
-                Confirm & See Workout
-            </button>
-        </div>
-    );
-};
-
-const WorkoutBriefing: React.FC<{ plan: WorkoutPlan; onStart: () => void; onChangePlan: () => void; }> = ({ plan, onStart, onChangePlan }) => {
-    const totalDuration = useMemo(() => {
-        const { exercises, structure, warmupDuration, cooldownDuration } = plan;
-        const workTime = exercises.length * structure.work * structure.rounds;
-        const restTime = (exercises.length - 1) * structure.rest * structure.rounds;
-        const roundRestTime = (structure.roundRest || 0) * (structure.rounds - 1);
-        const readyTime = warmupDuration ? 5 : 0; // 5s "get ready" time
-        return Math.round((workTime + restTime + roundRestTime + (warmupDuration || 0) + readyTime + (cooldownDuration || 0)) / 60);
-    }, [plan]);
-
-    return (
-        <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 animate-fade-in text-center">
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 dark:text-gray-200">{plan.name}</h1>
-            <p className="text-gray-600 dark:text-gray-400 mt-2 mb-6">Here's your plan. Get ready to start!</p>
-            <div className="grid grid-cols-3 gap-4 my-8">
-                <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg"><p className="text-3xl font-bold text-orange-500">{totalDuration}</p><p className="text-sm font-semibold text-gray-500 dark:text-gray-400">Mins</p></div>
-                <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg"><p className="text-3xl font-bold text-orange-500">{plan.exercises.length}</p><p className="text-sm font-semibold text-gray-500 dark:text-gray-400">Exercises</p></div>
-                <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg"><p className="text-3xl font-bold text-orange-500">{plan.structure.rounds}</p><p className="text-sm font-semibold text-gray-500 dark:text-gray-400">Rounds</p></div>
-            </div>
-            <div className="space-y-3">
-                <button onClick={onStart} className="w-full bg-green-500 text-white font-bold py-4 px-6 rounded-lg hover:bg-green-600 transition-all shadow-md active:scale-95">Get Ready & Start</button>
-                <button onClick={onChangePlan} className="w-full bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-bold py-3 px-6 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-all active:scale-95">Change Workout</button>
+        <div className="relative text-center animate-fade-in-up">
+            {Array.from({ length: 15 }).map((_, i) => (
+                <Sparkle key={i} style={{ top: `${Math.random() * 100}%`, left: `${Math.random() * 100}%`, animationDelay: `${Math.random() * 1.5}s` }} />
+            ))}
+            <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700">
+                <h2 className="text-3xl font-bold text-green-500">Workout Complete!</h2>
+                <p className="text-gray-600 dark:text-gray-400 mt-2">Awesome job! You've taken another step towards your goal.</p>
+                <div className="my-8 bg-gray-50 dark:bg-gray-700/50 p-6 rounded-lg">
+                    <p className="text-lg font-semibold text-gray-700 dark:text-gray-300">{plan.name}</p>
+                    <p className="text-5xl font-bold text-orange-500 my-2">{durationMinutes}<span className="text-2xl">m</span> {durationSeconds}<span className="text-2xl">s</span></p>
+                    <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Total Time</p>
+                </div>
+                <p className="font-handwriting text-xl text-orange-600 dark:text-orange-400 mb-8">"{quote}"</p>
+                <div className="space-y-3">
+                    <a href={`https://wa.me/?text=${getShareText()}`} target="_blank" rel="noopener noreferrer" className="w-full flex items-center justify-center gap-2 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 font-bold py-3 px-4 rounded-lg hover:bg-green-200 dark:hover:bg-green-900/50 transition-all">
+                        <WhatsAppIcon className="w-5 h-5"/> Share Your Win
+                    </a>
+                    <button onClick={onRestart} className="w-full bg-orange-500 text-white font-bold py-3 px-6 rounded-lg hover:bg-orange-600 transition-all active:scale-95">Do It Again!</button>
+                    <button onClick={onChangeProgram} className="w-full bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-bold py-3 px-6 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-all">Choose Another Program</button>
+                </div>
             </div>
         </div>
     );
@@ -193,7 +169,6 @@ const WorkoutTimer: React.FC<{ plan: WorkoutPlan; onFinish: (durationInSeconds: 
                     const nextIndex = exerciseIndexRef.current + 1;
 
                     if (currentEx.type.startsWith('ROUND')) {
-                        // MET value for general calisthenics is ~7
                         const calories = (7 * userWeight * 3.5 / 200) * (currentEx.duration / 60);
                         const quote = celebratoryQuotes[Math.floor(Math.random() * celebratoryQuotes.length)];
                         setCaloriesBurned({ key: Date.now(), amount: calories, quote });
@@ -334,122 +309,175 @@ const WorkoutTimer: React.FC<{ plan: WorkoutPlan; onFinish: (durationInSeconds: 
     );
 };
 
-const WorkoutSummary: React.FC<{ plan: WorkoutPlan; duration: number; onRestart: () => void; onChangePlan: () => void; }> = ({ plan, duration, onRestart, onChangePlan }) => {
-     const durationMinutes = Math.floor(duration / 60);
-     const durationSeconds = duration % 60;
-     const quote = useMemo(() => motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)], []);
-
-     const getShareText = () => {
-        let text = `I just completed the "${plan.name}" on the ObeCure app! 🔥\n\n`;
-        text += `Duration: ${durationMinutes}m ${durationSeconds}s\n`;
-        text += `Feeling stronger already! #ObeCure #FitnessJourney`;
-        return encodeURIComponent(text);
-    };
-
-    return (
-        <div className="relative text-center animate-fade-in-up">
-            {Array.from({ length: 15 }).map((_, i) => (
-                <Sparkle key={i} style={{
-                    top: `${Math.random() * 100}%`,
-                    left: `${Math.random() * 100}%`,
-                    animationDelay: `${Math.random() * 1.5}s`
-                }} />
-            ))}
-            <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700">
-                <h2 className="text-3xl font-bold text-green-500">Workout Complete!</h2>
-                <p className="text-gray-600 dark:text-gray-400 mt-2">Awesome job! You've taken another step towards your goal.</p>
-                <div className="my-8 bg-gray-50 dark:bg-gray-700/50 p-6 rounded-lg">
-                    <p className="text-lg font-semibold text-gray-700 dark:text-gray-300">{plan.name}</p>
-                    <p className="text-5xl font-bold text-orange-500 my-2">{durationMinutes}<span className="text-2xl">m</span> {durationSeconds}<span className="text-2xl">s</span></p>
-                    <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Total Time</p>
-                </div>
-                <p className="font-handwriting text-xl text-orange-600 dark:text-orange-400 mb-8">"{quote}"</p>
-                <div className="space-y-3">
-                    <a href={`https://wa.me/?text=${getShareText()}`} target="_blank" rel="noopener noreferrer" className="w-full flex items-center justify-center gap-2 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 font-bold py-3 px-4 rounded-lg hover:bg-green-200 dark:hover:bg-green-900/50 transition-all">
-                        <WhatsAppIcon className="w-5 h-5"/> Share Your Win
-                    </a>
-                    <button onClick={onRestart} className="w-full bg-orange-500 text-white font-bold py-3 px-6 rounded-lg hover:bg-orange-600 transition-all active:scale-95">Do It Again!</button>
-                    <button onClick={onChangePlan} className="w-full bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-bold py-3 px-6 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-all">Choose Another Workout</button>
-                </div>
-            </div>
-        </div>
-    );
-};
-
-
 const Workouts: React.FC = () => {
-    const [view, setView] = useState<'selector' | 'briefing' | 'timer' | 'summary'>('selector');
-    const [workoutPlan, setWorkoutPlan] = useState<WorkoutPlan | null>(null);
-    const [toastInfo, setToastInfo] = useState<{ title: string; message: string; quote: string; } | null>(null);
+    const [view, setView] = useState<'program-selection' | 'active-program' | 'timer' | 'summary'>('program-selection');
+    const [activeProgram, setActiveProgram] = useState<{ programId: string, startDate: string } | null>(null);
+    const [todaysWorkoutPlan, setTodaysWorkoutPlan] = useState<WorkoutPlan | null>(null);
     const [workoutDuration, setWorkoutDuration] = useState(0);
-    const [userWeight, setUserWeight] = useState<number>(70); // Default average weight
+    const [userWeight, setUserWeight] = useState<number>(70);
+    const [toastInfo, setToastInfo] = useState<{ title: string; message: string; quote: string; } | null>(null);
+    const [workoutDays, setWorkoutDays] = useState(3);
+    const [recommendedDays, setRecommendedDays] = useState(3);
+    const [recommendedProgramId, setRecommendedProgramId] = useState<string>('');
+
+    const calculateProgramState = useCallback(() => {
+        const programDataRaw = localStorage.getItem(CURRENT_PROGRAM_KEY);
+        if (programDataRaw) {
+            const savedProgram = JSON.parse(programDataRaw);
+            setActiveProgram(savedProgram);
+            
+            const program = WORKOUT_PROGRAMS_DATA.find(p => p.id === savedProgram.programId);
+            if (program) {
+                const startDate = new Date(savedProgram.startDate);
+                const today = new Date();
+                const diffTime = Math.abs(today.getTime() - startDate.getTime());
+                const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+                
+                const dayInSchedule = diffDays % program.schedule.length;
+                
+                const workoutId = program.schedule[dayInSchedule];
+                if (workoutId) {
+                    setTodaysWorkoutPlan(WORKOUT_PLANS_DATA[workoutId]);
+                } else {
+                    setTodaysWorkoutPlan(null); // Rest day
+                }
+                setView('active-program');
+            }
+        } else {
+            setView('program-selection');
+        }
+    }, []);
 
     useEffect(() => {
+        let userConditions: HealthCondition[] = [];
         try {
             const savedPrefsRaw = localStorage.getItem(USER_PREFERENCES_KEY);
             if (savedPrefsRaw) {
                 const savedPrefs = JSON.parse(savedPrefsRaw);
-                if (savedPrefs.patientWeight) {
-                    setUserWeight(parseFloat(savedPrefs.patientWeight));
-                }
-                if (savedPrefs.healthConditions && savedPrefs.healthConditions.length > 0) {
-                    const plan = getWorkoutPlanForConditions(savedPrefs.healthConditions);
-                    setWorkoutPlan(plan);
-                    setView('briefing');
-                }
+                if (savedPrefs.patientWeight) setUserWeight(parseFloat(savedPrefs.patientWeight));
+                if (savedPrefs.healthConditions) userConditions = savedPrefs.healthConditions;
             }
-        } catch (e) {
-            console.error("Failed to load user preferences for workouts", e);
-            setView('selector');
-        }
-    }, []);
+        } catch (e) { console.error("Failed to load user preferences", e); }
+        
+        // --- Medical Condition Logic ---
+        const highPriorityConditions: HealthCondition[] = [HealthCondition.HEART_DISEASE, HealthCondition.KNEE_PAIN, HealthCondition.HYPERTENSION];
+        const hasHighPriority = userConditions.some(c => highPriorityConditions.includes(c));
 
-    const handlePlanSelected = (plan: WorkoutPlan) => {
-        setWorkoutPlan(plan);
-        setView('briefing');
+        let recDays = 4;
+        let recIntensity: 'Low' | 'Moderate' | 'High' = 'Moderate';
+        
+        if (hasHighPriority) {
+            recDays = 3;
+            recIntensity = 'Low';
+        }
+
+        const recommendedProg = WORKOUT_PROGRAMS_DATA.find(p => p.daysPerWeek === recDays && p.intensity === recIntensity);
+        
+        setRecommendedDays(recDays);
+        setWorkoutDays(recDays);
+        setRecommendedProgramId(recommendedProg?.id || '');
+
+        calculateProgramState();
+    }, [calculateProgramState]);
+
+    const handleStartProgram = (program: WorkoutProgram) => {
+        const newProgramState = { programId: program.id, startDate: new Date().toISOString().split('T')[0] };
+        localStorage.setItem(CURRENT_PROGRAM_KEY, JSON.stringify(newProgramState));
+        calculateProgramState(); // Recalculate and switch view
+    };
+
+    const handleChangeProgram = () => {
+        localStorage.removeItem(CURRENT_PROGRAM_KEY);
+        setActiveProgram(null);
+        setTodaysWorkoutPlan(null);
+        setView('program-selection');
     };
 
     const handleFinish = (durationInSeconds: number) => {
-        if (!workoutPlan) return;
+        if (!todaysWorkoutPlan) return;
         setWorkoutDuration(durationInSeconds);
         const durationInMinutes = Math.round(durationInSeconds / 60);
-        
-        if(durationInMinutes > 0) {
-            const newLog: WorkoutLogEntry = {
-                date: new Date().toISOString().split('T')[0],
-                name: workoutPlan.name,
-                duration: durationInMinutes,
-            };
+
+        if (durationInMinutes > 0) {
+            const newLog: WorkoutLogEntry = { date: new Date().toISOString().split('T')[0], name: todaysWorkoutPlan.name, duration: durationInMinutes };
             try {
-                const existingLogsRaw = localStorage.getItem(WORKOUT_LOG_KEY);
-                let logs: WorkoutLogEntry[] = existingLogsRaw ? JSON.parse(existingLogsRaw) : [];
-                logs.push(newLog);
+                const logsRaw = localStorage.getItem(WORKOUT_LOG_KEY);
+                let logs: WorkoutLogEntry[] = logsRaw ? JSON.parse(logsRaw) : [];
                 const sevenDaysAgo = new Date();
                 sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-                const sevenDaysAgoStr = sevenDaysAgo.toISOString().split('T')[0];
-                const updatedLogs = logs.filter(log => log.date >= sevenDaysAgoStr);
+                const updatedLogs = [newLog, ...logs.filter(log => log.date >= sevenDaysAgo.toISOString().split('T')[0])];
                 localStorage.setItem(WORKOUT_LOG_KEY, JSON.stringify(updatedLogs));
                 setToastInfo({ title: "Workout Logged!", message: `Great job completing ${durationInMinutes} minutes!`, quote: "Consistency is your superpower." });
             } catch (e) { console.error("Could not save workout log.", e); }
         }
         setView('summary');
     };
-
-    const resetToSelector = () => {
-        setWorkoutPlan(null);
-        setView('selector');
-    };
-
+    
     const renderContent = () => {
+        const currentProgram = activeProgram ? WORKOUT_PROGRAMS_DATA.find(p => p.id === activeProgram.programId) : null;
+
         switch (view) {
-            case 'selector':
-                return <ConditionSelector onPlanSelected={handlePlanSelected} />;
-            case 'briefing':
-                return workoutPlan && <WorkoutBriefing plan={workoutPlan} onStart={() => setView('timer')} onChangePlan={resetToSelector} />;
+            case 'program-selection':
+                const filteredPrograms = WORKOUT_PROGRAMS_DATA.filter(p => p.daysPerWeek === workoutDays);
+                return (
+                    <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 animate-fade-in">
+                        <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-2">Choose Your Workout Program</h2>
+                        <p className="text-gray-600 dark:text-gray-400 mb-6">Based on your profile, we recommend a <span className="font-bold text-orange-500">{recommendedDays}-day per week</span> program. You can adjust this as you like.</p>
+                        <div className="mb-6">
+                            <label className="block text-sm font-semibold text-center text-gray-700 dark:text-gray-300 mb-2">Workout Days per Week: <span className="text-orange-500 font-bold text-lg">{workoutDays}</span></label>
+                            <input type="range" min="3" max="5" value={workoutDays} onChange={(e) => setWorkoutDays(parseInt(e.target.value))} className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-orange-500"/>
+                        </div>
+                        <div className="space-y-4">
+                            {filteredPrograms.length > 0 ? filteredPrograms.map(prog => (
+                                <div key={prog.id} className={`p-4 rounded-lg border-2 transition-all ${prog.id === recommendedProgramId ? 'bg-orange-50 dark:bg-orange-900/20 border-orange-500' : 'bg-gray-50 dark:bg-gray-700/50 border-gray-200 dark:border-gray-700'}`}>
+                                    {prog.id === recommendedProgramId && <p className="text-xs font-bold text-orange-500 mb-1">RECOMMENDED FOR YOU</p>}
+                                    <h3 className={`font-bold text-lg ${prog.id === recommendedProgramId ? 'text-orange-600 dark:text-orange-400' : 'text-gray-800 dark:text-gray-200'}`}>{prog.name}</h3>
+                                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{prog.description}</p>
+                                    <div className="flex justify-between items-center mt-3">
+                                        <div className="text-xs font-semibold text-gray-500 dark:text-gray-400">
+                                            <span>{prog.durationWeeks} Weeks</span> &bull; <span>{prog.daysPerWeek} Days/Week</span> &bull; <span className="font-bold">{prog.intensity}</span>
+                                        </div>
+                                        <button onClick={() => handleStartProgram(prog)} className="bg-green-500 text-white font-bold py-2 px-4 rounded-lg text-sm hover:bg-green-600 transition active:scale-95">Start Program</button>
+                                    </div>
+                                </div>
+                            )) : (
+                                <p className="text-center text-gray-500 dark:text-gray-400 py-4">No {workoutDays}-day programs available. Please select another frequency.</p>
+                            )}
+                        </div>
+                    </div>
+                );
+            case 'active-program':
+                if (!currentProgram) return null;
+                const dayNumber = Math.floor((new Date().getTime() - new Date(activeProgram!.startDate).getTime()) / (1000 * 60 * 60 * 24));
+                const weekNumber = Math.floor(dayNumber / 7) + 1;
+                return (
+                    <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 text-center animate-fade-in">
+                        <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-200">{currentProgram.name}</h1>
+                        <p className="font-semibold text-gray-500 dark:text-gray-400">Week {weekNumber > currentProgram.durationWeeks ? currentProgram.durationWeeks : weekNumber} / {currentProgram.durationWeeks}</p>
+                        
+                        {todaysWorkoutPlan ? (
+                            <div className="my-6 p-6 bg-orange-50 dark:bg-orange-900/20 rounded-lg border border-orange-200 dark:border-orange-800">
+                                <p className="text-sm font-semibold text-orange-700 dark:text-orange-300">Today's Workout</p>
+                                <h2 className="text-3xl font-bold text-orange-600 dark:text-orange-400 mt-1">{todaysWorkoutPlan.name}</h2>
+                                <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">{todaysWorkoutPlan.details.join(' • ')}</p>
+                            </div>
+                        ) : (
+                             <div className="my-6 p-6 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                                <p className="text-3xl font-bold text-blue-600 dark:text-blue-400 mt-1">🌿 Rest Day</p>
+                                <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">Focus on recovery, hydration, and nutrition. Your body is rebuilding stronger!</p>
+                            </div>
+                        )}
+
+                        <div className="space-y-3">
+                            {todaysWorkoutPlan && <button onClick={() => setView('timer')} className="w-full bg-green-500 text-white font-bold py-3 px-6 rounded-lg hover:bg-green-600 transition shadow-md active:scale-95">Start Today's Workout</button>}
+                            <button onClick={handleChangeProgram} className="w-full bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-bold py-2 px-4 rounded-lg text-sm hover:bg-gray-200 dark:hover:bg-gray-600 transition">Change Program</button>
+                        </div>
+                    </div>
+                );
             case 'timer':
-                return workoutPlan && <WorkoutTimer plan={workoutPlan} onFinish={handleFinish} userWeight={userWeight} />;
+                return todaysWorkoutPlan && <WorkoutTimer plan={todaysWorkoutPlan} onFinish={handleFinish} userWeight={userWeight} />;
             case 'summary':
-                return workoutPlan && <WorkoutSummary plan={workoutPlan} duration={workoutDuration} onRestart={() => setView('timer')} onChangePlan={resetToSelector} />;
+                return todaysWorkoutPlan && <WorkoutSummary plan={todaysWorkoutPlan} duration={workoutDuration} onRestart={() => setView('timer')} onChangeProgram={handleChangeProgram} />;
             default:
                 return null;
         }

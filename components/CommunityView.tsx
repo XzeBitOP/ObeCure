@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { VictoryPost } from '../types';
 import PostVictoryModal from './PostVictoryModal';
 import { BOT_VICTORY_POSTS } from '../data/botPosts';
@@ -18,6 +18,7 @@ const CommunityView: React.FC = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [newPostId, setNewPostId] = useState<string | null>(null);
     const [showCelebration, setShowCelebration] = useState(false);
+    const topRef = useRef<HTMLDivElement>(null);
 
     const runBotActions = useCallback((currentPosts: VictoryPost[]): VictoryPost[] => {
         let updatedPosts = [...currentPosts];
@@ -105,9 +106,12 @@ const CommunityView: React.FC = () => {
         const updatedPosts = [newPost, ...posts].slice(0, 50); // Keep latest 50 posts
         savePosts(updatedPosts);
 
-        // Trigger animations
+        // Trigger animations and scroll
         setNewPostId(newPost.id);
         setShowCelebration(true);
+        setTimeout(() => {
+            topRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 100);
 
         setTimeout(() => setNewPostId(null), 5000); // Highlight for 5 seconds
         setTimeout(() => setShowCelebration(false), 2000); // Celebration animation duration
@@ -139,7 +143,7 @@ const CommunityView: React.FC = () => {
     };
 
     return (
-        <div className="relative min-h-[calc(100vh-200px)]">
+        <div className="relative min-h-[calc(100vh-200px)]" ref={topRef}>
             <PostVictoryModal 
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}

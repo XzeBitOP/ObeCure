@@ -5,12 +5,20 @@ interface InfoModalProps {
   onClose: () => void;
   title: string;
   children: React.ReactNode;
+  buttonText?: string;
+  size?: 'md' | 'lg' | 'xl';
 }
 
-const InfoModal: React.FC<InfoModalProps> = ({ isOpen, onClose, title, children }) => {
+const InfoModal: React.FC<InfoModalProps> = ({ isOpen, onClose, title, children, buttonText = 'OK', size = 'md' }) => {
   if (!isOpen) {
     return null;
   }
+  
+  const sizeClasses = {
+      md: 'max-w-md',
+      lg: 'max-w-lg',
+      xl: 'max-w-2xl'
+  };
 
   return (
     <div 
@@ -18,7 +26,7 @@ const InfoModal: React.FC<InfoModalProps> = ({ isOpen, onClose, title, children 
       onClick={onClose}
     >
       <div 
-        className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl p-6 sm:p-8 w-full max-w-md border border-gray-200 dark:border-gray-700 transform animate-fade-in-up"
+        className={`bg-white dark:bg-gray-800 rounded-xl shadow-2xl p-6 sm:p-8 w-full ${sizeClasses[size]} border border-gray-200 dark:border-gray-700 transform animate-fade-in-up`}
         onClick={(e) => e.stopPropagation()}
       >
         <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-4">{title}</h2>
@@ -27,7 +35,7 @@ const InfoModal: React.FC<InfoModalProps> = ({ isOpen, onClose, title, children 
           onClick={onClose}
           className="w-full bg-orange-500 text-white font-bold py-3 px-6 rounded-lg hover:bg-orange-600 transition-all duration-300 active:scale-95"
         >
-          OK
+          {buttonText}
         </button>
       </div>
     </div>

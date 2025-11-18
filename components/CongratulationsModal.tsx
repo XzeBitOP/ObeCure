@@ -1,9 +1,11 @@
 import React, { useEffect } from 'react';
+import { TrophyIcon } from './icons/TrophyIcon';
 
 interface CongratulationsModalProps {
   isOpen: boolean;
   onClose: () => void;
-  months: number;
+  months?: number;
+  achievement?: { title: string; description: string };
   quote: string;
 }
 
@@ -20,7 +22,7 @@ const Sparkle: React.FC<{ style: React.CSSProperties }> = ({ style }) => (
     </svg>
 );
 
-const CongratulationsModal: React.FC<CongratulationsModalProps> = ({ isOpen, onClose, months, quote }) => {
+const CongratulationsModal: React.FC<CongratulationsModalProps> = ({ isOpen, onClose, months, achievement, quote }) => {
   
   useEffect(() => {
     if (isOpen) {
@@ -48,17 +50,22 @@ const CongratulationsModal: React.FC<CongratulationsModalProps> = ({ isOpen, onC
             <Sparkle style={{ top: '10%', right: '5%', animationDelay: '0.7s' }} />
             <Sparkle style={{ bottom: '5%', left: '5%', animationDelay: '0.6s' }} />
             <Sparkle style={{ bottom: '15%', right: '10%', animationDelay: '0.8s' }} />
-            <svg className="w-full h-full" viewBox="0 0 52 52">
-                <circle className="text-green-500" cx="26" cy="26" r="25" fill="none" strokeWidth="4" stroke="currentColor" opacity="0.2" />
-                <path className="animate-draw-check text-green-500" fill="none" stroke="currentColor" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" d="M14 27l5.917 4.917L38 18" />
-            </svg>
+            
+            {achievement ? (
+                <TrophyIcon className="w-full h-full text-amber-500 animate-bounce-in" />
+            ) : (
+                <svg className="w-full h-full" viewBox="0 0 52 52">
+                    <circle className="text-green-500" cx="26" cy="26" r="25" fill="none" strokeWidth="4" stroke="currentColor" opacity="0.2" />
+                    <path className="animate-draw-check text-green-500" fill="none" stroke="currentColor" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" d="M14 27l5.917 4.917L38 18" />
+                </svg>
+            )}
         </div>
 
         <h2 className="text-2xl sm:text-3xl font-bold text-gray-800 dark:text-gray-200">
-          Congratulations!
+          {achievement ? 'Achievement Unlocked!' : 'Congratulations!'}
         </h2>
         <p className="text-lg text-gray-600 dark:text-gray-300 mt-2">
-          You've unlocked full access for {months} month{months > 1 ? 's' : ''}!
+          {achievement ? achievement.title : `You've unlocked full access for ${months} month${months && months > 1 ? 's' : ''}!`}
         </p>
 
         <p className="font-handwriting text-xl text-orange-600 dark:text-orange-400 my-6">
