@@ -112,7 +112,6 @@ const App: React.FC = () => {
 
   const [isNotificationUnread, setIsNotificationUnread] = useState(true);
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
-  const [showNotificationBanner, setShowNotificationBanner] = useState(false);
 
   const [streak, setStreak] = useState(0);
   const [dailyQuote, setDailyQuote] = useState('');
@@ -137,17 +136,6 @@ const App: React.FC = () => {
   const [bubbleStyle, setBubbleStyle] = useState({ opacity: 0, left: 0, width: 0 });
 
   useEffect(() => {
-    // --- Notification setup ---
-    if ('Notification' in window && 'serviceWorker' in navigator) {
-        if (Notification.permission === 'default') {
-            setShowNotificationBanner(true);
-        } else if (Notification.permission === 'granted') {
-            navigator.serviceWorker.ready.then(registration => {
-                registration.active?.postMessage({ type: 'SCHEDULE_REMINDERS' });
-            });
-        }
-    }
-
     // Streak calculation logic
     try {
         const streakDataRaw = localStorage.getItem(STREAK_KEY);
@@ -200,22 +188,6 @@ const App: React.FC = () => {
         console.error("Failed to load diet plan from storage", e);
     }
   }, []);
-  
-  const handleRequestNotificationPermission = async () => {
-    if (!('Notification' in window) || !('serviceWorker' in navigator)) {
-        alert('This browser does not support notifications.');
-        return;
-    }
-    
-    const permission = await Notification.requestPermission();
-    setShowNotificationBanner(false);
-    
-    if (permission === 'granted') {
-        navigator.serviceWorker.ready.then(registration => {
-            registration.active?.postMessage({ type: 'SCHEDULE_REMINDERS' });
-        });
-    }
-  };
 
   useEffect(() => {
     const expiryTimestamp = localStorage.getItem(SUBSCRIPTION_KEY);
@@ -433,16 +405,7 @@ const App: React.FC = () => {
             title={privacyPolicy.title}
             content={privacyPolicy.content}
         />
-      
-      {showNotificationBanner && (
-        <div className="bg-orange-100 dark:bg-orange-900/50 border-b-2 border-orange-200 dark:border-orange-800 p-3 text-center text-sm text-orange-800 dark:text-orange-200 flex flex-col sm:flex-row justify-center items-center gap-2 sm:gap-4 animate-fade-in">
-            <span>Enable reminders to stay on track with your goals!</span>
-            <div className="flex gap-2">
-                <button onClick={handleRequestNotificationPermission} className="font-bold bg-orange-500 text-white px-3 py-1 rounded-md text-xs hover:bg-orange-600 transition">Enable</button>
-                <button onClick={() => setShowNotificationBanner(false)} className="font-semibold text-gray-600 dark:text-gray-300 px-3 py-1 rounded-md text-xs hover:bg-orange-200/50 dark:hover:bg-orange-800/50 transition">Later</button>
-            </div>
-        </div>
-      )}
+
 
       <Header 
         onLogSleepClick={() => setIsLogSleepModalOpen(true)} 

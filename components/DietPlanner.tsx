@@ -91,8 +91,11 @@ const DietPlanner: React.FC<DietPlannerProps> = ({ isSubscribed, onOpenSubscript
   const [isLogging, setIsLogging] = useState(false);
   const [logSuccess, setLogSuccess] = useState(false);
   
+  const [showNotificationPrompt, setShowNotificationPrompt] = useState(false);
   const [isLogMealModalOpen, setIsLogMealModalOpen] = useState(false);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
+
+  const timerIdsRef = useRef<number[]>([]);
   
   const resultsRef = useRef<HTMLDivElement>(null);
 
@@ -241,6 +244,12 @@ const DietPlanner: React.FC<DietPlannerProps> = ({ isSubscribed, onOpenSubscript
     }
   }, [patientWeight, targetWeight, height, age, sex, activityLevel, dietType, formStep]);
 
+    useEffect(() => {
+    return () => {
+        timerIdsRef.current.forEach(clearTimeout);
+        timerIdsRef.current = [];
+    };
+    }, [finalDietPlan]);
 
     // --- Auto-scroll and Focus Logic ---
     const focusAndScroll = (ref: React.RefObject<HTMLElement>) => {
@@ -270,6 +279,76 @@ const DietPlanner: React.FC<DietPlannerProps> = ({ isSubscribed, onOpenSubscript
             }
         }
     }, [formStep, generationStep]);
+
+
+    const scheduleMealReminders = (plan: DietPlan) => {
+        timerIdsRef.current.forEach(clearTimeout);
+        timerIdsRef.current = [];
+
+        navigator.serviceWorker.ready.then(registration => {
+            if (!registration) return;
+
+            const scheduleNotification = (title: string, body: string, time: string, tag: string) => {
+                const timeParts = time.match(/(\d+):(\d+)\s*(AM|PM)/);
+                if (!timeParts) return;
+
+                let [_, hourStr, minuteStr, period] = timeParts;
+                let hour = parseInt(hourStr, 10);
+
+                if (period.toUpperCase() === 'PM' && hour < 12) hour += 12;
+                if (period.toUpperCase() === 'AM' && hour === 12) hour = 0;
+
+                const targetTime = new Date();
+                targetTime.setHours(hour, parseInt(minuteStr, 10), 0, 0);
+
+                const delay = targetTime.getTime() - new Date().getTime();
+
+                if (delay > 0) {
+                    const timerId = setTimeout(() => {
+                        registration.showNotification(title, { body, icon: '/logo.svg', tag });
+                    }, delay);
+                    timerIdsRef.current.push(timerId);
+                }
+            };
+            
+            plan.meals.forEach(meal => {
+                if (meal.time) {
+                    scheduleNotification(
+                        `Time for ${meal.mealType}!`,
+                        `It's time to have your ${meal.name.toLowerCase()}. Enjoy!`,
+                        meal.time,
+                        `meal-${meal.mealType.toLowerCase()}`
+                    );
+                }
+            });
+            
+            scheduleNotification(
+                'Time to Rest Up!',
+                `Don't forget to log your sleep tonight to keep your progress on track.`,
+                '09:30 PM',
+                'sleep-reminder'
+            );
+
+            setToastInfo({ title: "Reminders Set!", message: "We'll notify you for your meals and sleep log today.", quote: "Consistency is key to success!" });
+        });
+    };
+
+    const handleEnableNotifications = async () => {
+        setShowNotificationPrompt(false);
+        if (!('Notification' in window)) {
+            alert('This browser does not support desktop notification');
+            return;
+        }
+        
+        const permission = await Notification.requestPermission();
+        if (permission === 'granted') {
+            if (finalDietPlan) {
+                scheduleMealReminders(finalDietPlan);
+            }
+        } else {
+            setToastInfo({ title: "Notifications Blocked", message: "You can enable them in your browser settings if you change your mind.", quote: "Every choice is a step forward." });
+        }
+    };
 
   const cmToFtIn = (cm: number) => {
     if (isNaN(cm) || cm <= 0) return { ft: '', in: '' };
@@ -458,6 +537,11 @@ const DietPlanner: React.FC<DietPlannerProps> = ({ isSubscribed, onOpenSubscript
 
         const randomNote = drKenilsNotes[Math.floor(Math.random() * drKenilsNotes.length)];
         setDrKenilsNote(randomNote);
+
+        if ('Notification' in window) {
+            if (Notification.permission === 'default') setShowNotificationPrompt(true);
+            else if (Notification.permission === 'granted') scheduleMealReminders(finalPlanObject);
+        }
 
         setGenerationStep('done');
     };
@@ -1049,6 +1133,17 @@ const DietPlanner: React.FC<DietPlannerProps> = ({ isSubscribed, onOpenSubscript
                 </div>
                 
                 {drKenilsNote && <DrKenilsNoteComponent note={drKenilsNote} />}
+                
+                {showNotificationPrompt && (
+                    <div className="mt-6 p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg text-center border border-yellow-200 dark:border-yellow-700">
+                        <p className="font-semibold text-yellow-800 dark:text-yellow-200">Want meal reminders?</p>
+                        <p className="text-sm text-yellow-700 dark:text-yellow-300 mt-1">Enable notifications to get alerts for your meals and sleep log.</p>
+                        <div className="mt-3 flex justify-center gap-4">
+                            <button onClick={handleEnableNotifications} className="bg-yellow-400 text-yellow-900 font-bold py-2 px-4 rounded-lg text-sm">Enable</button>
+                            <button onClick={() => setShowNotificationPrompt(false)} className="bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 font-bold py-2 px-4 rounded-lg text-sm">Maybe Later</button>
+                        </div>
+                    </div>
+                )}
             </div>
         )}
       </div>
