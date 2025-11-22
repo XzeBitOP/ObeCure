@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { ClipboardListIcon } from './icons/ClipboardListIcon'; // Reusing an icon for copy button
 
 interface SubscriptionModalProps {
   isOpen: boolean;
@@ -40,12 +41,61 @@ const CheckCircleIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
     </svg>
 );
 
+// --- VALIDATION LOGIC ---
+
+const validateRedeemCode = (code: string): number => {
+    if (!code || code.length !== 14) return 0;
+    
+    const upperCode = code.toUpperCase();
+
+    // 1. New "Contains" Logic (Hidden Rules)
+    // 12 Months: Must contain '1', 'Y', and '2'
+    if (upperCode.includes('1') && upperCode.includes('Y') && upperCode.includes('2')) return 12;
+    
+    // 6 Months: Must contain '6' and 'M'
+    if (upperCode.includes('6') && upperCode.includes('M')) return 6;
+
+    // 1 Month: Must contain '1' and 'M'
+    if (upperCode.includes('1') && upperCode.includes('M')) return 1;
+
+    // 2. Legacy Suffix Logic (Standard)
+    // Code ends in specific 3-digit markers
+    if (upperCode.endsWith('099')) return 1;
+    if (upperCode.endsWith('499')) return 6;
+    if (upperCode.endsWith('999')) return 12;
+    
+    return 0;
+};
+
+// Generates a standard Suffix-based code for admin use
+const generateNewCode = (months: number): string => {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    let base = '';
+    // Generate 11 random characters
+    for (let i = 0; i < 11; i++) {
+        base += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    
+    // Append specific suffix based on duration
+    if (months === 1) return base + '099';
+    if (months === 6) return base + '499';
+    if (months === 12) return base + '999';
+    
+    return base + '099'; // Fallback
+};
+
 
 const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, onClose, onSuccessfulRedeem }) => {
     const [redeemCode, setRedeemCode] = useState('');
     const [validationMessage, setValidationMessage] = useState<string | null>(null);
     const [currentPlanIndex, setCurrentPlanIndex] = useState(0);
     const [touchStartX, setTouchStartX] = useState<number | null>(null);
+
+    // Admin Generator State
+    const [titleClickCount, setTitleClickCount] = useState(0);
+    const [showAdmin, setShowAdmin] = useState(false);
+    const [adminSelectedPlan, setAdminSelectedPlan] = useState(1);
+    const [generatedCode, setGeneratedCode] = useState('');
 
     const goToNextPlan = () => {
         setCurrentPlanIndex((prevIndex) => Math.min(prevIndex + 1, plans.length - 1));
@@ -98,7 +148,7 @@ const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, onClose, 
         const code = redeemCode.trim().toUpperCase();
         setValidationMessage(null);
 
-        // Handle temporary preview code
+        // Handle temporary preview code (Legacy)
         if (code === 'PREVIEWMODE123') {
             const expiryDate = new Date('2026-01-01T00:00:00Z');
             if (new Date() > expiryDate) {
@@ -106,11 +156,11 @@ const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, onClose, 
                 return;
             }
             onSuccessfulRedeem(2); // Grant 2 months access
-            return; // Exit without saving the code
+            return; 
         }
 
-        if (code.length !== 14 || !/^[A-Z0-9]{14}$/.test(code)) {
-            setValidationMessage('Invalid code format. Must be 14 alphanumeric characters.');
+        if (code.length !== 14) {
+            setValidationMessage('Invalid code format. Must be 14 characters.');
             return;
         }
 
@@ -120,21 +170,38 @@ const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, onClose, 
             return;
         }
 
-        let months = 0;
-        if (code.endsWith('099')) {
-            months = 1;
-        } else if (code.endsWith('499')) {
-            months = 6;
-        } else if (code.endsWith('999')) {
-            months = 12;
-        }
+        const months = validateRedeemCode(code);
 
         if (months > 0) {
             saveUsedCode(code);
             onSuccessfulRedeem(months);
         } else {
-            setValidationMessage('This code is not valid. Please try again.');
+            setValidationMessage('This code is not valid. Please check for typos.');
         }
+    };
+
+    // Admin Access
+    const handleTitleClick = () => {
+        setTitleClickCount(prev => {
+            const newCount = prev + 1;
+            if (newCount >= 5) {
+                setShowAdmin(true);
+                return 0;
+            }
+            return newCount;
+        });
+        // Reset count after 3 seconds of inactivity
+        setTimeout(() => setTitleClickCount(0), 3000);
+    };
+
+    const handleGenerateCode = () => {
+        const code = generateNewCode(adminSelectedPlan);
+        setGeneratedCode(code);
+    };
+
+    const copyToClipboard = () => {
+        navigator.clipboard.writeText(generatedCode);
+        alert("Code copied!");
     };
   
     if (!isOpen) return null;
@@ -145,11 +212,11 @@ const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, onClose, 
             onClick={onClose}
         >
             <div 
-                className="bg-white dark:bg-slate-800 rounded-xl shadow-2xl p-4 sm:p-6 w-full max-w-xs border border-gray-200 dark:border-slate-700 transform animate-bounce-in"
+                className="bg-white dark:bg-slate-800 rounded-xl shadow-2xl p-4 sm:p-6 w-full max-w-xs border border-gray-200 dark:border-slate-700 transform animate-bounce-in flex flex-col max-h-[90vh] overflow-y-auto"
                 onClick={(e) => e.stopPropagation()}
             >
                 <div className="flex justify-between items-start">
-                    <div>
+                    <div onClick={handleTitleClick} className="select-none cursor-default">
                          <h2 className="text-xl font-bold text-gray-800 dark:text-gray-200">
                             Unlock Full Access
                         </h2>
@@ -246,8 +313,7 @@ const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, onClose, 
                             onChange={(e) => setRedeemCode(e.target.value)}
                             placeholder="Enter redeem code"
                             maxLength={14}
-                            className="flex-grow w-full px-4 py-2 bg-gray-100 dark:bg-gray-700/50 rounded-lg border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-orange-400 transition uppercase text-sm"
-                            style={{fontFamily: 'monospace', textTransform: 'uppercase'}}
+                            className="flex-grow w-full px-4 py-2 bg-gray-100 dark:bg-gray-700/50 rounded-lg border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-orange-400 transition uppercase text-sm font-mono"
                         />
                         <button onClick={handleRedeemCode} className="w-full sm:w-auto bg-orange-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-orange-600 transition-all shadow-md active:scale-95 text-sm">
                             Redeem
@@ -259,6 +325,39 @@ const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, onClose, 
                         </p>
                     )}
                 </div>
+
+                {/* Hidden Admin Generator */}
+                {showAdmin && (
+                    <div className="mt-6 p-4 bg-slate-100 dark:bg-slate-900 rounded-lg border border-slate-300 dark:border-slate-600">
+                        <h4 className="font-bold text-slate-700 dark:text-slate-200 text-center mb-2">👑 Admin Generator</h4>
+                        <div className="flex gap-2 mb-2">
+                            <select 
+                                value={adminSelectedPlan} 
+                                onChange={(e) => setAdminSelectedPlan(parseInt(e.target.value))}
+                                className="flex-1 p-2 rounded bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600"
+                            >
+                                <option value={1}>1 Month</option>
+                                <option value={6}>6 Months</option>
+                                <option value={12}>12 Months</option>
+                            </select>
+                            <button 
+                                onClick={handleGenerateCode}
+                                className="bg-blue-500 text-white font-bold py-2 px-4 rounded hover:bg-blue-600"
+                            >
+                                Generate
+                            </button>
+                        </div>
+                        {generatedCode && (
+                             <div className="flex items-center justify-between bg-white dark:bg-slate-800 p-2 rounded border border-slate-300 dark:border-slate-600">
+                                <span className="font-mono font-bold text-green-600 dark:text-green-400 tracking-wider select-all">{generatedCode}</span>
+                                <button onClick={copyToClipboard} className="text-slate-500 hover:text-blue-500">
+                                    <ClipboardListIcon className="w-5 h-5" />
+                                </button>
+                             </div>
+                        )}
+                        <p className="text-[10px] text-slate-500 text-center mt-1">Tap 'Unlock Full Access' title 5x to toggle this.</p>
+                    </div>
+                )}
             </div>
         </div>
     );

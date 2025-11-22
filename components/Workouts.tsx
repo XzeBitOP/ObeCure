@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { WorkoutLogEntry, WorkoutProgram, HealthCondition } from '../types';
 import { WORKOUT_PLANS_DATA, WorkoutPlan } from '../data/workouts';
@@ -7,6 +8,7 @@ import SuccessToast from './SuccessToast';
 import { motivationalQuotes } from '../data/quotes';
 import { YouTubeIcon } from './icons/YouTubeIcon';
 import { WhatsAppIcon } from './icons/WhatsAppIcon';
+import ExerciseAnimator from './ExerciseAnimator';
 
 const USER_PREFERENCES_KEY = 'obeCureUserPreferences';
 const WORKOUT_LOG_KEY = 'obeCureWorkoutLog';
@@ -66,6 +68,23 @@ const CalorieBurnAnimation: React.FC<{ amount: number, quote: string }> = ({ amo
     );
 };
 
+const ExerciseSplash: React.FC<{ name: string, count: number }> = ({ name, count }) => (
+    <div className="absolute inset-0 z-30 bg-white dark:bg-gray-800 flex flex-col items-center justify-center rounded-xl animate-fade-in p-4 text-center">
+        <h3 className="text-xl font-bold text-orange-500 mb-4 animate-bounce">Get Ready!</h3>
+        <div className="w-40 h-40 mb-4 transform scale-110">
+             <ExerciseAnimator exerciseName={name} />
+        </div>
+        <h2 className="text-2xl sm:text-3xl font-bold text-gray-800 dark:text-gray-200 mb-2">{name}</h2>
+        <div className="w-20 h-20 rounded-full bg-orange-100 dark:bg-orange-900/40 flex items-center justify-center mb-6">
+             <p className="text-5xl font-black text-orange-600 dark:text-orange-400 animate-ping">{count}</p>
+        </div>
+        <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400 text-sm bg-gray-100 dark:bg-gray-700/50 px-4 py-2 rounded-full animate-fade-in-up">
+            <YouTubeIcon className="w-5 h-5 text-red-600" />
+            <span>Check YouTube tutorial for proper form</span>
+        </div>
+    </div>
+);
+
 const WorkoutSummary: React.FC<{ plan: WorkoutPlan; duration: number; onRestart: () => void; onChangeProgram: () => void; }> = ({ plan, duration, onRestart, onChangeProgram }) => {
      const durationMinutes = Math.floor(duration / 60);
      const durationSeconds = duration % 60;
@@ -110,6 +129,11 @@ const WorkoutTimer: React.FC<{ plan: WorkoutPlan; onFinish: (durationInSeconds: 
     const [isTimerActive, setIsTimerActive] = useState(false);
     const [isStopModalOpen, setIsStopModalOpen] = useState(false);
     const [caloriesBurned, setCaloriesBurned] = useState<{ key: number, amount: number, quote: string } | null>(null);
+    
+    // Splash Screen State
+    const [isSplashActive, setIsSplashActive] = useState(false);
+    const [splashCount, setSplashCount] = useState(5);
+
     const listRef = useRef<HTMLDivElement>(null);
     const timerWorkerRef = useRef<Worker | null>(null);
 
@@ -123,7 +147,7 @@ const WorkoutTimer: React.FC<{ plan: WorkoutPlan; onFinish: (durationInSeconds: 
         const fullWorkout: any[] = [];
         if (warmupDuration) {
             fullWorkout.push({ name: 'Warm-up', type: 'Preparation', duration: warmupDuration, description: 'Light cardio like marching in place, arm circles, and leg swings.' });
-            fullWorkout.push({ name: 'Get Ready', type: 'Preparation', duration: 5, description: 'Prepare for the first exercise.', position: exercises[0].position });
+            // Removed the generic "Get Ready" step since we now have dynamic splash screens
         }
         for (let i = 1; i <= structure.rounds; i++) {
             exercises.forEach((ex, index) => {
@@ -157,6 +181,46 @@ const WorkoutTimer: React.FC<{ plan: WorkoutPlan; onFinish: (durationInSeconds: 
         }
     };
     
+    // Effect to handle Splash Screen trigger on index change
+    useEffect(() => {
+        const currentEx = combinedWorkout[currentExerciseIndex];
+        // Check if it's a working exercise (contains 'ROUND' or is Warm-up/Cool-down)
+        // We skip splash for 'Rest', 'Preparation' (unless it's warm-up), etc.
+        const isExercise = (currentEx.type.toUpperCase().includes('ROUND') || currentEx.name === 'Warm-up' || currentEx.name === 'Cool-down') && !currentEx.type.includes('Rest');
+        
+        if (isExercise) {
+            setIsSplashActive(true);
+            setSplashCount(5);
+            // Speak the exercise name for audio cue
+            speak(`Next up, ${currentEx.name}`);
+            
+            const interval = setInterval(() => {
+                setSplashCount(prev => {
+                    if (prev <= 1) {
+                        clearInterval(interval);
+                        setIsSplashActive(false);
+                        // Start main timer if it was active before or if it's the very first one
+                        if (isTimerActiveRef.current || currentExerciseIndex === 0) {
+                            timerWorkerRef.current?.postMessage({ command: 'start' });
+                            setIsTimerActive(true);
+                        }
+                        return 0;
+                    }
+                    return prev - 1;
+                });
+            }, 1000);
+            
+            return () => clearInterval(interval);
+        } else {
+            setIsSplashActive(false);
+            // If it's rest, just ensure timer continues if active
+            if(isTimerActiveRef.current) {
+                 timerWorkerRef.current?.postMessage({ command: 'start' });
+            }
+        }
+    }, [currentExerciseIndex, combinedWorkout]);
+
+
     useEffect(() => {
         const blob = new Blob([workerScript], { type: 'application/javascript' });
         const worker = new Worker(URL.createObjectURL(blob));
@@ -176,15 +240,9 @@ const WorkoutTimer: React.FC<{ plan: WorkoutPlan; onFinish: (durationInSeconds: 
                     }
                     
                     if (nextIndex < combinedWorkout.length) {
-                        const nextEx = combinedWorkout[nextIndex];
-                        let speech = `Next up: ${nextEx.name}.`;
-                        if (nextEx.position) {
-                            speech = `${nextEx.position}. ${speech}`;
-                        }
-                        speak(speech);
                         setCurrentExerciseIndex(nextIndex);
-                        setSecondsRemaining(nextEx.duration);
-                        if (isTimerActiveRef.current) worker.postMessage({ command: 'start' });
+                        setSecondsRemaining(combinedWorkout[nextIndex].duration);
+                        // We do NOT auto-start worker here. The useEffect above handles splash/start logic based on next exercise type.
                     } else {
                         speak("Workout complete! Well done!");
                         setIsTimerActive(false);
@@ -208,8 +266,11 @@ const WorkoutTimer: React.FC<{ plan: WorkoutPlan; onFinish: (durationInSeconds: 
         const nextIsActive = !isTimerActive;
         setIsTimerActive(nextIsActive);
         if (nextIsActive) {
-            timerWorkerRef.current?.postMessage({ command: 'start' });
-            speak(combinedWorkout[currentExerciseIndex].name);
+            // If splash is active, we don't start worker, we just unpause the state so splash finishes then starts worker
+            if (!isSplashActive) {
+                timerWorkerRef.current?.postMessage({ command: 'start' });
+                speak(combinedWorkout[currentExerciseIndex].name);
+            }
         } else {
             timerWorkerRef.current?.postMessage({ command: 'stop' });
             if ('speechSynthesis' in window) speechSynthesis.cancel();
@@ -220,6 +281,7 @@ const WorkoutTimer: React.FC<{ plan: WorkoutPlan; onFinish: (durationInSeconds: 
         timerWorkerRef.current?.postMessage({ command: 'stop' });
         if ('speechSynthesis' in window) speechSynthesis.cancel();
         setIsTimerActive(false);
+        setIsSplashActive(false); // Cancel any splash
         setCurrentExerciseIndex(0);
         setSecondsRemaining(combinedWorkout[0]?.duration || 0);
     };
@@ -231,6 +293,21 @@ const WorkoutTimer: React.FC<{ plan: WorkoutPlan; onFinish: (durationInSeconds: 
         setIsStopModalOpen(true);
     };
     
+    const handleSkipTo = (index: number) => {
+        if (index === currentExerciseIndex) return;
+        
+        // Stop current timer
+        timerWorkerRef.current?.postMessage({ command: 'stop' });
+        if ('speechSynthesis' in window) speechSynthesis.cancel();
+        
+        // Set new state
+        setCurrentExerciseIndex(index);
+        setSecondsRemaining(combinedWorkout[index].duration);
+        
+        // Enable timer so it auto-starts (splash will intercept if needed)
+        setIsTimerActive(true);
+    };
+
     const currentExercise = combinedWorkout[currentExerciseIndex];
     const elapsedDuration = combinedWorkout.slice(0, currentExerciseIndex).reduce((sum, ex) => sum + ex.duration, 0) + (currentExercise.duration - secondsRemaining);
 
@@ -257,28 +334,40 @@ const WorkoutTimer: React.FC<{ plan: WorkoutPlan; onFinish: (durationInSeconds: 
       return 'stroke-orange-500';
     }, [currentExercise.type]);
 
+    const isResting = currentExercise.type === 'Rest' || currentExercise.type === 'Recovery' || currentExercise.type === 'Preparation';
+
     return (
-        <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 animate-fade-in-up relative">
+        <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 animate-fade-in-up relative overflow-hidden">
             <StopWorkoutModal isOpen={isStopModalOpen} onContinue={() => { setIsStopModalOpen(false); handleStartPause(); }} onEnd={handleEndWorkout} />
             {caloriesBurned && <CalorieBurnAnimation key={caloriesBurned.key} amount={caloriesBurned.amount} quote={caloriesBurned.quote} />}
             
+            {/* Splash Screen Overlay */}
+            {isSplashActive && <ExerciseSplash name={currentExercise.name} count={splashCount} />}
+
             <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mb-4"><div className="bg-orange-500 h-2 rounded-full transition-all duration-1000 ease-linear" style={{ width: `${progressPercentage}%` }}></div></div>
 
             <div className="text-center mb-4">
                 <p className="text-sm font-semibold text-orange-500 uppercase tracking-wider">{currentExercise.type}</p>
                 <p className="text-2xl font-bold my-1 text-gray-800 dark:text-gray-200">{currentExercise.name}</p>
             </div>
-            <div className="relative w-56 h-56 mx-auto">
-                <svg className="w-full h-full" viewBox="0 0 200 200">
-                    <circle className="stroke-gray-200 dark:stroke-gray-700" strokeWidth="12" fill="transparent" r={radius} cx="100" cy="100"/>
-                    <circle className={`transition-all duration-1000 ease-linear ${phaseColor}`} strokeWidth="12" fill="transparent" r={radius} cx="100" cy="100" strokeDasharray={circumference} strokeDashoffset={offset} transform="rotate(-90 100 100)" strokeLinecap="round"/>
+            
+            <div className="relative w-64 h-64 mx-auto flex items-center justify-center">
+                {/* Animation Layer */}
+                <div className="absolute inset-0 flex items-center justify-center opacity-20">
+                    <ExerciseAnimator exerciseName={currentExercise.name} isResting={isResting} />
+                </div>
+
+                <svg className="w-full h-full absolute inset-0" viewBox="0 0 200 200">
+                    <circle className="stroke-gray-200 dark:stroke-gray-700" strokeWidth="8" fill="transparent" r={radius} cx="100" cy="100"/>
+                    <circle className={`transition-all duration-1000 ease-linear ${phaseColor}`} strokeWidth="8" fill="transparent" r={radius} cx="100" cy="100" strokeDasharray={circumference} strokeDashoffset={offset} transform="rotate(-90 100 100)" strokeLinecap="round"/>
                 </svg>
-                <div className="absolute inset-0 flex flex-col items-center justify-center">
-                     <p className="text-6xl font-mono font-bold text-gray-900 dark:text-gray-100 tabular-nums">
+                <div className="relative z-10 flex flex-col items-center justify-center">
+                     <p className="text-5xl font-mono font-bold text-gray-900 dark:text-gray-100 tabular-nums drop-shadow-md">
                         {Math.floor(secondsRemaining / 60).toString().padStart(2, '0')}:{(secondsRemaining % 60).toString().padStart(2, '0')}
                     </p>
                 </div>
             </div>
+
              <div className="text-center my-4 h-16 flex flex-col justify-center">
                 <p className="text-sm font-semibold text-gray-500 dark:text-gray-400">Up Next:</p>
                 <p className="text-lg font-bold text-gray-700 dark:text-gray-300">
@@ -294,15 +383,19 @@ const WorkoutTimer: React.FC<{ plan: WorkoutPlan; onFinish: (durationInSeconds: 
             
              <div ref={listRef} className="mt-6 max-h-[240px] overflow-y-auto space-y-2 pr-2 border-t border-gray-200 dark:border-gray-700 pt-4">
                 {combinedWorkout.map((ex, index) => (
-                    <div key={`${ex.name}-${index}`} className={`p-2 rounded-lg transition-all ${index === currentExerciseIndex ? 'bg-orange-100 dark:bg-orange-900/40' : 'bg-gray-50 dark:bg-gray-700/50 opacity-60'}`}>
-                        <div className="flex justify-between items-center">
-                            <div className="flex items-center gap-2">
-                                <p className={`font-semibold text-sm ${index === currentExerciseIndex ? 'text-orange-800 dark:text-orange-300' : 'text-gray-800 dark:text-gray-200'}`}>{ex.name}</p>
-                                {ex.type.startsWith('ROUND') && <button onClick={(e) => handleWatchTutorial(e, ex.name)} className="text-gray-400 dark:text-gray-500 hover:text-red-600" title="Watch tutorial"><YouTubeIcon className="w-5 h-5" /></button>}
-                            </div>
-                            <p className="font-mono text-sm font-semibold text-gray-600 dark:text-gray-300">{Math.floor(ex.duration / 60)}:{(ex.duration % 60).toString().padStart(2, '0')}</p>
+                    <button 
+                        key={`${ex.name}-${index}`} 
+                        onClick={() => handleSkipTo(index)}
+                        className={`w-full text-left p-2 rounded-lg transition-all flex justify-between items-center ${index === currentExerciseIndex ? 'bg-orange-100 dark:bg-orange-900/40 ring-2 ring-orange-300 dark:ring-orange-600' : 'bg-gray-50 dark:bg-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-600'}`}
+                    >
+                        <div className="flex items-center gap-2">
+                            <p className={`font-semibold text-sm ${index === currentExerciseIndex ? 'text-orange-800 dark:text-orange-300' : 'text-gray-800 dark:text-gray-200'}`}>
+                                {ex.name}
+                            </p>
+                            {ex.type.startsWith('ROUND') && <div onClick={(e) => handleWatchTutorial(e, ex.name)} className="text-gray-400 dark:text-gray-500 hover:text-red-600 p-1" title="Watch tutorial"><YouTubeIcon className="w-5 h-5" /></div>}
                         </div>
-                    </div>
+                        <p className="font-mono text-sm font-semibold text-gray-600 dark:text-gray-300">{Math.floor(ex.duration / 60)}:{(ex.duration % 60).toString().padStart(2, '0')}</p>
+                    </button>
                 ))}
             </div>
         </div>

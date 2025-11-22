@@ -2,9 +2,9 @@
 <html lang="en" class="">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/png" sizes="32x32" href="/icons/windows11/Square44x44Logo.targetsize-32.png">
-    <link rel="icon" type="image/png" sizes="16x16" href="/icons/windows11/Square44x44Logo.targetsize-16.png">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/icons/ios/32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/icons/ios/16.png">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>ObeCure Diet Assistant</title>
     <link rel="manifest" href="/manifest.json" />
     <meta name="theme-color" content="#f97316" />
@@ -281,6 +281,51 @@
           opacity: 0;
           transform-origin: bottom center;
           animation: zen-sprout 0.8s ease-out 1.8s forwards;
+      }
+
+      /* --- EXERCISE ANIMATIONS --- */
+      /* Squat */
+      @keyframes ex-squat-legs {
+        0%, 100% { d: path("M 70 150 L 70 200 L 70 250"); } /* Standing */
+        50% { d: path("M 70 150 L 40 180 L 70 250"); } /* Squatting */
+      }
+      @keyframes ex-squat-body {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(30px); }
+      }
+
+      /* Jumping Jack */
+      @keyframes ex-jack-arms {
+        0%, 100% { d: path("M 100 70 L 100 130"); } /* Down */
+        50% { d: path("M 100 70 L 150 40"); } /* Up */
+      }
+      @keyframes ex-jack-legs {
+        0%, 100% { d: path("M 100 150 L 100 250"); } /* Together */
+        50% { d: path("M 100 150 L 140 250"); } /* Apart */
+      }
+
+      /* Pushup (Simulated by rotation) */
+      @keyframes ex-pushup-body {
+        0%, 100% { transform: rotate(-10deg); transform-origin: 150px 250px; }
+        50% { transform: rotate(30deg); transform-origin: 150px 250px; }
+      }
+      
+      /* Leg Raise */
+      @keyframes ex-leg-raise {
+        0%, 100% { d: path("M 100 150 L 100 250"); } /* Down */
+        50% { d: path("M 100 150 L 150 150"); } /* Up (90 deg) */
+      }
+
+      /* Side Stretch */
+      @keyframes ex-stretch-body {
+        0%, 100% { transform: rotate(0deg); transform-origin: 100px 200px; }
+        50% { transform: rotate(15deg); transform-origin: 100px 200px; }
+      }
+
+      /* Breathe / Idle */
+      @keyframes ex-breathe {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.05); }
       }
     </style>
   <script type="importmap">
