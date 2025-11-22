@@ -1,6 +1,18 @@
 {
   "short_name": "ObeCure",
   "name": "ObeCure Diet Assistant",
+  "description": "An application to generate personalized Indian diet plans and BioAdaptive recommendations.",
+  "id": "/",
+  "start_url": "/?source=pwa",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
+  "scope": "/",
+  "theme_color": "#f97316",
+  "background_color": "#1C2536",
+  "orientation": "portrait-primary",
+  "lang": "en-US",
+  "dir": "ltr",
+  "categories": ["health", "fitness", "food", "lifestyle"],
   "icons": [
     {
       "src": "/icons/android/android-launchericon-48-48.png",
@@ -53,32 +65,20 @@
   ],
   "screenshots": [
     {
-      "src": "/screenshots/Screenshot phone.png",
+      "src": "/screenshots/screenshot_phone.png",
       "sizes": "1080x1920",
       "type": "image/png",
       "form_factor": "narrow",
       "label": "Interactive mobile diet planner and workout timer"
     },
     {
-      "src": "/screenshots/Screenshot desktop.jpg",
+      "src": "/screenshots/screenshot_desktop.jpg",
       "sizes": "1920x1080",
       "type": "image/jpeg",
       "form_factor": "wide",
       "label": "Desktop view of the progress and body composition charts"
     }
   ],
-  "id": "/",
-  "start_url": ".",
-  "display": "standalone",
-  "display_override": ["standalone", "minimal-ui"],
-  "scope": "/",
-  "theme_color": "#f97316",
-  "background_color": "#1C2536",
-  "orientation": "portrait-primary",
-  "lang": "en-US",
-  "dir": "ltr",
-  "description": "An application to generate personalized Indian diet plans and BioAdaptive recommendations.",
-  "categories": ["health", "fitness", "food"],
   "shortcuts": [
     {
       "name": "Create New Diet Plan",
@@ -122,7 +122,6 @@
   "launch_handler": {
     "client_mode": ["navigate-existing", "auto"]
   },
-  "protocol_handlers": [],
   "prefer_related_applications": false,
   "related_applications": [],
   "iarc_rating_id": "",
