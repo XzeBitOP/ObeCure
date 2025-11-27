@@ -2,15 +2,9 @@
 import React, { useState, useEffect } from 'react';
 import * as fitService from '../services/googleFitService';
 import SuccessToast from './SuccessToast';
+import { ShoeIcon } from './icons/ShoeIcon';
 
 interface StepCounterProps {}
-
-// Fallback Icon if you don't want to create a new file right now, defined inline
-const ShoeIcon = (props: React.SVGProps<SVGSVGElement>) => (
-    <svg viewBox="0 0 24 24" fill="currentColor" {...props}>
-        <path d="M18.32,3.06C16.65,2.29 14.91,2 13.5,2C10.09,2 7.97,3.8 6.39,6.74L3.66,11.81C2.59,13.81 2,15.61 2,17C2,19.76 4.24,22 7,22C8.57,22 9.95,21.27 10.86,20.12C11.62,21.25 12.94,22 14.5,22C17.54,22 20,19.54 20,16.5C20,15.64 19.78,14.83 19.4,14.12L21.34,10.5C21.76,9.71 21.46,8.73 20.68,8.31L18.32,3.06M17.6,13.16C17.32,13.03 16.98,13.15 16.85,13.43L16.13,15.03C15.9,15.54 15.3,15.76 14.79,15.53C14.28,15.3 14.06,14.7 14.29,14.19L15.72,11.03C15.77,10.91 15.78,10.79 15.74,10.67L14.5,7.91L13.26,10.67C13.22,10.79 13.23,10.91 13.28,11.03L14.71,14.19C14.94,14.7 14.72,15.3 14.21,15.53C13.7,15.76 13.1,15.54 12.87,15.03L12.15,13.43C12.02,13.15 11.68,13.03 11.4,13.16C11.12,13.29 11,13.63 11.13,13.91L12.5,16.95C12.85,17.72 13.61,18.22 14.46,18.22C15.31,18.22 16.07,17.72 16.42,16.95L17.87,13.91C18,13.63 17.88,13.29 17.6,13.16Z" />
-    </svg>
-);
 
 const StepCounter: React.FC<StepCounterProps> = () => {
     const [steps, setSteps] = useState(0);
@@ -31,9 +25,6 @@ const StepCounter: React.FC<StepCounterProps> = () => {
             
             if (signedIn) {
                 refreshData();
-            } else {
-                // If init returns false, it might mean keys are invalid or just not signed in.
-                // We'll assume not signed in for now, but if keys are invalid, handleConnect will catch it.
             }
         });
     }, []);
@@ -51,7 +42,7 @@ const StepCounter: React.FC<StepCounterProps> = () => {
             if (!isDemoMode) {
                 setToast({
                     title: "Connection Issue",
-                    message: "Could not fetch live data (Check API Keys). Switched to Demo Mode.",
+                    message: "Could not fetch live data. Switched to Demo Mode.",
                     quote: "Visualizing success is the first step."
                 });
                 enableDemoMode();
@@ -63,7 +54,6 @@ const StepCounter: React.FC<StepCounterProps> = () => {
 
     const enableDemoMode = () => {
         setIsDemoMode(true);
-        // Don't set isConnected true here visually, or distinguish it
         setSteps(5420);
         setCalories(280);
         setDistance(3.8);
@@ -71,29 +61,35 @@ const StepCounter: React.FC<StepCounterProps> = () => {
 
     const handleConnect = async () => {
         if (isDemoMode) {
-            // If in demo mode, clicking connect tries to reconnect real API
             setIsLoading(true);
         }
         
         try {
             await fitService.signIn();
             setIsConnected(true);
-            setIsDemoMode(false); // successfully connected
+            setIsDemoMode(false);
             setInitFailed(false);
             refreshData();
         } catch (error: any) {
             console.error("Sign in failed:", error);
-            // Use a flag to prevent infinite retry loops if user keeps clicking
             setInitFailed(true); 
             enableDemoMode();
             
-            const isConfigError = error.message === "API Keys not configured" || error.message === "Google Auth Instance not available";
+            // Generic fallback message if specific error detection fails
+            let title = "Google Fit Unavailable";
+            let message = "Unable to sign in. Showing demo data instead.";
+
+            if (error.message === "API Keys not configured" || error.message === "Google Auth Instance not available") {
+                 title = "Demo Mode Active";
+                 message = "Google Fit setup required. Showing demo data.";
+            } else if (error.message.includes("Google Fit API could not initialize")) {
+                 title = "Initialization Failed";
+                 message = "Could not load Google Fit. Switching to Demo.";
+            }
 
             setToast({
-                title: isConfigError ? "Demo Mode Active" : "Google Fit Unavailable",
-                message: isConfigError 
-                    ? "Google Fit setup required. Showing demo data." 
-                    : "Unable to sign in. Showing demo data instead.",
+                title: title,
+                message: message,
                 quote: "Keep moving forward."
             });
         } finally {
@@ -121,12 +117,17 @@ const StepCounter: React.FC<StepCounterProps> = () => {
                     </div>
                 </div>
                 {(!isConnected || isDemoMode) && (
-                    <button 
-                        onClick={handleConnect}
-                        className="text-xs font-bold bg-blue-500 hover:bg-blue-600 text-white px-3 py-1.5 rounded-full transition-colors shadow-sm"
-                    >
-                        {isDemoMode ? "Retry Connect" : "Connect Google Fit"}
-                    </button>
+                    <div className="flex flex-col items-end">
+                        <button 
+                            onClick={handleConnect}
+                            className="text-xs font-bold bg-blue-500 hover:bg-blue-600 text-white px-3 py-1.5 rounded-full transition-colors shadow-sm"
+                        >
+                            {isDemoMode ? "Retry Connect" : "Connect Google Fit"}
+                        </button>
+                        {initFailed && !isDemoMode && (
+                             <button onClick={() => { alert("If you see a warning screen from Google, click 'Advanced' -> 'Go to ObeCure (unsafe)' to proceed. This is normal for new apps."); }} className="text-[10px] text-gray-400 mt-1 underline">Trouble connecting?</button>
+                        )}
+                    </div>
                 )}
                 {isConnected && !isDemoMode && (
                     <button onClick={refreshData} className={`text-gray-400 hover:text-orange-500 transition ${isLoading ? 'animate-spin' : ''}`}>

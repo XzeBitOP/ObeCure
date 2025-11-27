@@ -1,7 +1,9 @@
 
-// Replace these with your actual Google Cloud Credentials via environment variables for security
-const CLIENT_ID = '936247255031-2efv5se59p6dn8mqu72pnl0b7amboqto.apps.googleusercontent.com'; 
-const API_KEY = process.env.GOOGLE_API_KEY as string;
+// Production Google Cloud Credentials
+// These keys are restricted by HTTP Referrer in Google Cloud Console
+// We use process.env to allow hiding keys in production builds, falling back to provided keys for immediate functionality.
+const CLIENT_ID = process.env.REACT_APP_GOOGLE_CLIENT_ID || '936247255031-2efv5se59p6dn8mqu72pnl0b7amboqto.apps.googleusercontent.com'; 
+const API_KEY = process.env.REACT_APP_GOOGLE_API_KEY || 'AIzaSyAAKoSFqg09J7heGLPPmVJcUoJh2vOb2nw';
 
 const DISCOVERY_DOCS = ["https://www.googleapis.com/discovery/v1/apis/fitness/v1/rest"];
 const SCOPES = "https://www.googleapis.com/auth/fitness.activity.read";
@@ -16,7 +18,7 @@ export const loadGoogleApi = (callback: () => void) => {
     if (typeof window === 'undefined') return;
     const gapi = (window as any).gapi;
     if (!gapi) {
-        console.warn("Google API script not loaded");
+        console.warn("Google API script not loaded in index.html");
         return;
     }
     gapi.load('client:auth2', callback);
@@ -24,51 +26,59 @@ export const loadGoogleApi = (callback: () => void) => {
 
 export const initClient = async (): Promise<boolean> => {
     const gapi = (window as any).gapi;
-    if (!gapi || !gapi.client) return false;
+    if (!gapi) return false;
 
-    // PREVENT 401 ERROR: Check if using placeholder keys or missing env var
-    if (!API_KEY || API_KEY.includes('YOUR_API_KEY')) {
-        console.warn("Google Fit API key is missing or invalid. Skipping initialization.");
-        return false;
-    }
+    // 1. Ensure the necessary libraries are loaded
+    await new Promise<void>((resolve) => gapi.load('client:auth2', resolve));
 
     try {
-        await gapi.client.init({
-            apiKey: API_KEY,
-            clientId: CLIENT_ID,
-            discoveryDocs: DISCOVERY_DOCS,
-            scope: SCOPES,
-        });
+        // 2. Initialize the client if not already initialized
+        // We check getAuthInstance to see if init has successfully run before
+        if (!gapi.auth2 || !gapi.auth2.getAuthInstance()) {
+             await gapi.client.init({
+                apiKey: API_KEY,
+                clientId: CLIENT_ID,
+                discoveryDocs: DISCOVERY_DOCS,
+                scope: SCOPES,
+            });
+        }
+
+        // 3. Verify that the auth instance was actually created
+        const authInstance = gapi.auth2 && gapi.auth2.getAuthInstance();
         
-        // Check if auth2 is actually initialized
-        if (!gapi.auth2) {
-            console.warn("Google Auth2 not initialized (likely due to invalid keys)");
+        if (!authInstance) {
+            console.warn("Google Auth2 initialized but instance is null. This usually means the Client ID is incorrect or the Origin is not allowed in Google Cloud Console.");
             return false;
         }
 
-        const authInstance = gapi.auth2.getAuthInstance();
-        if (!authInstance) return false;
-
         return authInstance.isSignedIn.get();
     } catch (error) {
-        console.warn("Google Fit Init Error (Likely missing/invalid keys). Switching to Demo Mode internally.", error);
+        console.warn("Google Fit Init Error:", error);
         return false;
     }
 };
 
 export const signIn = async (): Promise<boolean> => {
-    if (!API_KEY || CLIENT_ID.includes('YOUR_CLIENT_ID')) {
-         throw new Error("API Keys not configured");
-    }
-
     const gapi = (window as any).gapi;
-    if (!gapi || !gapi.auth2) {
-        throw new Error("Google Auth API not initialized");
+    if (!gapi) throw new Error("Google API script not loaded");
+
+    // 1. Check if we have an instance
+    let authInstance = gapi.auth2 && gapi.auth2.getAuthInstance();
+
+    // 2. If not, try to initialize manually
+    if (!authInstance) {
+        console.log("Auth Instance missing, attempting lazy initialization...");
+        const initialized = await initClient();
+        if (!initialized) {
+             throw new Error("Google Fit API could not initialize. Check your network connection or API keys.");
+        }
+        // Refresh instance after init
+        authInstance = gapi.auth2.getAuthInstance();
     }
     
-    const authInstance = gapi.auth2.getAuthInstance();
+    // 3. Final check
     if (!authInstance) {
-        throw new Error("Google Auth Instance not available");
+        throw new Error("Google Auth Instance not available even after initialization.");
     }
 
     try {
@@ -92,11 +102,14 @@ export const signOut = async (): Promise<void> => {
 
 export const fetchTodaySteps = async (): Promise<FitData> => {
     const gapi = (window as any).gapi;
+    
     // Double check if client and fitness API are loaded
     if (!gapi || !gapi.client || !gapi.client.fitness) {
-        // This mimics the error user saw, but now we catch it upstream usually.
-        // Throwing here allows the UI to catch it and switch to demo mode.
-        throw new Error("Google Fit API not loaded or initialized");
+        // Attempt lazy load if missing (edge case)
+        await initClient();
+        if (!gapi.client || !gapi.client.fitness) {
+             throw new Error("Google Fit API not loaded or initialized");
+        }
     }
 
     const today = new Date();

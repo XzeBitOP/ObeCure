@@ -80,8 +80,10 @@ const HeartRateMonitor: React.FC<HeartRateMonitorProps> = ({ onClose }) => {
 
             // Try to enable torch
             const track = stream.getVideoTracks()[0];
-            const capabilities = track.getCapabilities() as any;
-            if (capabilities.torch) {
+            // Fix: Check if getCapabilities exists before calling it
+            const capabilities = (typeof track.getCapabilities === 'function') ? track.getCapabilities() : {};
+            
+            if ((capabilities as any).torch) {
                 try {
                     await track.applyConstraints({ advanced: [{ torch: true }] } as any);
                 } catch (e) {

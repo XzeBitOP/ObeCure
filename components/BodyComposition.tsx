@@ -155,7 +155,9 @@ const BodyComposition: React.FC<{ onOpenHistory: () => void; }> = ({ onOpenHisto
                 if (historyData.length > 0) {
                     const latestEntry = historyData[historyData.length - 1];
                     // Auto-load latest results if they are from today and match current weight
-                    if (latestEntry.date === new Date().toISOString().split('T')[0] && parseFloat(loadedInputs.weight) === parseFloat(latestEntry.metabolicAgeAnalysis?.inputs.weight_kg.toFixed(1) || '0')) {
+                    // SAFE CHECK ADDED: Optional chaining for inputs to prevent crash if old data format
+                    const historicalWeight = latestEntry.metabolicAgeAnalysis?.inputs?.weight_kg?.toFixed(1) || '0';
+                    if (latestEntry.date === new Date().toISOString().split('T')[0] && parseFloat(loadedInputs.weight) === parseFloat(historicalWeight)) {
                         setResults(latestEntry);
                     }
                 }
