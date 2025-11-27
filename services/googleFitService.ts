@@ -1,6 +1,6 @@
 
 // Placeholder keys - REPLACE THESE with your actual Google Cloud Credentials
-const CLIENT_ID = 'YOUR_CLIENT_ID.apps.googleusercontent.com'; 
+const CLIENT_ID = '936247255031-lpf6r402dp3i84qv5slog48q0cphl4bt.apps.googleusercontent.com'; 
 const API_KEY = 'YOUR_API_KEY'; 
 
 const DISCOVERY_DOCS = ["https://www.googleapis.com/discovery/v1/apis/fitness/v1/rest"];
@@ -25,6 +25,12 @@ export const loadGoogleApi = (callback: () => void) => {
 export const initClient = async (): Promise<boolean> => {
     const gapi = (window as any).gapi;
     if (!gapi || !gapi.client) return false;
+
+    // PREVENT 401 ERROR: Check if using placeholder keys
+    if (CLIENT_ID.includes('YOUR_CLIENT_ID') || API_KEY.includes('YOUR_API_KEY')) {
+        console.warn("Google Fit API keys are placeholders. Skipping initialization to prevent 401 error.");
+        return false;
+    }
 
     try {
         await gapi.client.init({
@@ -51,6 +57,10 @@ export const initClient = async (): Promise<boolean> => {
 };
 
 export const signIn = async (): Promise<boolean> => {
+    if (CLIENT_ID.includes('YOUR_CLIENT_ID')) {
+         throw new Error("API Keys not configured");
+    }
+
     const gapi = (window as any).gapi;
     if (!gapi || !gapi.auth2) {
         throw new Error("Google Auth API not initialized");

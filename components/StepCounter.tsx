@@ -81,14 +81,19 @@ const StepCounter: React.FC<StepCounterProps> = () => {
             setIsDemoMode(false); // successfully connected
             setInitFailed(false);
             refreshData();
-        } catch (error) {
+        } catch (error: any) {
             console.error("Sign in failed:", error);
             // Use a flag to prevent infinite retry loops if user keeps clicking
             setInitFailed(true); 
             enableDemoMode();
+            
+            const isConfigError = error.message === "API Keys not configured" || error.message === "Google Auth Instance not available";
+
             setToast({
-                title: "Google Fit Unavailable",
-                message: "Unable to sign in. Showing demo data instead.",
+                title: isConfigError ? "Demo Mode Active" : "Google Fit Unavailable",
+                message: isConfigError 
+                    ? "Google Fit setup required. Showing demo data." 
+                    : "Unable to sign in. Showing demo data instead.",
                 quote: "Keep moving forward."
             });
         } finally {
