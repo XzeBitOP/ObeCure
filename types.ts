@@ -1,5 +1,6 @@
 
 
+
 export enum DietPreference {
   VEGETARIAN = 'Vegetarian',
   VEGAN = 'Vegan',
@@ -77,6 +78,12 @@ export interface SleepEntry {
 export interface WaterEntry {
   date: string; // YYYY-MM-DD
   glasses: number;
+}
+
+export interface HeartRateEntry {
+    date: string; // ISO timestamp
+    context: 'Pre-workout' | 'Mid-workout' | 'Post-workout';
+    bpm: number;
 }
 
 export interface MetabolicAgeAnalysis {

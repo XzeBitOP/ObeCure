@@ -1,12 +1,14 @@
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { StopIcon } from './icons/StopIcon';
+import { HeartRateEntry } from '../types';
 
 interface HeartRateMonitorProps {
     onClose: () => void;
 }
 
 type Context = 'Pre-workout' | 'Mid-workout' | 'Post-workout';
+
+const HEART_RATE_LOG_KEY = 'obeCureHeartRateLog';
 
 const HeartIcon = (props: React.SVGProps<SVGSVGElement>) => (
     <svg viewBox="0 0 24 24" fill="currentColor" {...props}>
@@ -22,6 +24,7 @@ const HeartRateMonitor: React.FC<HeartRateMonitorProps> = ({ onClose }) => {
     const [signalHistory, setSignalHistory] = useState<number[]>([]);
     const [error, setError] = useState<string | null>(null);
     const [instantBpm, setInstantBpm] = useState<number | null>(null);
+    const [isSaved, setIsSaved] = useState(false);
 
     const videoRef = useRef<HTMLVideoElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -32,6 +35,34 @@ const HeartRateMonitor: React.FC<HeartRateMonitorProps> = ({ onClose }) => {
     const bufferRef = useRef<{value: number, time: number}[]>([]);
     const lastPeakTimeRef = useRef<number>(0);
     const startTimeRef = useRef<number>(0);
+
+    // --- Audio Feedback ---
+    const playStartChime = () => {
+        try {
+            const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+            if (!AudioContext) return;
+            
+            const ctx = new AudioContext();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            
+            // Nice chime sound
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(600, ctx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(1000, ctx.currentTime + 0.1);
+            
+            gain.gain.setValueAtTime(0.1, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
+            
+            osc.start();
+            osc.stop(ctx.currentTime + 0.5);
+        } catch (e) {
+            console.error("Audio play failed", e);
+        }
+    };
 
     // --- Camera & Flash Logic ---
     const startCamera = async () => {
@@ -175,13 +206,31 @@ const HeartRateMonitor: React.FC<HeartRateMonitorProps> = ({ onClose }) => {
         }
     };
 
+    const saveLog = (measuredBpm: number) => {
+        try {
+            const entry: HeartRateEntry = {
+                date: new Date().toISOString(),
+                context: context,
+                bpm: measuredBpm
+            };
+            const existingRaw = localStorage.getItem(HEART_RATE_LOG_KEY);
+            const existing: HeartRateEntry[] = existingRaw ? JSON.parse(existingRaw) : [];
+            // Keep last 50 entries
+            const updated = [entry, ...existing].slice(0, 50);
+            localStorage.setItem(HEART_RATE_LOG_KEY, JSON.stringify(updated));
+            setIsSaved(true);
+        } catch (e) {
+            console.error("Failed to save heart rate log", e);
+        }
+    };
+
     const finishMeasurement = () => {
         stopCamera();
         // Final calculation based on all detected peaks would be better, 
         // but instant BPM averaged at the end is acceptable for a basic implementation.
-        // Ideally, we'd store all peak times and average the intervals.
         if (instantBpm && instantBpm > 40 && instantBpm < 200) {
             setBpm(instantBpm);
+            saveLog(instantBpm);
             setStep('result');
         } else {
             setError("Reading failed. Please hold steady and try again.");
@@ -190,6 +239,7 @@ const HeartRateMonitor: React.FC<HeartRateMonitorProps> = ({ onClose }) => {
     };
 
     const handleStart = () => {
+        playStartChime();
         setStep('measuring');
         startCamera();
     };
@@ -213,6 +263,14 @@ const HeartRateMonitor: React.FC<HeartRateMonitorProps> = ({ onClose }) => {
                 <polyline points={points} fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="animate-pulse" />
             </svg>
         );
+    };
+
+    const isHighBpm = () => {
+        if (!bpm) return false;
+        if (context === 'Pre-workout' && bpm > 100) return true;
+        if (context === 'Mid-workout' && bpm > 180) return true;
+        if (context === 'Post-workout' && bpm > 140) return true;
+        return false;
     };
 
     return (
@@ -293,15 +351,33 @@ const HeartRateMonitor: React.FC<HeartRateMonitorProps> = ({ onClose }) => {
                     <div className="bg-gray-800 rounded-xl p-8 text-center animate-bounce-in">
                         <p className="text-gray-400 uppercase tracking-wider text-sm font-bold mb-2">{context}</p>
                         <h3 className="text-6xl font-bold text-white mb-2">{bpm}</h3>
-                        <p className="text-xl text-red-500 font-medium mb-8">BPM</p>
+                        <p className="text-xl text-red-500 font-medium mb-4">BPM</p>
                         
-                        <div className="p-4 bg-gray-700/50 rounded-lg mb-8">
-                            <p className="text-sm text-gray-300">
-                                {context === 'Pre-workout' && "Great baseline. Let's get moving!"}
-                                {context === 'Mid-workout' && (bpm > 140 ? "You're in the zone! 🔥" : "Good pace, keep it up.")}
-                                {context === 'Post-workout' && "Nicely done. Time to cool down."}
-                            </p>
-                        </div>
+                        {isSaved && (
+                            <div className="inline-block px-3 py-1 bg-green-500/20 text-green-400 text-xs font-bold rounded-full mb-6 border border-green-500/50">
+                                ✓ Log Saved
+                            </div>
+                        )}
+                        
+                        {isHighBpm() ? (
+                            <div className="p-4 bg-yellow-900/30 border border-yellow-700 rounded-lg mb-8 text-left">
+                                <p className="font-bold text-yellow-500 mb-1">Reading seems high?</p>
+                                <p className="text-sm text-gray-300 mb-2">Ensure accuracy for next time:</p>
+                                <ul className="text-xs text-gray-400 list-disc list-inside space-y-1">
+                                    <li>Cover <b>both</b> the camera lens and the flash completely.</li>
+                                    <li>Place finger <b>gently</b>. Pressing too hard stops blood flow.</li>
+                                    <li>Remain still and silent during measurement.</li>
+                                </ul>
+                            </div>
+                        ) : (
+                            <div className="p-4 bg-gray-700/50 rounded-lg mb-8">
+                                <p className="text-sm text-gray-300">
+                                    {context === 'Pre-workout' && "Great baseline. Let's get moving!"}
+                                    {context === 'Mid-workout' && (bpm > 140 ? "You're in the zone! 🔥" : "Good pace, keep it up.")}
+                                    {context === 'Post-workout' && "Nicely done. Time to cool down."}
+                                </p>
+                            </div>
+                        )}
 
                         <button onClick={onClose} className="w-full bg-red-600 text-white font-bold py-3 rounded-lg hover:bg-red-700 transition-all active:scale-95">
                             Done
