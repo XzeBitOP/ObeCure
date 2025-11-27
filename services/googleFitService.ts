@@ -2,7 +2,7 @@
 // Production Google Cloud Credentials
 // These keys are restricted by HTTP Referrer in Google Cloud Console
 // We use process.env to allow hiding keys in production builds, falling back to provided keys for immediate functionality.
-const CLIENT_ID = process.env.REACT_APP_GOOGLE_CLIENT_ID || '936247255031-2efv5se59p6dn8mqu72pnl0b7amboqto.apps.googleusercontent.com'; 
+const CLIENT_ID = process.env.REACT_APP_GOOGLE_CLIENT_ID || '936247255031-hd606mc0qbdge7ej72k6dudsosjt88hr.apps.googleusercontent.com'; 
 const API_KEY = process.env.REACT_APP_GOOGLE_API_KEY || 'AIzaSyAAKoSFqg09J7heGLPPmVJcUoJh2vOb2nw';
 
 const DISCOVERY_DOCS = ["https://www.googleapis.com/discovery/v1/apis/fitness/v1/rest"];
@@ -28,18 +28,24 @@ export const initClient = async (): Promise<boolean> => {
     const gapi = (window as any).gapi;
     if (!gapi) return false;
 
+    // PREVENT 401/400 ERRORS: Check if using placeholder keys before trying to init
+    if (CLIENT_ID === 'YOUR_CLIENT_ID' || CLIENT_ID.includes('YOUR_CLIENT_ID')) {
+        console.warn("Google Fit: Using placeholder Client ID. Skipping initialization.");
+        return false;
+    }
+
     // 1. Ensure the necessary libraries are loaded
     await new Promise<void>((resolve) => gapi.load('client:auth2', resolve));
 
     try {
         // 2. Initialize the client if not already initialized
-        // We check getAuthInstance to see if init has successfully run before
         if (!gapi.auth2 || !gapi.auth2.getAuthInstance()) {
              await gapi.client.init({
                 apiKey: API_KEY,
                 clientId: CLIENT_ID,
                 discoveryDocs: DISCOVERY_DOCS,
                 scope: SCOPES,
+                plugin_name: "ObeCure" 
             });
         }
 
@@ -47,13 +53,26 @@ export const initClient = async (): Promise<boolean> => {
         const authInstance = gapi.auth2 && gapi.auth2.getAuthInstance();
         
         if (!authInstance) {
-            console.warn("Google Auth2 initialized but instance is null. This usually means the Client ID is incorrect or the Origin is not allowed in Google Cloud Console.");
+            console.error("CRITICAL: Google Auth2 initialized but instance is null.");
             return false;
         }
 
         return authInstance.isSignedIn.get();
-    } catch (error) {
-        console.warn("Google Fit Init Error:", error);
+    } catch (error: any) {
+        console.error("GAPI Init Failed. Error:", error);
+        
+        if (error.details) {
+            console.error("Error Details:", error.details);
+            if (error.details === 'deleted_client') {
+                console.error("CRITICAL: The Client ID has been DELETED in Google Cloud Console. Please generate a new one.");
+            }
+        }
+        
+        if (error.error === 'idpiframe_initialization_failed') {
+            console.error("This specific error usually means 'Authorized JavaScript origins' is missing or incorrect in Google Cloud Console.");
+            console.error(`Please add '${window.location.origin}' to your Authorized Origins for Client ID: ${CLIENT_ID}`);
+        }
+
         return false;
     }
 };
@@ -61,6 +80,11 @@ export const initClient = async (): Promise<boolean> => {
 export const signIn = async (): Promise<boolean> => {
     const gapi = (window as any).gapi;
     if (!gapi) throw new Error("Google API script not loaded");
+
+    // Prevent signing in with invalid configuration
+    if (CLIENT_ID === 'YOUR_CLIENT_ID' || CLIENT_ID.includes('YOUR_CLIENT_ID')) {
+        throw new Error("API Keys not configured");
+    }
 
     // 1. Check if we have an instance
     let authInstance = gapi.auth2 && gapi.auth2.getAuthInstance();
@@ -70,7 +94,7 @@ export const signIn = async (): Promise<boolean> => {
         console.log("Auth Instance missing, attempting lazy initialization...");
         const initialized = await initClient();
         if (!initialized) {
-             throw new Error("Google Fit API could not initialize. Check your network connection or API keys.");
+             throw new Error("Google Fit API could not initialize. Check console for details.");
         }
         // Refresh instance after init
         authInstance = gapi.auth2.getAuthInstance();
@@ -78,7 +102,7 @@ export const signIn = async (): Promise<boolean> => {
     
     // 3. Final check
     if (!authInstance) {
-        throw new Error("Google Auth Instance not available even after initialization.");
+        throw new Error("Google Auth Instance not available. This is likely a configuration issue (e.g. deleted client or bad origin).");
     }
 
     try {
