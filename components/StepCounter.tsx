@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import * as fitService from '../services/googleFitService';
+import * as stepService from '../services/googleFitService';
 import SuccessToast from './SuccessToast';
 import { ShoeIcon } from './icons/ShoeIcon';
 
@@ -10,90 +10,37 @@ const StepCounter: React.FC<StepCounterProps> = () => {
     const [steps, setSteps] = useState(0);
     const [calories, setCalories] = useState(0);
     const [distance, setDistance] = useState(0);
-    const [isConnected, setIsConnected] = useState(false);
-    const [isDemoMode, setIsDemoMode] = useState(false);
+    const [isLogging, setIsLogging] = useState(false);
+    const [inputSteps, setInputSteps] = useState('');
     const [toast, setToast] = useState<{ title: string, message: string, quote: string } | null>(null);
-    const [isLoading, setIsLoading] = useState(false);
-    const [initFailed, setInitFailed] = useState(false);
 
     const GOAL = 10000;
 
     useEffect(() => {
-        fitService.loadGoogleApi(async () => {
-            const signedIn = await fitService.initClient();
-            setIsConnected(signedIn);
-            
-            if (signedIn) {
-                refreshData();
-            }
-        });
+        loadData();
     }, []);
 
-    const refreshData = async () => {
-        setIsLoading(true);
-        try {
-            const data = await fitService.fetchTodaySteps();
+    const loadData = async () => {
+        const data = await stepService.fetchTodaySteps();
+        setSteps(data.steps);
+        setCalories(data.calories);
+        setDistance(data.distance);
+    };
+
+    const handleSaveSteps = async () => {
+        const newSteps = parseInt(inputSteps, 10);
+        if (!isNaN(newSteps) && newSteps >= 0) {
+            const data = await stepService.saveSteps(newSteps);
             setSteps(data.steps);
             setCalories(data.calories);
             setDistance(data.distance);
-            setIsDemoMode(false);
-        } catch (error) {
-            console.warn("Fetch error, switching to demo mode:", error);
-            if (!isDemoMode) {
-                setToast({
-                    title: "Connection Issue",
-                    message: "Could not fetch live data. Switched to Demo Mode.",
-                    quote: "Visualizing success is the first step."
-                });
-                enableDemoMode();
-            }
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    const enableDemoMode = () => {
-        setIsDemoMode(true);
-        setSteps(5420);
-        setCalories(280);
-        setDistance(3.8);
-    };
-
-    const handleConnect = async () => {
-        if (isDemoMode) {
-            setIsLoading(true);
-        }
-        
-        try {
-            await fitService.signIn();
-            setIsConnected(true);
-            setIsDemoMode(false);
-            setInitFailed(false);
-            refreshData();
-        } catch (error: any) {
-            console.error("Sign in failed:", error);
-            setInitFailed(true); 
-            enableDemoMode();
-            
-            // Generic fallback message if specific error detection fails
-            let title = "Google Fit Unavailable";
-            let message = "Unable to sign in. Showing demo data instead.";
-
-            if (error.message === "API Keys not configured" || error.message === "Google Auth Instance not available") {
-                 title = "Demo Mode Active";
-                 message = "Google Fit setup required. Showing demo data.";
-            } else if (error.message.includes("Google Fit API could not initialize")) {
-                 title = "Initialization Failed";
-                 message = "Could not load Google Fit. Switching to Demo.";
-            }
-
+            setIsLogging(false);
+            setInputSteps('');
             setToast({
-                title: title,
-                message: message,
-                quote: "Keep moving forward."
+                title: "Steps Logged!",
+                message: "Great job keeping active.",
+                quote: "Every step counts towards your goal."
             });
-        } finally {
-            setIsLoading(false);
         }
     };
 
@@ -113,25 +60,15 @@ const StepCounter: React.FC<StepCounterProps> = () => {
                     </div>
                     <div>
                         <h3 className="font-bold text-gray-800 dark:text-gray-200">Daily Steps</h3>
-                        {isDemoMode && <span className="text-[10px] bg-gray-200 dark:bg-gray-600 px-2 py-0.5 rounded-full text-gray-600 dark:text-gray-300">Demo Mode</span>}
+                        <p className="text-[10px] text-gray-500 dark:text-gray-400">Sync from your device</p>
                     </div>
                 </div>
-                {(!isConnected || isDemoMode) && (
-                    <div className="flex flex-col items-end">
-                        <button 
-                            onClick={handleConnect}
-                            className="text-xs font-bold bg-blue-500 hover:bg-blue-600 text-white px-3 py-1.5 rounded-full transition-colors shadow-sm"
-                        >
-                            {isDemoMode ? "Retry Connect" : "Connect Google Fit"}
-                        </button>
-                        {initFailed && !isDemoMode && (
-                             <button onClick={() => { alert("If you see a warning screen from Google, click 'Advanced' -> 'Go to ObeCure (unsafe)' to proceed. This is normal for new apps."); }} className="text-[10px] text-gray-400 mt-1 underline">Trouble connecting?</button>
-                        )}
-                    </div>
-                )}
-                {isConnected && !isDemoMode && (
-                    <button onClick={refreshData} className={`text-gray-400 hover:text-orange-500 transition ${isLoading ? 'animate-spin' : ''}`}>
-                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                {!isLogging && (
+                    <button 
+                        onClick={() => { setIsLogging(true); setInputSteps(String(steps || '')); }}
+                        className="text-xs font-bold bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 px-3 py-1.5 rounded-full transition-colors shadow-sm"
+                    >
+                        Log Steps
                     </button>
                 )}
             </div>
@@ -184,6 +121,35 @@ const StepCounter: React.FC<StepCounterProps> = () => {
                     </div>
                 </div>
             </div>
+
+            {/* Manual Log Input */}
+            {isLogging && (
+                <div className="mt-4 p-3 bg-gray-50 dark:bg-gray-900/50 rounded-lg border border-gray-200 dark:border-gray-700 animate-fade-in-up">
+                    <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-2">Enter steps from your watch/phone:</label>
+                    <div className="flex gap-2">
+                        <input 
+                            type="number" 
+                            value={inputSteps}
+                            onChange={(e) => setInputSteps(e.target.value)}
+                            placeholder="e.g. 5400"
+                            className="flex-1 px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
+                            autoFocus
+                        />
+                        <button 
+                            onClick={handleSaveSteps}
+                            className="bg-orange-500 text-white text-sm font-bold px-4 py-2 rounded-lg hover:bg-orange-600 transition-colors"
+                        >
+                            Save
+                        </button>
+                        <button 
+                            onClick={() => setIsLogging(false)}
+                            className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 px-2"
+                        >
+                            Cancel
+                        </button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
