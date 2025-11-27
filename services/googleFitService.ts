@@ -1,7 +1,7 @@
 
 // Placeholder keys - REPLACE THESE with your actual Google Cloud Credentials
 const CLIENT_ID = '936247255031-lpf6r402dp3i84qv5slog48q0cphl4bt.apps.googleusercontent.com'; 
-const API_KEY = 'AQ.Ab8RN6IImz3ryH7pK4ICnfrY84VcZLr-RgBk6dm0wvJILoQwJA'; 
+const API_KEY = 'AIzaSyAAKoSFqg09J7heGLPPmVJcUoJh2vOb2nw'; 
 
 const DISCOVERY_DOCS = ["https://www.googleapis.com/discovery/v1/apis/fitness/v1/rest"];
 const SCOPES = "https://www.googleapis.com/auth/fitness.activity.read";
