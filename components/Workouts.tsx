@@ -9,6 +9,8 @@ import { motivationalQuotes } from '../data/quotes';
 import { YouTubeIcon } from './icons/YouTubeIcon';
 import { WhatsAppIcon } from './icons/WhatsAppIcon';
 import ExerciseAnimator from './ExerciseAnimator';
+import HeartRateMonitor from './HeartRateMonitor';
+import StepCounter from './StepCounter';
 
 const USER_PREFERENCES_KEY = 'obeCureUserPreferences';
 const WORKOUT_LOG_KEY = 'obeCureWorkoutLog';
@@ -20,6 +22,8 @@ const celebratoryQuotes = ["You're on fire! 🔥", "Amazing effort! ✨", "Keep 
 const PlayIcon = (props: React.SVGProps<SVGSVGElement>) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" {...props}><path d="M8 5v14l11-7z" /></svg>;
 const PauseIcon = (props: React.SVGProps<SVGSVGElement>) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" {...props}><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" /></svg>;
 const ResetIcon = (props: React.SVGProps<SVGSVGElement>) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" {...props}><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z" /></svg>;
+const HeartPulseIcon = (props: React.SVGProps<SVGSVGElement>) => <svg viewBox="0 0 24 24" fill="currentColor" {...props}><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/><path d="M12 8l-2 2 2 2 2-2-2-2z" fill="#fff" opacity="0.5" /></svg>;
+
 const Sparkle: React.FC<{ style: React.CSSProperties }> = ({ style }) => (
     <svg width="20" height="20" viewBox="0 0 100 100" className="absolute sparkle text-yellow-400" style={style} fill="currentColor">
         <path d="M50 0 L61.2 38.8 L100 50 L61.2 61.2 L50 100 L38.8 61.2 L0 50 L38.8 38.8 Z" />
@@ -69,7 +73,7 @@ const CalorieBurnAnimation: React.FC<{ amount: number, quote: string }> = ({ amo
 };
 
 const ExerciseSplash: React.FC<{ name: string, count: number }> = ({ name, count }) => (
-    <div className="absolute inset-0 z-30 bg-white dark:bg-gray-800 flex flex-col items-center justify-center rounded-xl animate-fade-in p-4 text-center">
+    <div className="absolute inset-0 z-30 bg-white/90 dark:bg-gray-800/90 backdrop-blur-lg flex flex-col items-center justify-center rounded-xl animate-fade-in p-4 text-center">
         <h3 className="text-xl font-bold text-orange-500 mb-4 animate-bounce">Get Ready!</h3>
         <div className="w-40 h-40 mb-4 transform scale-110">
              <ExerciseAnimator exerciseName={name} />
@@ -78,7 +82,7 @@ const ExerciseSplash: React.FC<{ name: string, count: number }> = ({ name, count
         <div className="w-20 h-20 rounded-full bg-orange-100 dark:bg-orange-900/40 flex items-center justify-center mb-6">
              <p className="text-5xl font-black text-orange-600 dark:text-orange-400 animate-ping">{count}</p>
         </div>
-        <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400 text-sm bg-gray-100 dark:bg-gray-700/50 px-4 py-2 rounded-full animate-fade-in-up">
+        <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400 text-sm bg-gray-100/50 dark:bg-gray-700/50 px-4 py-2 rounded-full animate-fade-in-up border border-gray-200 dark:border-gray-600">
             <YouTubeIcon className="w-5 h-5 text-red-600" />
             <span>Check YouTube tutorial for proper form</span>
         </div>
@@ -102,21 +106,21 @@ const WorkoutSummary: React.FC<{ plan: WorkoutPlan; duration: number; onRestart:
             {Array.from({ length: 15 }).map((_, i) => (
                 <Sparkle key={i} style={{ top: `${Math.random() * 100}%`, left: `${Math.random() * 100}%`, animationDelay: `${Math.random() * 1.5}s` }} />
             ))}
-            <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700">
+            <div className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-lg p-6 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700">
                 <h2 className="text-3xl font-bold text-green-500">Workout Complete!</h2>
                 <p className="text-gray-600 dark:text-gray-400 mt-2">Awesome job! You've taken another step towards your goal.</p>
-                <div className="my-8 bg-gray-50 dark:bg-gray-700/50 p-6 rounded-lg">
+                <div className="my-8 bg-gray-50/50 dark:bg-gray-700/50 p-6 rounded-lg border border-gray-200 dark:border-gray-600">
                     <p className="text-lg font-semibold text-gray-700 dark:text-gray-300">{plan.name}</p>
                     <p className="text-5xl font-bold text-orange-500 my-2">{durationMinutes}<span className="text-2xl">m</span> {durationSeconds}<span className="text-2xl">s</span></p>
                     <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Total Time</p>
                 </div>
                 <p className="font-handwriting text-xl text-orange-600 dark:text-orange-400 mb-8">"{quote}"</p>
                 <div className="space-y-3">
-                    <a href={`https://wa.me/?text=${getShareText()}`} target="_blank" rel="noopener noreferrer" className="w-full flex items-center justify-center gap-2 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 font-bold py-3 px-4 rounded-lg hover:bg-green-200 dark:hover:bg-green-900/50 transition-all">
+                    <a href={`https://wa.me/?text=${getShareText()}`} target="_blank" rel="noopener noreferrer" className="w-full flex items-center justify-center gap-2 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 font-bold py-3 px-4 rounded-lg hover:bg-green-200 dark:hover:bg-green-900/50 transition-all shadow-md">
                         <WhatsAppIcon className="w-5 h-5"/> Share Your Win
                     </a>
-                    <button onClick={onRestart} className="w-full bg-orange-500 text-white font-bold py-3 px-6 rounded-lg hover:bg-orange-600 transition-all active:scale-95">Do It Again!</button>
-                    <button onClick={onChangeProgram} className="w-full bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-bold py-3 px-6 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-all">Choose Another Program</button>
+                    <button onClick={onRestart} className="w-full bg-orange-500 text-white font-bold py-3 px-6 rounded-lg hover:bg-orange-600 transition-all active:scale-95 shadow-md">Do It Again!</button>
+                    <button onClick={onChangeProgram} className="w-full bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-bold py-3 px-6 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-all shadow-sm">Choose Another Program</button>
                 </div>
             </div>
         </div>
@@ -337,7 +341,7 @@ const WorkoutTimer: React.FC<{ plan: WorkoutPlan; onFinish: (durationInSeconds: 
     const isResting = currentExercise.type === 'Rest' || currentExercise.type === 'Recovery' || currentExercise.type === 'Preparation';
 
     return (
-        <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 animate-fade-in-up relative overflow-hidden">
+        <div className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl p-4 sm:p-6 rounded-xl shadow-2xl border border-white/40 dark:border-gray-700 animate-fade-in-up relative overflow-hidden">
             <StopWorkoutModal isOpen={isStopModalOpen} onContinue={() => { setIsStopModalOpen(false); handleStartPause(); }} onEnd={handleEndWorkout} />
             {caloriesBurned && <CalorieBurnAnimation key={caloriesBurned.key} amount={caloriesBurned.amount} quote={caloriesBurned.quote} />}
             
@@ -386,7 +390,7 @@ const WorkoutTimer: React.FC<{ plan: WorkoutPlan; onFinish: (durationInSeconds: 
                     <button 
                         key={`${ex.name}-${index}`} 
                         onClick={() => handleSkipTo(index)}
-                        className={`w-full text-left p-2 rounded-lg transition-all flex justify-between items-center ${index === currentExerciseIndex ? 'bg-orange-100 dark:bg-orange-900/40 ring-2 ring-orange-300 dark:ring-orange-600' : 'bg-gray-50 dark:bg-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-600'}`}
+                        className={`w-full text-left p-2 rounded-lg transition-all flex justify-between items-center ${index === currentExerciseIndex ? 'bg-orange-100/80 dark:bg-orange-900/40 ring-2 ring-orange-300 dark:ring-orange-600 backdrop-blur-sm' : 'bg-gray-50/50 dark:bg-gray-700/50 hover:bg-gray-100/80 dark:hover:bg-gray-600/80 backdrop-blur-sm'}`}
                     >
                         <div className="flex items-center gap-2">
                             <p className={`font-semibold text-sm ${index === currentExerciseIndex ? 'text-orange-800 dark:text-orange-300' : 'text-gray-800 dark:text-gray-200'}`}>
@@ -412,6 +416,7 @@ const Workouts: React.FC = () => {
     const [workoutDays, setWorkoutDays] = useState(3);
     const [recommendedDays, setRecommendedDays] = useState(3);
     const [recommendedProgramId, setRecommendedProgramId] = useState<string>('');
+    const [showHeartRateMonitor, setShowHeartRateMonitor] = useState(false);
 
     const calculateProgramState = useCallback(() => {
         const programDataRaw = localStorage.getItem(CURRENT_PROGRAM_KEY);
@@ -513,7 +518,7 @@ const Workouts: React.FC = () => {
             case 'program-selection':
                 const filteredPrograms = WORKOUT_PROGRAMS_DATA.filter(p => p.daysPerWeek === workoutDays);
                 return (
-                    <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 animate-fade-in">
+                    <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl p-6 rounded-xl shadow-lg border border-white/40 dark:border-gray-700 animate-fade-in">
                         <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-2">Choose Your Workout Program</h2>
                         <p className="text-gray-600 dark:text-gray-400 mb-6">Based on your profile, we recommend a <span className="font-bold text-orange-500">{recommendedDays}-day per week</span> program. You can adjust this as you like.</p>
                         <div className="mb-6">
@@ -522,7 +527,7 @@ const Workouts: React.FC = () => {
                         </div>
                         <div className="space-y-4">
                             {filteredPrograms.length > 0 ? filteredPrograms.map(prog => (
-                                <div key={prog.id} className={`p-4 rounded-lg border-2 transition-all ${prog.id === recommendedProgramId ? 'bg-orange-50 dark:bg-orange-900/20 border-orange-500' : 'bg-gray-50 dark:bg-gray-700/50 border-gray-200 dark:border-gray-700'}`}>
+                                <div key={prog.id} className={`p-4 rounded-lg border-2 transition-all duration-300 hover:shadow-lg hover:-translate-y-1 ${prog.id === recommendedProgramId ? 'bg-orange-50/80 dark:bg-orange-900/20 border-orange-500 backdrop-blur-sm' : 'bg-white/50 dark:bg-gray-700/50 border-white/20 dark:border-gray-700 backdrop-blur-sm'}`}>
                                     {prog.id === recommendedProgramId && <p className="text-xs font-bold text-orange-500 mb-1">RECOMMENDED FOR YOU</p>}
                                     <h3 className={`font-bold text-lg ${prog.id === recommendedProgramId ? 'text-orange-600 dark:text-orange-400' : 'text-gray-800 dark:text-gray-200'}`}>{prog.name}</h3>
                                     <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{prog.description}</p>
@@ -530,7 +535,7 @@ const Workouts: React.FC = () => {
                                         <div className="text-xs font-semibold text-gray-500 dark:text-gray-400">
                                             <span>{prog.durationWeeks} Weeks</span> &bull; <span>{prog.daysPerWeek} Days/Week</span> &bull; <span className="font-bold">{prog.intensity}</span>
                                         </div>
-                                        <button onClick={() => handleStartProgram(prog)} className="bg-green-500 text-white font-bold py-2 px-4 rounded-lg text-sm hover:bg-green-600 transition active:scale-95">Start Program</button>
+                                        <button onClick={() => handleStartProgram(prog)} className="bg-green-500 text-white font-bold py-2 px-4 rounded-lg text-sm hover:bg-green-600 transition active:scale-95 shadow-md">Start Program</button>
                                     </div>
                                 </div>
                             )) : (
@@ -544,26 +549,26 @@ const Workouts: React.FC = () => {
                 const dayNumber = Math.floor((new Date().getTime() - new Date(activeProgram!.startDate).getTime()) / (1000 * 60 * 60 * 24));
                 const weekNumber = Math.floor(dayNumber / 7) + 1;
                 return (
-                    <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 text-center animate-fade-in">
+                    <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl p-6 rounded-xl shadow-lg border border-white/40 dark:border-gray-700 text-center animate-fade-in">
                         <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-200">{currentProgram.name}</h1>
                         <p className="font-semibold text-gray-500 dark:text-gray-400">Week {weekNumber > currentProgram.durationWeeks ? currentProgram.durationWeeks : weekNumber} / {currentProgram.durationWeeks}</p>
                         
                         {todaysWorkoutPlan ? (
-                            <div className="my-6 p-6 bg-orange-50 dark:bg-orange-900/20 rounded-lg border border-orange-200 dark:border-orange-800">
+                            <div className="my-6 p-6 bg-orange-50/80 dark:bg-orange-900/20 rounded-lg border border-orange-200 dark:border-orange-800 backdrop-blur-sm">
                                 <p className="text-sm font-semibold text-orange-700 dark:text-orange-300">Today's Workout</p>
                                 <h2 className="text-3xl font-bold text-orange-600 dark:text-orange-400 mt-1">{todaysWorkoutPlan.name}</h2>
                                 <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">{todaysWorkoutPlan.details.join(' • ')}</p>
                             </div>
                         ) : (
-                             <div className="my-6 p-6 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                             <div className="my-6 p-6 bg-blue-50/80 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800 backdrop-blur-sm">
                                 <p className="text-3xl font-bold text-blue-600 dark:text-blue-400 mt-1">🌿 Rest Day</p>
                                 <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">Focus on recovery, hydration, and nutrition. Your body is rebuilding stronger!</p>
                             </div>
                         )}
 
                         <div className="space-y-3">
-                            {todaysWorkoutPlan && <button onClick={() => setView('timer')} className="w-full bg-green-500 text-white font-bold py-3 px-6 rounded-lg hover:bg-green-600 transition shadow-md active:scale-95">Start Today's Workout</button>}
-                            <button onClick={handleChangeProgram} className="w-full bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-bold py-2 px-4 rounded-lg text-sm hover:bg-gray-200 dark:hover:bg-gray-600 transition">Change Program</button>
+                            {todaysWorkoutPlan && <button onClick={() => setView('timer')} className="w-full bg-green-500 text-white font-bold py-3 px-6 rounded-lg hover:bg-green-600 transition shadow-md active:scale-95 hover:-translate-y-1">Start Today's Workout</button>}
+                            <button onClick={handleChangeProgram} className="w-full bg-gray-100/80 dark:bg-gray-700/80 text-gray-700 dark:text-gray-200 font-bold py-2 px-4 rounded-lg text-sm hover:bg-gray-200 dark:hover:bg-gray-600 transition backdrop-blur-sm">Change Program</button>
                         </div>
                     </div>
                 );
@@ -577,8 +582,20 @@ const Workouts: React.FC = () => {
     };
 
     return (
-        <div>
+        <div className="space-y-6">
             {toastInfo && <SuccessToast {...toastInfo} onClose={() => setToastInfo(null)} />}
+            {showHeartRateMonitor && <HeartRateMonitor onClose={() => setShowHeartRateMonitor(false)} />}
+            
+            <StepCounter />
+
+            <button
+                onClick={() => setShowHeartRateMonitor(true)}
+                className="w-full bg-red-500 dark:bg-red-600 text-white p-4 rounded-xl shadow-md flex items-center justify-center gap-3 hover:bg-red-600 dark:hover:bg-red-700 transition-all active:scale-95 hover:-translate-y-1"
+            >
+                <HeartPulseIcon className="w-8 h-8 animate-pulse" />
+                <span className="font-bold text-lg">Check Heart Rate</span>
+            </button>
+
             {renderContent()}
         </div>
     );

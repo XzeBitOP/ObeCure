@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { DietPreference, DietPlan, Sex, ActivityLevel, DietType, HealthCondition, DrKenilsNote, ProgressEntry, DailyIntake, FastingEntry, Meal, WaterEntry, CustomMealLogEntry, MealType } from '../types';
 import { findTwoMealOptions, findSwapMeal } from '../services/offlinePlanGenerator';
@@ -487,8 +488,6 @@ const DietPlanner: React.FC<DietPlannerProps> = ({ isSubscribed, onOpenSubscript
         setSelectedOptionIndex(optionIndex);
         setAnimatingOutIndex(1 - optionIndex); // Animate the other card
 
-// FIX: Refactored meal type and time assignment to be type-safe.
-// The original logic was reusing a variable for different purposes, causing type errors.
         setTimeout(() => {
             const timeMap: Record<string, string> = { 'Breakfast': '09:00 AM', 'Lunch': '01:00 PM', 'Dinner': '08:00 PM', 'Snack1': '11:00 AM', 'Snack2': '04:00 PM' };
             const slotType = mealSlotsToFill[currentSelectionIndex];
@@ -810,7 +809,7 @@ const DietPlanner: React.FC<DietPlannerProps> = ({ isSubscribed, onOpenSubscript
   };
   const handleBack = () => setFormStep(prev => prev > 1 ? prev - 1 : prev);
   
-  const formInputClass = "w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition";
+  const formInputClass = "w-full px-4 py-3 bg-gray-50/50 dark:bg-gray-700/50 rounded-lg border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition backdrop-blur-sm";
   const formLabelClass = "block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2";
 
   return (
@@ -834,7 +833,7 @@ const DietPlanner: React.FC<DietPlannerProps> = ({ isSubscribed, onOpenSubscript
         />
 
       {generationStep === 'form' && (
-      <div ref={formContainerRef} className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 scroll-mt-20">
+      <div ref={formContainerRef} className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl p-6 rounded-xl shadow-lg border border-white/40 dark:border-gray-700 scroll-mt-20">
         <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 dark:text-gray-200 text-center">{plannerTitle}</h1>
         <p className="mt-2 text-gray-600 dark:text-gray-400 mb-8 text-center max-w-prose mx-auto">
             {formStep === 1 && "Let's start with your basic information to create your profile."}
@@ -915,7 +914,7 @@ const DietPlanner: React.FC<DietPlannerProps> = ({ isSubscribed, onOpenSubscript
                 </div>
                 <div className="md:col-span-2">
                     <label className={formLabelClass}>Existing Health Conditions (optional)</label>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-3 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-3 p-4 bg-gray-50/50 dark:bg-gray-700/50 rounded-lg backdrop-blur-sm">
                         {Object.values(HealthCondition).map((condition) => (
                         <label key={condition} className="flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-300 cursor-pointer">
                             <input type="checkbox" checked={healthConditions.includes(condition)} onChange={() => handleConditionChange(condition)} className="h-4 w-4 rounded border-gray-300 text-orange-500 focus:ring-orange-400"/>
@@ -937,7 +936,7 @@ const DietPlanner: React.FC<DietPlannerProps> = ({ isSubscribed, onOpenSubscript
                 </div>
                 <div className="md:col-span-2">
                     <label className={formLabelClass}>Intermittent Fasting Window (optional)</label>
-                    <div className="grid grid-cols-2 gap-4 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                    <div className="grid grid-cols-2 gap-4 p-4 bg-gray-50/50 dark:bg-gray-700/50 rounded-lg backdrop-blur-sm">
                         <div>
                             <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Start Eating At</span>
                             <div className="flex gap-2 mt-1">
@@ -1011,7 +1010,7 @@ const DietPlanner: React.FC<DietPlannerProps> = ({ isSubscribed, onOpenSubscript
 
         {generationStep === 'selecting' && (
             <div className="animate-fade-in-up">
-                <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 mb-6">
+                <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-md p-6 rounded-xl shadow-lg border border-white/40 dark:border-gray-700 mb-6">
                     <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-200 text-center">
                         Choose Your {mealSlotsToFill[currentSelectionIndex] === 'Special' ? 'Special Meal' : mealSlotsToFill[currentSelectionIndex]}
                     </h2>
@@ -1023,7 +1022,7 @@ const DietPlanner: React.FC<DietPlannerProps> = ({ isSubscribed, onOpenSubscript
                              <div 
                                 key={index} 
                                 onClick={() => handleSelectOption(meal, index)}
-                                className={`p-6 rounded-lg shadow-lg border-2 transition-all duration-300 cursor-pointer hover:shadow-xl hover:border-orange-500 hover:-translate-y-1 ${ animatingOutIndex === index ? 'animate-evaporate' : 'animate-fade-in-up'} ${selectedOptionIndex === index ? 'border-orange-500 scale-105' : 'border-transparent bg-gray-50 dark:bg-gray-700/50'}`}
+                                className={`p-6 rounded-lg shadow-lg border-2 transition-all duration-300 cursor-pointer hover:shadow-2xl hover:border-orange-500 hover:-translate-y-1 ${ animatingOutIndex === index ? 'animate-evaporate' : 'animate-fade-in-up'} ${selectedOptionIndex === index ? 'border-orange-500 scale-105' : 'border-transparent bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm'}`}
                              >
                                 <h4 className="font-bold text-lg text-gray-800 dark:text-gray-200">{meal.name}</h4>
                                 <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{meal.recipe}</p>
@@ -1061,7 +1060,7 @@ const DietPlanner: React.FC<DietPlannerProps> = ({ isSubscribed, onOpenSubscript
                                 return (
                                 <div 
                                     key={index} 
-                                    className={`relative p-6 rounded-lg shadow-sm border-l-4 transition-all duration-300 ${isSpecial ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-400' : 'bg-gray-50 dark:bg-gray-700/50 border-gray-300 dark:border-gray-600'}`}
+                                    className={`relative p-6 rounded-lg shadow-md border-l-4 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl ${isSpecial ? 'bg-amber-50/90 dark:bg-amber-900/20 border-amber-400 backdrop-blur-sm' : 'bg-white/70 dark:bg-gray-800/70 border-gray-300 dark:border-gray-600 backdrop-blur-sm'}`}
                                 >
                                     <div className="flex items-start">
                                         <div className="mr-4 mt-1">
@@ -1092,7 +1091,7 @@ const DietPlanner: React.FC<DietPlannerProps> = ({ isSubscribed, onOpenSubscript
                     </div>
                     <div>
                          <div className="sticky top-20 z-10">
-                             <div className="p-4 bg-orange-50 dark:bg-orange-900/20 rounded-lg border border-orange-200 dark:border-orange-800 text-center mb-4">
+                             <div className="p-4 bg-orange-50/80 dark:bg-orange-900/20 backdrop-blur-md rounded-lg border border-orange-200 dark:border-orange-800 text-center mb-4 shadow-sm">
                                 <h4 className="font-bold text-orange-800 dark:text-orange-200">Total Intake</h4>
                                 <p className="text-3xl font-bold text-orange-600 dark:text-orange-400">{finalDietPlan.totalCalories} kcal</p>
                                 <div className="text-xs mt-1 flex justify-center gap-x-3 text-orange-700 dark:text-orange-300">
@@ -1102,29 +1101,29 @@ const DietPlanner: React.FC<DietPlannerProps> = ({ isSubscribed, onOpenSubscript
                                 </div>
                              </div>
                              
-                            <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800 mb-4">
+                            <div className="p-4 bg-blue-50/80 dark:bg-blue-900/20 backdrop-blur-md rounded-lg border border-blue-200 dark:border-blue-800 mb-4 shadow-sm">
                                 <h4 className="font-bold text-blue-800 dark:text-blue-200 mb-2 text-center">Daily Water Intake</h4>
                                 <div className="flex items-center justify-center gap-3">
-                                    <button onClick={() => handleWaterChange(-1)} className="w-8 h-8 rounded-full bg-blue-200 dark:bg-blue-700 text-blue-800 dark:text-blue-100 font-bold">-</button>
+                                    <button onClick={() => handleWaterChange(-1)} className="w-8 h-8 rounded-full bg-blue-200 dark:bg-blue-700 text-blue-800 dark:text-blue-100 font-bold hover:scale-110 transition">-</button>
                                     <WaterIcon className="w-8 h-8 text-blue-500" />
                                     <span className="text-2xl font-bold text-blue-600 dark:text-blue-300 w-12 text-center">{waterGlasses}</span>
-                                    <button onClick={() => handleWaterChange(1)} className="w-8 h-8 rounded-full bg-blue-200 dark:bg-blue-700 text-blue-800 dark:text-blue-100 font-bold">+</button>
+                                    <button onClick={() => handleWaterChange(1)} className="w-8 h-8 rounded-full bg-blue-200 dark:bg-blue-700 text-blue-800 dark:text-blue-100 font-bold hover:scale-110 transition">+</button>
                                 </div>
                                 <p className="text-xs text-center text-blue-600 dark:text-blue-400 mt-2">({(waterGlasses * 0.25).toFixed(2)} / 3.0 Liters)</p>
                             </div>
 
                             <div className="grid grid-cols-2 gap-3 mb-4">
-                               <button onClick={() => setIsLogMealModalOpen(true)} className="p-3 bg-gray-100 dark:bg-gray-700 rounded-lg font-semibold text-gray-700 dark:text-gray-200 text-sm hover:bg-gray-200 dark:hover:bg-gray-600 transition">Log Other Food</button>
-                               <button onClick={() => setIsHistoryModalOpen(true)} className="p-3 bg-gray-100 dark:bg-gray-700 rounded-lg font-semibold text-gray-700 dark:text-gray-200 text-sm hover:bg-gray-200 dark:hover:bg-gray-600 transition flex items-center justify-center gap-2">
+                               <button onClick={() => setIsLogMealModalOpen(true)} className="p-3 bg-gray-100/80 dark:bg-gray-700/80 backdrop-blur-sm rounded-lg font-semibold text-gray-700 dark:text-gray-200 text-sm hover:bg-gray-200 dark:hover:bg-gray-600 transition shadow-sm">Log Other Food</button>
+                               <button onClick={() => setIsHistoryModalOpen(true)} className="p-3 bg-gray-100/80 dark:bg-gray-700/80 backdrop-blur-sm rounded-lg font-semibold text-gray-700 dark:text-gray-200 text-sm hover:bg-gray-200 dark:hover:bg-gray-600 transition flex items-center justify-center gap-2 shadow-sm">
                                     <HistoryIcon className="w-5 h-5" />
                                     <span>Log History</span>
                                 </button>
                             </div>
 
-                             <button onClick={handleLogIntake} disabled={isLogging || logSuccess} className="w-full bg-green-500 text-white font-bold py-3 px-4 rounded-lg hover:bg-green-600 transition-all flex items-center justify-center space-x-2 disabled:bg-green-300">
+                             <button onClick={handleLogIntake} disabled={isLogging || logSuccess} className="w-full bg-green-500 text-white font-bold py-3 px-4 rounded-lg hover:bg-green-600 transition-all flex items-center justify-center space-x-2 disabled:bg-green-300 active:scale-95 shadow-md">
                                 {isLogging ? 'Logging...' : logSuccess ? <>Logged <CheckIcon className="w-5 h-5 ml-2"/></> : 'Log Today\'s Intake'}
                              </button>
-                             <a href={`https://wa.me/?text=${getShareText()}`} target="_blank" rel="noopener noreferrer" className="mt-3 w-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 font-bold py-3 px-4 rounded-lg hover:bg-green-200 dark:hover:bg-green-900/50 transition-all flex items-center justify-center space-x-2">
+                             <a href={`https://wa.me/?text=${getShareText()}`} target="_blank" rel="noopener noreferrer" className="mt-3 w-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 font-bold py-3 px-4 rounded-lg hover:bg-green-200 dark:hover:bg-green-900/50 transition-all flex items-center justify-center space-x-2 shadow-sm">
                                 <WhatsAppIcon className="w-5 h-5"/>
                                 <span>Share Plan</span>
                             </a>

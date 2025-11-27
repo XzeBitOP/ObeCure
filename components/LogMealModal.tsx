@@ -83,6 +83,17 @@ const ThinkingAnimation = () => {
     return <span className="text-2xl">{emojis[index]}</span>;
 };
 
+// --- Quick Add Data ---
+const quickAddOptions = [
+    { name: "Tea (Chai)", cal: 80 },
+    { name: "Coffee", cal: 60 },
+    { name: "Roti", cal: 100 },
+    { name: "Dal Bowl", cal: 150 },
+    { name: "Rice (1 cup)", cal: 200 },
+    { name: "Apple", cal: 95 },
+    { name: "Banana", cal: 105 },
+    { name: "Biscuits (2)", cal: 100 },
+];
 
 const LogMealModal: React.FC<LogMealModalProps> = ({ isOpen, onClose, onLog }) => {
   const [name, setName] = useState('');
@@ -96,6 +107,13 @@ const LogMealModal: React.FC<LogMealModalProps> = ({ isOpen, onClose, onLog }) =
     if (name.trim() && !isNaN(caloriesNum) && caloriesNum > 0) {
       onLog(name, caloriesNum, mealType);
     }
+  };
+
+  const handleQuickAdd = (itemName: string, itemCal: number) => {
+      setName(itemName);
+      setCalories(String(itemCal));
+      // Optional: Auto-focus or visual feedback
+      if(navigator.vibrate) navigator.vibrate(5);
   };
 
   useEffect(() => {
@@ -152,7 +170,23 @@ const LogMealModal: React.FC<LogMealModalProps> = ({ isOpen, onClose, onLog }) =
             <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-200">Log Custom Food</h2>
             <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition text-2xl">&times;</button>
         </div>
-        <p className="text-gray-600 dark:text-gray-400 mb-6">Enter the details of the food you ate that wasn't on your plan.</p>
+        
+        {/* Quick Add Section */}
+        <div className="mb-6">
+            <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Quick Add</p>
+            <div className="flex flex-wrap gap-2">
+                {quickAddOptions.map((item) => (
+                    <button 
+                        key={item.name}
+                        onClick={() => handleQuickAdd(item.name, item.cal)}
+                        className="px-3 py-1.5 bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-300 rounded-full text-xs font-semibold border border-orange-200 dark:border-orange-800 hover:bg-orange-100 dark:hover:bg-orange-800 transition-all active:scale-95"
+                    >
+                        {item.name}
+                    </button>
+                ))}
+            </div>
+        </div>
+
         <div className="space-y-4">
           <div>
             <label htmlFor="mealName" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Food Name</label>
@@ -190,8 +224,8 @@ const LogMealModal: React.FC<LogMealModalProps> = ({ isOpen, onClose, onLog }) =
           </div>
         </div>
         <div className="mt-6 flex flex-col sm:flex-row-reverse gap-3">
-            <button onClick={handleLog} className="w-full bg-orange-500 text-white font-bold py-3 px-6 rounded-lg hover:bg-orange-600 transition-all disabled:bg-orange-300" disabled={!name.trim() || !calories || parseInt(calories, 10) <= 0}>Log Food</button>
-            <button onClick={onClose} className="w-full bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 font-bold py-3 px-6 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500 transition">Cancel</button>
+            <button onClick={handleLog} className="w-full bg-orange-500 text-white font-bold py-3 px-6 rounded-lg hover:bg-orange-600 transition-all disabled:bg-orange-300 active:scale-95 shadow-md" disabled={!name.trim() || !calories || parseInt(calories, 10) <= 0}>Log Food</button>
+            <button onClick={onClose} className="w-full bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 font-bold py-3 px-6 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500 transition active:scale-95">Cancel</button>
         </div>
       </div>
     </div>

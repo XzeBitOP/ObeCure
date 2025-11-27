@@ -16,13 +16,22 @@
     <link rel="apple-touch-icon" href="/ios/180.png" />
     
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://apis.google.com/js/api.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Kalam:wght@400;700&display=swap" rel="stylesheet">
     <style>
       body {
         font-family: 'Poppins', sans-serif;
+        /* Premium Gradient Background */
+        background: linear-gradient(135deg, #fff7ed 0%, #fff1f2 50%, #fefce8 100%);
+        background-attachment: fixed;
       }
+      .dark body {
+        background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #000000 100%);
+        background-attachment: fixed;
+      }
+      
       .font-handwriting {
         font-family: 'Kalam', cursive;
       }
@@ -283,6 +292,16 @@
           animation: zen-sprout 0.8s ease-out 1.8s forwards;
       }
 
+      /* Shimmer for Skeleton */
+      @keyframes shimmer {
+        100% {
+          transform: translateX(100%);
+        }
+      }
+      .animate-shimmer {
+        animation: shimmer 2s infinite;
+      }
+
       /* --- EXERCISE ANIMATIONS --- */
       /* Squat */
       @keyframes ex-squat-legs {
@@ -339,7 +358,7 @@
 }
 </script>
 </head>
-  <body>
+  <body class="bg-gradient-to-br from-orange-50 via-white to-orange-100 dark:from-gray-900 dark:via-gray-800 dark:to-black min-h-screen selection:bg-orange-500 selection:text-white">
     <div id="root"></div>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>

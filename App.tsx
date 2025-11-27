@@ -17,11 +17,13 @@ import { ChartBarIcon } from './components/icons/ChartBarIcon';
 import { UsersIcon } from './components/icons/UsersIcon';
 import { BrainIcon } from './components/icons/BrainIcon';
 import { InfoIcon } from './components/icons/InfoIcon';
+import { ObeCureIcon } from './components/icons/ObeCureIcon';
 import { DietPlan } from './types';
 import StreakTracker from './components/StreakTracker';
 import { motivationalLines } from './data/motivationalLines';
 import LogSleepModal from './components/LogSleepModal';
 import ProductShowcase from './components/ProductShowcase'; // Imported ProductShowcase
+import InfoModal from './components/InfoModal';
 
 // Lazy load heavy components
 const DietPlanner = lazy(() => import('./components/DietPlanner'));
@@ -61,6 +63,7 @@ const App: React.FC = () => {
   const [isLogSleepOpen, setIsLogSleepOpen] = useState(false);
   const [isProgressModalOpen, setIsProgressModalOpen] = useState(false);
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+  const [isPsychiatryModalOpen, setIsPsychiatryModalOpen] = useState(false);
 
   // Data
   const [dietPlan, setDietPlan] = useState<DietPlan | null>(null);
@@ -202,6 +205,17 @@ const App: React.FC = () => {
       setIsCongratsModalOpen(true);
   };
 
+  const triggerHaptic = () => {
+      if (typeof navigator !== 'undefined' && navigator.vibrate) {
+          navigator.vibrate(10); // Subtle 10ms vibration
+      }
+  };
+
+  const handleViewChange = (view: View) => {
+      triggerHaptic();
+      setCurrentView(view);
+  };
+
   // --- Navigation Items ---
   const navItems: { id: View, label: string, icon: React.ElementType }[] = [
       { id: 'diet', label: 'Diet', icon: ForkAndSpoonIcon },
@@ -241,22 +255,23 @@ const App: React.FC = () => {
                   <div className="space-y-8">
                       <Faq />
                       
-                      {/* Victory Wall Link */}
-                      <div 
-                        onClick={() => setCurrentView('community')}
-                        className="cursor-pointer bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 hover:bg-orange-50 dark:hover:bg-gray-700/50 transition-all transform hover:-translate-y-1"
-                      >
-                        <h2 className="text-3xl font-bold text-gray-800 dark:text-gray-200 text-center mb-2">Victory Wall</h2>
-                        <p className="text-center text-gray-500 dark:text-gray-400">Join the community & share your wins!</p>
-                      </div>
-
-                      {/* Info Link */}
-                      <div 
-                        onClick={() => setCurrentView('info')}
-                        className="cursor-pointer p-4 bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-100 dark:border-gray-700 flex items-center justify-center gap-3 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all"
-                      >
-                        <InfoIcon className="w-6 h-6 text-orange-500" />
-                        <span className="font-bold text-gray-700 dark:text-gray-200">How ObeCure Works: A Guide for Everyone & Doctors</span>
+                      <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-md p-6 rounded-xl shadow-lg border border-white/20 dark:border-gray-700">
+                          <button 
+                              onClick={() => setIsPsychiatryModalOpen(true)}
+                              className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold py-4 px-6 rounded-xl hover:shadow-xl transition-all transform hover:-translate-y-1 active:scale-95 flex items-center justify-center gap-3 mb-6"
+                          >
+                              <BrainIcon className="w-8 h-8" />
+                              <span className="text-lg">Consult ObeCure Psychiatry</span>
+                          </button>
+                          
+                          <div className="bg-indigo-50 dark:bg-indigo-900/30 p-4 rounded-lg border border-indigo-100 dark:border-indigo-800">
+                              <h4 className="font-bold text-indigo-800 dark:text-indigo-200 mb-2 flex items-center gap-2">
+                                  Why Psychology?
+                              </h4>
+                              <p className="text-gray-700 dark:text-gray-300 text-sm leading-relaxed">
+                                  Sustainable weight loss isn't just about food; it's about rewiring habits. Psychological support helps address emotional eating, stress triggers, and behavioral patterns, ensuring your results last a lifetime.
+                              </p>
+                          </div>
                       </div>
                   </div>
               );
@@ -272,7 +287,7 @@ const App: React.FC = () => {
   }
 
   return (
-    <div className={`min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors duration-300 flex flex-col font-sans`}>
+    <div className={`min-h-screen bg-transparent text-gray-900 dark:text-gray-100 transition-colors duration-300 flex flex-col font-sans`}>
         <Header 
             onLogSleepClick={() => setIsLogSleepOpen(true)} 
             showInstallButton={!!deferredPrompt}
@@ -290,8 +305,8 @@ const App: React.FC = () => {
                 {navItems.map(item => (
                     <button
                         key={item.id}
-                        onClick={() => setCurrentView(item.id)}
-                        className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all duration-200 ${currentView === item.id ? 'bg-orange-500 text-white shadow-md transform scale-105' : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-orange-100 dark:hover:bg-gray-700'}`}
+                        onClick={() => handleViewChange(item.id)}
+                        className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all duration-200 backdrop-blur-sm ${currentView === item.id ? 'bg-orange-500 text-white shadow-lg transform scale-105' : 'bg-white/60 dark:bg-gray-800/60 text-gray-600 dark:text-gray-300 hover:bg-orange-100/80 dark:hover:bg-gray-700/80 shadow-sm'}`}
                     >
                         <item.icon className="w-5 h-5" />
                         <span className="font-medium">{item.label}</span>
@@ -303,35 +318,68 @@ const App: React.FC = () => {
                 {renderView()}
             </Suspense>
 
-            {/* Footer Links */}
-            <div className="mt-16 grid grid-cols-2 sm:grid-cols-4 gap-6 pb-8 border-t border-gray-200 dark:border-gray-700 pt-8">
-                  <a href="https://www.obeCure.com" target="_blank" rel="noopener noreferrer" className="flex flex-col items-center text-gray-500 dark:text-gray-400 hover:text-orange-500 dark:hover:text-orange-400 transition-all duration-300 transform hover:scale-110 active:scale-95 opacity-0 animate-fade-in-up" style={{animationDelay: '200ms'}}>
-                      <WebsiteIcon className="w-7 h-7 sm:w-8 sm:h-8"/>
-                      <span className="text-xs mt-1">ObeCure</span>
-                  </a>
-                  <a href="https://www.xzecure.co.in" target="_blank" rel="noopener noreferrer" className="flex flex-col items-center text-gray-500 dark:text-gray-400 hover:text-orange-500 dark:hover:text-orange-400 transition-all duration-300 transform hover:scale-110 active:scale-95 opacity-0 animate-fade-in-up" style={{animationDelay: '400ms'}}>
-                      <WebsiteIcon className="w-7 h-7 sm:w-8 sm:h-8"/>
-                      <span className="text-xs mt-1">Xzecure</span>
-                  </a>
-                  <a href="https://www.instagram.com/ObeCure_official" target="_blank" rel="noopener noreferrer" className="flex flex-col items-center text-gray-500 dark:text-gray-400 hover:text-orange-500 dark:hover:text-orange-400 transition-all duration-300 transform hover:scale-110 active:scale-95 opacity-0 animate-fade-in-up" style={{animationDelay: '600ms'}}>
-                      <InstagramIcon className="w-7 h-7 sm:w-8 sm:h-8"/>
-                      <span className="text-xs mt-1">@ObeCure_official</span>
-                  </a>
-                  <a href="https://www.instagram.com/askdr.xze" target="_blank" rel="noopener noreferrer" className="flex flex-col items-center text-gray-500 dark:text-gray-400 hover:text-orange-500 dark:hover:text-orange-400 transition-all duration-300 transform hover:scale-110 active:scale-95 opacity-0 animate-fade-in-up" style={{animationDelay: '800ms'}}>
-                      <InstagramIcon className="w-7 h-7 sm:w-8 sm:h-8"/>
-                      <span className="text-xs mt-1">@askdr.xze</span>
-                  </a>
+            {/* Footer Blocks */}
+            <div className="mt-16 pb-12 border-t border-gray-200 dark:border-gray-700 pt-8 space-y-6 max-w-2xl mx-auto">
+                
+                {/* Instagram Card */}
+                <div className="group relative overflow-hidden rounded-2xl p-[1px] transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl">
+                    <div className="absolute inset-0 bg-gradient-to-br from-purple-500 via-pink-500 to-orange-500 opacity-40 group-hover:opacity-100 transition-opacity duration-500 rounded-2xl"></div>
+                    <div className="relative flex flex-col sm:flex-row items-center justify-between gap-4 bg-white/90 dark:bg-gray-900/90 backdrop-blur-md rounded-2xl p-5 h-full border border-transparent dark:border-gray-800">
+                        <div className="flex items-center gap-4">
+                            <div className="p-3 rounded-full bg-gradient-to-br from-purple-500 via-pink-500 to-orange-500 text-white shadow-md group-hover:scale-110 transition-transform">
+                                <InstagramIcon className="w-6 h-6" />
+                            </div>
+                            <div>
+                                <h4 className="font-bold text-gray-800 dark:text-gray-100 text-lg leading-tight">Join the Community</h4>
+                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Daily tips & motivation</p>
+                            </div>
+                        </div>
+                        <div className="flex flex-wrap justify-center gap-3 w-full sm:w-auto">
+                            <a href="https://www.instagram.com/ObeCure_official" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-4 py-2 bg-gray-100/80 dark:bg-gray-800/80 hover:bg-pink-50 dark:hover:bg-pink-900/20 text-gray-700 dark:text-gray-300 hover:text-pink-600 dark:hover:text-pink-400 rounded-full text-sm font-medium transition-colors border border-gray-200 dark:border-gray-700 hover:border-pink-200 dark:hover:border-pink-800 backdrop-blur-sm">
+                                <ObeCureIcon className="w-4 h-4" /> @ObeCure_official
+                            </a>
+                            <a href="https://www.instagram.com/xzecure" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-4 py-2 bg-gray-100/80 dark:bg-gray-800/80 hover:bg-purple-50 dark:hover:bg-purple-900/20 text-gray-700 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400 rounded-full text-sm font-medium transition-colors border border-gray-200 dark:border-gray-700 hover:border-purple-200 dark:hover:border-purple-800 backdrop-blur-sm">
+                                <span>👨🏻‍⚕️</span> @XzeCure
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Website Card */}
+                <div className="group relative overflow-hidden rounded-2xl p-[1px] transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl">
+                    <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-cyan-400 opacity-40 group-hover:opacity-100 transition-opacity duration-500 rounded-2xl"></div>
+                    <div className="relative flex flex-col sm:flex-row items-center justify-between gap-4 bg-white/90 dark:bg-gray-900/90 backdrop-blur-md rounded-2xl p-5 h-full border border-transparent dark:border-gray-800">
+                        <div className="flex items-center gap-4">
+                            <div className="p-3 rounded-full bg-gradient-to-br from-blue-500 to-cyan-400 text-white shadow-md group-hover:scale-110 transition-transform">
+                                <WebsiteIcon className="w-6 h-6" />
+                            </div>
+                            <div>
+                                <h4 className="font-bold text-gray-800 dark:text-gray-100 text-lg leading-tight">Visit Our Websites</h4>
+                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Learn more & shop</p>
+                            </div>
+                        </div>
+                        <div className="flex flex-wrap justify-center gap-3 w-full sm:w-auto">
+                            <a href="https://www.obeCure.com" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-4 py-2 bg-gray-100/80 dark:bg-gray-800/80 hover:bg-blue-50 dark:hover:bg-blue-900/20 text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 rounded-full text-sm font-medium transition-colors border border-gray-200 dark:border-gray-700 hover:border-blue-200 dark:hover:border-blue-800 backdrop-blur-sm">
+                                <ObeCureIcon className="w-4 h-4" /> ObeCure.com
+                            </a>
+                            <a href="https://www.xzecure.co.in" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-4 py-2 bg-gray-100/80 dark:bg-gray-800/80 hover:bg-cyan-50 dark:hover:bg-cyan-900/20 text-gray-700 dark:text-gray-300 hover:text-cyan-600 dark:hover:text-cyan-400 rounded-full text-sm font-medium transition-colors border border-gray-200 dark:border-gray-700 hover:border-cyan-200 dark:hover:border-cyan-800 backdrop-blur-sm">
+                                <span>🏨</span> Xzecure.co.in
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
             </div>
         </main>
 
         {/* Mobile Bottom Navigation */}
-        <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 pb-safe z-50">
+        <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white/95 dark:bg-gray-900/95 backdrop-blur-lg border-t border-gray-200 dark:border-gray-700 pb-safe z-50">
             <div className="flex justify-around items-center px-2 py-3 overflow-x-auto no-scrollbar">
                 {navItems.map(item => (
                     <button
                         key={item.id}
-                        onClick={() => setCurrentView(item.id)}
-                        className={`flex flex-col items-center justify-center min-w-[60px] transition-all duration-200 ${currentView === item.id ? 'text-orange-500 scale-110' : 'text-gray-400 dark:text-gray-500'}`}
+                        onClick={() => handleViewChange(item.id)}
+                        className={`flex flex-col items-center justify-center min-w-[60px] transition-all duration-200 ${currentView === item.id ? 'text-orange-500 scale-110 drop-shadow-sm' : 'text-gray-400 dark:text-gray-500'}`}
                     >
                         <item.icon className="w-6 h-6" strokeWidth={currentView === item.id ? 2.5 : 2} />
                         <span className="text-[10px] mt-1 font-medium">{item.label}</span>
@@ -347,6 +395,19 @@ const App: React.FC = () => {
         <CongratulationsModal isOpen={isCongratsModalOpen} onClose={() => setIsCongratsModalOpen(false)} months={unlockedMonths} quote="Your journey to optimal health is powered up!" />
         <LogSleepModal isOpen={isLogSleepOpen} onClose={() => setIsLogSleepOpen(false)} age={userAge} />
         <Suspense fallback={null}><ProgressModal isOpen={isProgressModalOpen} onClose={() => setIsProgressModalOpen(false)} /></Suspense>
+        
+        <InfoModal 
+            isOpen={isPsychiatryModalOpen}
+            onClose={() => setIsPsychiatryModalOpen(false)}
+            title="Feature Coming Soon"
+            buttonText="Okay"
+        >
+            <div className="text-center">
+                <p className="text-lg mb-2">🧠</p>
+                <p>We are currently building a dedicated team of psychiatric experts to support your journey.</p>
+                <p className="mt-2 font-medium text-orange-500">Stay tuned for updates!</p>
+            </div>
+        </InfoModal>
     </div>
   );
 };

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { VictoryPost } from '../types';
 import PostVictoryModal from './PostVictoryModal';
@@ -150,14 +151,14 @@ const CommunityView: React.FC = () => {
                 onPost={handleAddPost}
             />
 
-            <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700">
+            <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl p-6 rounded-xl shadow-lg border border-white/40 dark:border-gray-700">
                 <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-200 text-center font-handwriting">
                     The Victory Wall
                 </h1>
                 <p className="text-center text-gray-500 dark:text-gray-400 mt-2">
                     A shared space for celebrating small wins. Anonymously.
                 </p>
-                <p className="text-center text-xs text-gray-400 dark:text-gray-500 mt-3 border-t border-gray-200 dark:border-gray-700 pt-3">
+                <p className="text-center text-xs text-gray-400 dark:text-gray-500 mt-3 border-t border-gray-200/50 dark:border-gray-700/50 pt-3">
                     Note: This is an offline-first community wall. New victories from others may take some time to appear.
                 </p>
             </div>
@@ -167,7 +168,7 @@ const CommunityView: React.FC = () => {
                     posts.map((post, index) => (
                         <div 
                             key={post.id} 
-                            className={`relative overflow-hidden bg-white dark:bg-gray-800 p-4 rounded-xl shadow-md border border-gray-100 dark:border-gray-700 opacity-0 animate-fade-in-up transition-all duration-300 ${post.id === newPostId ? 'animate-glowing-orange-border' : ''}`}
+                            className={`relative overflow-hidden bg-white/70 dark:bg-gray-800/70 backdrop-blur-md p-4 rounded-xl shadow-md border border-white/30 dark:border-gray-700 opacity-0 animate-fade-in-up transition-all duration-300 hover:-translate-y-1 hover:shadow-lg ${post.id === newPostId ? 'animate-glowing-orange-border' : ''}`}
                             style={{ animationDelay: `${index * 70}ms` }}
                         >
                             <div className="absolute inset-0 pointer-events-none">
@@ -197,7 +198,7 @@ const CommunityView: React.FC = () => {
                                 <div className="flex justify-end items-center mt-3">
                                     <button 
                                         onClick={() => handleCheer(post.id)}
-                                        className="flex items-center gap-2 text-sm font-semibold text-orange-600 dark:text-orange-400 bg-orange-100 dark:bg-orange-900/30 px-3 py-1 rounded-full hover:bg-orange-200 dark:hover:bg-orange-900/50 transition active:scale-95"
+                                        className="flex items-center gap-2 text-sm font-semibold text-orange-600 dark:text-orange-400 bg-orange-100/80 dark:bg-orange-900/30 px-3 py-1 rounded-full hover:bg-orange-200 dark:hover:bg-orange-900/50 transition active:scale-95 backdrop-blur-sm"
                                     >
                                         <span>🎉</span>
                                         <span>Cheer</span>

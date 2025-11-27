@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { BodyCompositionEntry, DailyIntake, Sex, WaterEntry, ProgressEntry, ActivityLevel, DietPreference, DietType, HealthCondition } from '../types';
 import * as calculator from '../services/bodyCompositionCalculator';
@@ -14,8 +15,8 @@ const PROGRESS_DATA_KEY = 'obeCureProgressData';
 
 const StatCard: React.FC<{ title: string; value: string; unit: string; description?: string; colorClass?: string; size?: 'normal' | 'large' }> = 
 ({ title, value, unit, description, colorClass = 'text-orange-500', size = 'normal' }) => (
-    <div className="bg-gray-50 dark:bg-gray-700/50 p-2 rounded-lg text-center h-full flex flex-col justify-center">
-        <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{title}</p>
+    <div className="bg-white/40 dark:bg-gray-700/40 backdrop-blur-sm p-3 rounded-lg text-center h-full flex flex-col justify-center border border-white/20 dark:border-gray-600 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:bg-white/60 dark:hover:bg-gray-700/60">
+        <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">{title}</p>
         <p className={`${size === 'large' ? 'text-4xl' : 'text-2xl'} font-bold ${colorClass} my-1`}>
             {value} <span className={`${size === 'large' ? 'text-xl' : 'text-base'} font-medium text-gray-600 dark:text-gray-300`}>{unit}</span>
         </p>
@@ -25,12 +26,12 @@ const StatCard: React.FC<{ title: string; value: string; unit: string; descripti
 
 const AccordionSection: React.FC<{ title: string; children: React.ReactNode, defaultOpen?: boolean }> = ({ title, children, defaultOpen = false }) => {
     return (
-        <details open={defaultOpen} className="bg-gray-50 dark:bg-gray-800/50 rounded-lg border dark:border-gray-700 transition-all duration-300 open:shadow-md group">
-            <summary className="p-4 font-semibold cursor-pointer flex justify-between items-center text-gray-700 dark:text-gray-300">
+        <details open={defaultOpen} className="bg-white/50 dark:bg-gray-800/50 backdrop-blur-md rounded-lg border border-white/30 dark:border-gray-700 transition-all duration-300 open:shadow-md group">
+            <summary className="p-4 font-semibold cursor-pointer flex justify-between items-center text-gray-700 dark:text-gray-300 hover:text-orange-500 dark:hover:text-orange-400 transition-colors">
                 {title}
                 <ChevronDownIcon className="w-5 h-5 transition-transform duration-300 transform-gpu group-open:rotate-180" />
             </summary>
-            <div className="px-4 pb-4 border-t border-gray-200 dark:border-gray-700">
+            <div className="px-4 pb-4 border-t border-gray-200/50 dark:border-gray-700/50">
                 {children}
             </div>
         </details>
@@ -275,14 +276,14 @@ const BodyComposition: React.FC<{ onOpenHistory: () => void; }> = ({ onOpenHisto
 
     const riskColor = (score: number) => score > 75 ? 'animate-glowing-red text-red-500' : score > 50 ? 'animate-glowing-yellow text-yellow-500' : 'text-green-500';
 
-    const formInputClass = "w-full p-2 text-sm bg-white dark:bg-gray-700 rounded-md border border-gray-300 dark:border-gray-600 focus:ring-orange-400";
+    const formInputClass = "w-full p-2 text-sm bg-white/70 dark:bg-gray-700/70 rounded-md border border-gray-300/50 dark:border-gray-600 focus:ring-orange-400 backdrop-blur-sm";
     const formLabelClass = "block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1";
 
     return (
         <div className="space-y-6 animate-fade-in">
             {toastInfo && <SuccessToast {...toastInfo} onClose={() => setToastInfo(null)} />}
             
-            <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700">
+            <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl p-6 rounded-xl shadow-lg border border-white/40 dark:border-gray-700">
                 <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-4">My Body Profile & Metrics</h2>
                 <div className="space-y-4">
                     <AccordionSection title="Personal Profile" defaultOpen={true}>

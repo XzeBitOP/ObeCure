@@ -1,15 +1,14 @@
+
 import React, { useRef, useEffect } from 'react';
 import LogSleep from './LogSleep';
 import NotificationBell from './NotificationBell';
 import { InstallIcon } from './icons/InstallIcon';
+import { ObeCureIcon } from './icons/ObeCureIcon';
 
 const ObeCureLogo: React.FC = () => {
     return (
         <div className="flex items-center space-x-3">
-             <svg width="48" height="48" viewBox="0 0 100 100" className="drop-shadow-lg">
-                <circle cx="50" cy="26" r="12" fill="#f97316" />
-                <path d="M 30,42 C 18,50 18,78 34,86 L 66,86 C 82,78 82,50 70,42 C 66,54 58,62 50,62 C 42,62 34,54 30,42 Z" fill="#f97316" />
-            </svg>
+             <ObeCureIcon className="w-12 h-12 drop-shadow-lg" />
             <div>
                 <span className="text-2xl sm:text-3xl font-bold tracking-tight text-gray-800 dark:text-gray-200">
                     Obe<span className="text-orange-500">Cure</span>
