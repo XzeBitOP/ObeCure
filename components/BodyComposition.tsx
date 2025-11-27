@@ -1,4 +1,6 @@
 
+
+
 import React, { useState, useEffect, useRef } from 'react';
 import { BodyCompositionEntry, DailyIntake, Sex, WaterEntry, ProgressEntry, ActivityLevel, DietPreference, DietType, HealthCondition } from '../types';
 import * as calculator from '../services/bodyCompositionCalculator';
@@ -67,6 +69,7 @@ const BodyComposition: React.FC<{ onOpenHistory: () => void; }> = ({ onOpenHisto
         bpSystolic: '',
         bpDiastolic: '',
         spO2: '',
+        bloodSugar: '',
     });
     const [results, setResults] = useState<BodyCompositionEntry | null>(null);
     const [history, setHistory] = useState<BodyCompositionEntry[]>([]);
@@ -74,6 +77,9 @@ const BodyComposition: React.FC<{ onOpenHistory: () => void; }> = ({ onOpenHisto
     const [toastInfo, setToastInfo] = useState<{ title: string; message: string; quote: string; } | null>(null);
     const [dailyStats, setDailyStats] = useState<{ hydration: number, tdee: number, bmr: number, intake: number, target: number }>({ hydration: 0, tdee: 0, bmr: 0, intake: 0, target: 0 });
     const resultsRef = useRef<HTMLDivElement>(null);
+
+    const isDiabetic = inputs.healthConditions.includes(HealthCondition.DIABETES);
+    const isHypertensive = inputs.healthConditions.includes(HealthCondition.HYPERTENSION);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
@@ -134,6 +140,7 @@ const BodyComposition: React.FC<{ onOpenHistory: () => void; }> = ({ onOpenHisto
             bpSystolic: prefs.bpSystolic || '',
             bpDiastolic: prefs.bpDiastolic || '',
             spO2: prefs.spO2 || '',
+            bloodSugar: prefs.bloodSugar || '',
         };
         setInputs(loadedInputs);
 
@@ -155,7 +162,6 @@ const BodyComposition: React.FC<{ onOpenHistory: () => void; }> = ({ onOpenHisto
                 if (historyData.length > 0) {
                     const latestEntry = historyData[historyData.length - 1];
                     // Auto-load latest results if they are from today and match current weight
-                    // SAFE CHECK ADDED: Optional chaining for inputs to prevent crash if old data format
                     const historicalWeight = latestEntry.metabolicAgeAnalysis?.inputs?.weight_kg?.toFixed(1) || '0';
                     if (latestEntry.date === new Date().toISOString().split('T')[0] && parseFloat(loadedInputs.weight) === parseFloat(historicalWeight)) {
                         setResults(latestEntry);
@@ -237,7 +243,22 @@ const BodyComposition: React.FC<{ onOpenHistory: () => void; }> = ({ onOpenHisto
             dietType,
             ethnicity: inputs.ethnicity
         });
-        setResults(calculatedResults);
+
+        // Add vitals to the result object
+        const finalResults: BodyCompositionEntry = {
+            ...calculatedResults,
+            vitals: {
+                heartRate: inputs.heartRate ? parseInt(inputs.heartRate) : undefined,
+                spO2: inputs.spO2 ? parseInt(inputs.spO2) : undefined,
+                bloodPressure: (inputs.bpSystolic && inputs.bpDiastolic) ? { 
+                    systolic: parseInt(inputs.bpSystolic), 
+                    diastolic: parseInt(inputs.bpDiastolic) 
+                } : undefined,
+                bloodSugar: inputs.bloodSugar ? parseInt(inputs.bloodSugar) : undefined
+            }
+        };
+
+        setResults(finalResults);
         
         const tdee = calculator.calculateTDEE({ weight: weightNum, height: heightNum, age: ageNum, sex: sex as Sex, activityLevel: activityLevel as ActivityLevel });
         setDailyStats(prev => ({ ...prev, tdee: Math.round(tdee) }));
@@ -247,7 +268,7 @@ const BodyComposition: React.FC<{ onOpenHistory: () => void; }> = ({ onOpenHisto
         const historyRaw = localStorage.getItem(BODY_COMPOSITION_KEY);
         let updatedHistory: BodyCompositionEntry[] = historyRaw ? JSON.parse(historyRaw) : [];
         const todayIndex = updatedHistory.findIndex(e => e.date === today);
-        if (todayIndex > -1) { updatedHistory[todayIndex] = calculatedResults; } else { updatedHistory.push(calculatedResults); }
+        if (todayIndex > -1) { updatedHistory[todayIndex] = finalResults; } else { updatedHistory.push(finalResults); }
         updatedHistory.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
         if (updatedHistory.length > 30) { updatedHistory = updatedHistory.slice(updatedHistory.length - 30); }
         localStorage.setItem(BODY_COMPOSITION_KEY, JSON.stringify(updatedHistory));
@@ -262,7 +283,7 @@ const BodyComposition: React.FC<{ onOpenHistory: () => void; }> = ({ onOpenHisto
         if (progressHistory.length > 30) { progressHistory = progressHistory.slice(progressHistory.length - 30); }
         localStorage.setItem(PROGRESS_DATA_KEY, JSON.stringify(progressHistory));
 
-        setToastInfo({ title: "Profile Saved & Calculated!", message: "Your body composition has been updated.", quote: "Knowledge is the first step towards change." });
+        setToastInfo({ title: "Profile Saved & Calculated!", message: "Your body composition and vitals have been updated.", quote: "Knowledge is the first step towards change." });
     };
     
     const pieData = (results && parseFloat(inputs.weight) > 0) ? [
@@ -305,19 +326,31 @@ const BodyComposition: React.FC<{ onOpenHistory: () => void; }> = ({ onOpenHisto
                             <div><label className={formLabelClass}>Neck (cm)*</label><input type="number" name="neck" value={inputs.neck} onChange={handleInputChange} required className={formInputClass} /></div>
                         </div>
                     </AccordionSection>
-                    <AccordionSection title="Vitals (Optional)">
-                        <div className="grid grid-cols-3 gap-4">
+                    <AccordionSection title="Vitals & Clinical Data" defaultOpen={isDiabetic || isHypertensive}>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                             <div>
-                                <label className={formLabelClass}>Heart Rate (bpm)</label>
-                                <input type="number" name="heartRate" value={inputs.heartRate} onChange={handleInputChange} className={formInputClass} />
-                            </div>
-                            <div>
-                                <label className={formLabelClass}>Blood Pressure</label>
+                                <label className={formLabelClass}>
+                                    Blood Pressure
+                                    {isHypertensive && <span className="ml-2 text-[10px] bg-red-100 text-red-600 px-1 rounded border border-red-200">Track</span>}
+                                </label>
                                 <div className="flex items-center gap-2">
                                     <input type="number" name="bpSystolic" value={inputs.bpSystolic} onChange={handleInputChange} placeholder="Sys" className={formInputClass} />
                                     <span>/</span>
                                     <input type="number" name="bpDiastolic" value={inputs.bpDiastolic} onChange={handleInputChange} placeholder="Dia" className={formInputClass} />
                                 </div>
+                            </div>
+                            <div>
+                                <label className={formLabelClass}>
+                                    Blood Sugar (Fasting)
+                                    {isDiabetic && <span className="ml-2 text-[10px] bg-red-100 text-red-600 px-1 rounded border border-red-200">Track</span>}
+                                </label>
+                                <div className="flex items-center gap-2">
+                                    <input type="number" name="bloodSugar" value={inputs.bloodSugar} onChange={handleInputChange} placeholder="mg/dL" className={formInputClass} />
+                                </div>
+                            </div>
+                            <div>
+                                <label className={formLabelClass}>Heart Rate (bpm)</label>
+                                <input type="number" name="heartRate" value={inputs.heartRate} onChange={handleInputChange} className={formInputClass} />
                             </div>
                             <div>
                                 <label className={formLabelClass}>Blood Oxygen (SpO₂%)</label>

@@ -145,6 +145,12 @@ export interface BodyCompositionEntry {
     dailyWaterRequirement: number; // in Liters
     bodyShape: 'Android (Apple)' | 'Gynoid (Pear)';
     metabolicRiskScore: number;
+    vitals?: {
+        bloodPressure?: { systolic: number; diastolic: number };
+        bloodSugar?: number; // mg/dL
+        heartRate?: number;
+        spO2?: number;
+    };
 }
 
 export interface FastingEntry {
