@@ -1,3 +1,4 @@
+
 import { DailyCheckin, DailyPlan, PlanItem, UserProfile } from "../types";
 
 export const isFiberLow = (user: UserProfile, planDates: string[], checkinDate: string): boolean => {
@@ -30,9 +31,10 @@ export const applyGuardrails = (
     // Palpitations after LeanPulse
     if (side_effects.palpitations) {
         const leanPulseInRecentPlans = planHistory.slice(0,3).some(p => p.plan.some(item => item.sku === 'LeanPulse'));
-        if (leanPulseInRecentPlans) {
+        // If reported today or recently, hold it
+        if (leanPulseInRecentPlans || side_effects.palpitations) {
              guardedPlan = guardedPlan.filter(item => item.sku !== 'LeanPulse');
-             guardrailNotes.push("LeanPulse is on hold for 3 days due to reported palpitations. Consult a doctor if they persist.");
+             guardrailNotes.push("LeanPulse is on hold due to reported palpitations. Consult a doctor if they persist.");
         }
     }
     
@@ -51,13 +53,12 @@ export const applyGuardrails = (
         guardrailNotes.push("Diabetes Medication: Monitor your blood sugar levels, as improved metabolic health may require adjusting medication doses with your doctor.");
     }
 
-    // GERD condition
+    // GERD condition - Strict Avoidance for LeanPulse
     if (user.baseline.conditions.gerd) {
-        const leanPulseItem = guardedPlan.find(item => item.sku === 'LeanPulse');
-        if (leanPulseItem && leanPulseItem.dose !== 'SKIP today') {
-            leanPulseItem.caution = "Take after a meal, not on an empty stomach, due to GERD.";
-        }
-        guardrailNotes.push("GERD/Acidity: Avoid LeanPulse on an empty stomach. Take Gutrify only after a meal.");
+        guardedPlan = guardedPlan.filter(item => item.sku !== 'LeanPulse');
+        guardrailNotes.push("LeanPulse is not recommended due to GERD/Acidity history.");
+        // Caution for Gutrify remains
+        guardrailNotes.push("Take Gutrify only after a meal to avoid acidity.");
     }
 
     return { guardedPlan, guardrailNotes };

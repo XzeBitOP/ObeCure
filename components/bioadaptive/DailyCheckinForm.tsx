@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { DailyCheckin, UserProfile, SleepEntry } from '../../types';
 
@@ -137,17 +138,17 @@ const SliderInput: React.FC<{label: string, name: keyof DailyCheckin, value: num
 
 
 const questions = [
-    { id: 'sleep_quality', label: 'How was your sleep quality?', Component: SleepQualityInput },
-    { id: 'stress', label: 'How is your stress level today?', Component: StressLevelInput },
-    { id: 'energy', label: 'How would you rate your energy level?', Component: EnergyLevelInput },
-    { id: 'hunger', label: 'How hungry do you feel?', minLabel: 'Not Hungry', maxLabel: 'Very Hungry' },
-    { id: 'bloating', label: 'How is your bloating?', minLabel: 'None', maxLabel: 'Severe' },
-    { id: 'focus', label: 'How is your focus and concentration?', minLabel: 'Distracted', maxLabel: 'Sharp' },
-    { id: 'bowel', label: 'Bowel Movement' },
-    { id: 'cravings', label: 'Food Cravings' },
-    { id: 'activity', label: 'Today\'s Activity' },
-    { id: 'side_effects', label: 'Any side effects today?' },
-    { id: 'weight_and_sleep', label: 'Finally, your stats for today' },
+    { id: 'sleep_quality', label: 'How was your sleep quality?', Component: SleepQualityInput, processText: "Analyzing Neural Recovery..." },
+    { id: 'stress', label: 'How is your stress level today?', Component: StressLevelInput, processText: "Measuring Cortisol Response..." },
+    { id: 'energy', label: 'How would you rate your energy level?', Component: EnergyLevelInput, processText: "Calibrating Metabolic Output..." },
+    { id: 'hunger', label: 'How hungry do you feel?', minLabel: 'Not Hungry', maxLabel: 'Very Hungry', processText: "Assessing Ghrelin Levels..." },
+    { id: 'bloating', label: 'How is your bloating?', minLabel: 'None', maxLabel: 'Severe', processText: "Evaluating Gut Microbiome..." },
+    { id: 'focus', label: 'How is your focus and concentration?', minLabel: 'Distracted', maxLabel: 'Sharp', processText: "Checking Neurotransmitter Balance..." },
+    { id: 'bowel', label: 'Bowel Movement', processText: "Verifying Digestive Motility..." },
+    { id: 'cravings', label: 'Food Cravings', processText: "Scanning for Nutrient Gaps..." },
+    { id: 'activity', label: 'Today\'s Activity', processText: "Calculating Active TDEE..." },
+    { id: 'side_effects', label: 'Any side effects today?', processText: "Checking Safety Guardrails..." },
+    { id: 'weight_and_sleep', label: 'Finally, your stats for today', processText: "Finalizing Dosage Formulation..." },
 ];
 
 const DailyCheckinForm: React.FC<DailyCheckinFormProps> = ({ user, onSubmit, existingCheckin }) => {
@@ -213,16 +214,30 @@ const DailyCheckinForm: React.FC<DailyCheckinFormProps> = ({ user, onSubmit, exi
     };
 
     const currentQuestion = questions[currentStep];
+    const progressPercent = Math.round(((currentStep + 1) / questions.length) * 100);
 
     return (
         <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 overflow-hidden">
-            <div className="mb-6">
-                <div className="flex justify-between mb-1 items-center">
-                    <span className="text-sm font-semibold text-gray-600 dark:text-gray-400">Step {currentStep + 1} of {questions.length}</span>
-                    {currentStep > 0 && <button onClick={() => setCurrentStep(s => s - 1)} className="text-sm font-semibold text-gray-500 hover:text-orange-500">&larr; Back</button>}
+            {/* Live Crafting Status Header */}
+            <div className="mb-8 bg-gray-50 dark:bg-gray-700/30 p-4 rounded-lg border border-gray-200 dark:border-gray-600 transition-all duration-500">
+                <div className="flex justify-between items-end mb-2">
+                    <div>
+                        <div className="flex items-center gap-2 mb-1">
+                            <span className="relative flex h-2 w-2">
+                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
+                              <span className="relative inline-flex rounded-full h-2 w-2 bg-orange-500"></span>
+                            </span>
+                            <span className="text-[10px] font-bold text-orange-500 uppercase tracking-widest">Live Bio-Analysis</span>
+                        </div>
+                        <p className="text-sm font-medium text-gray-700 dark:text-gray-300 animate-pulse transition-all">{currentQuestion.processText}</p>
+                    </div>
+                    <span className="text-3xl font-bold text-gray-800 dark:text-gray-100">{progressPercent}%</span>
                 </div>
-                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
-                    <div className="bg-orange-500 h-1.5 rounded-full transition-all duration-300" style={{ width: `${((currentStep + 1) / questions.length) * 100}%` }}></div>
+                <div className="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-2 overflow-hidden">
+                    <div 
+                        className="bg-gradient-to-r from-orange-400 to-red-500 h-full transition-all duration-700 ease-out" 
+                        style={{ width: `${progressPercent}%` }}
+                    ></div>
                 </div>
             </div>
 

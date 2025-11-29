@@ -1,3 +1,4 @@
+
 import { DailyCheckin, PlanItem, Scores, UserProfile, Sku, DailyPlan } from '../types';
 import { RULE_THRESHOLDS } from './constants';
 import { applyGuardrails, isFiberLow } from './guardrails';
@@ -54,18 +55,13 @@ export const applyDosingRules = (
     }
 
     // 4. LeanPulse Rules
-    const allow_stimulant = (checkin.sleep_hours >= RULE_THRESHOLDS.LEANPULSE_MIN_SLEEP) && (user.baseline.caffeine_sensitivity !== 'high') && (!checkin.side_effects.insomnia);
-    if (scores.EDS >= RULE_THRESHOLDS.LEANPULSE_HIGH_EDS && allow_stimulant) {
-        planItems.push({ sku: 'LeanPulse', dose: '1 tablet', time: 'AM or Pre-workout', reason: 'To boost energy and focus on high energy deficit days.' });
-    } else {
-        let reason = 'Energy levels are adequate today.';
-        if (!allow_stimulant) {
-            if (checkin.sleep_hours < RULE_THRESHOLDS.LEANPULSE_MIN_SLEEP) reason = 'Due to insufficient sleep.';
-            else if (user.baseline.caffeine_sensitivity === 'high') reason = 'Due to high caffeine sensitivity.';
-            else if (checkin.side_effects.insomnia) reason = 'Due to reported insomnia.';
-        }
-        planItems.push({ sku: 'LeanPulse', dose: 'SKIP today', time: 'N/A', reason });
-    }
+    // Updated Formulation: Safe for insufficient sleep. Recommended daily unless strictly contraindicated (GERD, Pregnancy, Palpitations).
+    planItems.push({ 
+        sku: 'LeanPulse', 
+        dose: '1 tablet', 
+        time: 'AM or Pre-workout', 
+        reason: 'Daily energy and metabolic support.' 
+    });
 
     // 5. MetaboFix Rules
     const persistentHighMss = planHistory.length >= 7 && planHistory.slice(0, 7).every(p => p.scores.MSS >= RULE_THRESHOLDS.METABOFIX_PERSISTENT_MSS);
