@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import * as googleFitService from '../services/googleFitService';
 import SuccessToast from './SuccessToast';
@@ -98,8 +99,8 @@ const StepCounter: React.FC<StepCounterProps> = () => {
                     <p>Click "Advanced" (bottom left) &rarr; "Go to ObeCure (unsafe)". This is normal for new apps.</p>
                     <hr className="border-gray-200 dark:border-gray-600"/>
                     <p><strong>"Origin Mismatch" Error?</strong></p>
-                    <p>1. Go to Google Cloud Console > APIs & Services > OAuth consent screen. Ensure <b>{window.location.hostname}</b> is added to 'Authorized domains'.</p>
-                    <p>2. Go to Credentials > OAuth Client ID. Add <b>{window.location.origin}</b> to 'Authorized JavaScript origins'.</p>
+                    <p>1. Go to Google Cloud Console &gt; APIs &amp; Services &gt; OAuth consent screen. Ensure <b>{window.location.hostname}</b> is added to 'Authorized domains'.</p>
+                    <p>2. Go to Credentials &gt; OAuth Client ID. Add <b>{window.location.origin}</b> to 'Authorized JavaScript origins'.</p>
                 </div>
             </InfoModal>
 
