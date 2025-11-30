@@ -1,12 +1,15 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import SubscriptionModal from './SubscriptionModal';
 import CongratulationsModal from './CongratulationsModal';
 import { Sex } from '../types';
 import { YouTubeIcon } from './icons/YouTubeIcon';
+import { GoogleIcon } from './icons/GoogleIcon';
 import { submitToGoogleForm } from '../services/googleFormSubmit';
 import LegalModal from './LegalModal';
 import { termsAndConditions } from '../data/terms';
 import { privacyPolicy } from '../data/privacy';
+import { signIn, getUserProfile, loadGoogleApi } from '../services/googleFitService';
 
 const motivationalQuotes = [
     "You don’t need to be perfect — just persistent.",
@@ -68,6 +71,8 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
   const [isSubscriptionModalOpen, setIsSubscriptionModalOpen] = useState(false);
   const [isCongratsModalOpen, setIsCongratsModalOpen] = useState(false);
   const [unlockedMonths, setUnlockedMonths] = useState(0);
+  const [googleLoading, setGoogleLoading] = useState(false);
+  const [googleUser, setGoogleUser] = useState<{name: string, email: string} | null>(null);
   
   const patientNameRef = useRef<HTMLInputElement>(null);
   const ageRef = useRef<HTMLInputElement>(null);
@@ -81,6 +86,10 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
     const timer = setTimeout(() => {
       setStep('form');
     }, 5000);
+    
+    // Initialize Google API early for smoother sign-in
+    loadGoogleApi(() => {});
+
     return () => clearTimeout(timer);
   }, []);
   
@@ -101,6 +110,25 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
         e.preventDefault();
         focusAndScroll(nextRef);
     }
+  };
+
+  const handleGoogleSignIn = async () => {
+      setGoogleLoading(true);
+      try {
+          const success = await signIn();
+          if (success) {
+              const profile = getUserProfile();
+              if (profile) {
+                  setGoogleUser({ name: profile.name, email: profile.email });
+                  setFormData(prev => ({ ...prev, patientName: profile.name }));
+              }
+          }
+      } catch (e) {
+          console.error("Google Sign In Error", e);
+          alert("Sign in failed. Please try again or continue manually.");
+      } finally {
+          setGoogleLoading(false);
+      }
   };
 
   const handleBegin = () => {
@@ -132,7 +160,11 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
         }
     } catch(e) { console.error("Could not parse existing prefs"); }
 
-    prefsToSave = { ...prefsToSave, ...formData };
+    prefsToSave = { 
+        ...prefsToSave, 
+        ...formData,
+        email: googleUser?.email || '' // Save email if available
+    };
     
     localStorage.setItem(USER_PREFERENCES_KEY, JSON.stringify(prefsToSave));
 
@@ -212,6 +244,36 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
               <div className="bg-white dark:bg-gray-800 p-6 sm:p-8 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700">
                   <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-200 text-center">Welcome to ObeCure</h1>
                   <p className="mt-2 text-gray-600 dark:text-gray-400 mb-6 text-center">Let's get your profile started.</p>
+                  
+                  {/* Google Sign In Button */}
+                  {!googleUser ? (
+                      <button
+                          onClick={handleGoogleSignIn}
+                          disabled={googleLoading}
+                          className="w-full mb-6 flex items-center justify-center gap-3 bg-white hover:bg-gray-50 text-gray-700 font-semibold py-3 px-4 rounded-lg border border-gray-300 shadow-sm transition-all active:scale-95 disabled:opacity-70"
+                      >
+                          {googleLoading ? (
+                              <div className="w-6 h-6 border-2 border-gray-300 border-t-blue-500 rounded-full animate-spin"></div>
+                          ) : (
+                              <GoogleIcon />
+                          )}
+                          <span>Sign up with Google</span>
+                      </button>
+                  ) : (
+                      <div className="mb-6 p-3 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-lg flex items-center gap-3 animate-fade-in">
+                          <GoogleIcon className="w-5 h-5"/>
+                          <span className="text-sm text-green-700 dark:text-green-300 font-medium">Signed in as {googleUser.name}</span>
+                      </div>
+                  )}
+
+                  <div className="relative mb-6">
+                      <div className="absolute inset-0 flex items-center">
+                          <div className="w-full border-t border-gray-200 dark:border-gray-700"></div>
+                      </div>
+                      <div className="relative flex justify-center text-sm">
+                          <span className="px-2 bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400">or fill details manually</span>
+                      </div>
+                  </div>
                   
                   <div className="space-y-4">
                       <div>

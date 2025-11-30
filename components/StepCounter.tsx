@@ -28,6 +28,8 @@ const StepCounter: React.FC<StepCounterProps> = () => {
                 fetchData();
             } else if (!process.env.REACT_APP_GOOGLE_CLIENT_ID && !process.env.REACT_APP_GOOGLE_API_KEY) {
                 // If no keys configured, degrade to demo mode to prevent crashes
+                // NOTE: In the 'restored' version, we check the hardcoded strings in the service
+                // This check catches if the service returns false immediately due to placeholder keys
             }
         });
     }, []);
@@ -77,10 +79,10 @@ const StepCounter: React.FC<StepCounterProps> = () => {
                 setDistance(3.8);
             } else if (err.error === 'popup_closed_by_user') {
                 setError(null); // User cancelled, no error
-            } else if (err.message.includes("Origin Mismatch") || err.message.includes("Authorized JavaScript origins") || err.message.includes("Auth Instance not available")) {
-                 setError(`Setup Error: Tap to see the fix.`);
+            } else if (err.message.includes("Origin Mismatch") || err.message.includes("Authorized JavaScript origins")) {
+                 setError(`Setup Error: Please add '${window.location.origin}' to Authorized Origins in Google Cloud Console.`);
             } else {
-                setError("Could not connect. Tap for help.");
+                setError("Could not connect to Google Fit. Tap for help.");
             }
         }
     };
@@ -92,31 +94,13 @@ const StepCounter: React.FC<StepCounterProps> = () => {
     return (
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 p-4 animate-fade-in relative overflow-hidden">
             <InfoModal isOpen={isHelpOpen} onClose={() => setIsHelpOpen(false)} title="Connection Help" buttonText="Got it">
-                <div className="text-sm space-y-4">
-                    <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-                        <p className="font-bold text-red-700 dark:text-red-300 mb-1">Step 1: Copy this URL</p>
-                        <code className="block bg-white dark:bg-gray-900 p-2 rounded border border-gray-300 dark:border-gray-600 font-mono text-xs break-all select-all">
-                            {window.location.origin}
-                        </code>
-                    </div>
-
-                    <div>
-                        <p className="font-bold text-gray-800 dark:text-gray-200 mb-1">Step 2: Add it to Google Console</p>
-                        <ol className="list-decimal list-inside space-y-2 text-gray-600 dark:text-gray-400">
-                            <li>Go to <b>Credentials &gt; OAuth Client ID</b>.</li>
-                            <li>Paste the URL into <b>Authorized JavaScript origins</b>.</li>
-                            <li>Click Save and wait 5 minutes.</li>
-                        </ol>
-                    </div>
-
+                <div className="text-sm space-y-3">
+                    <p><strong>"App not verified" Warning?</strong></p>
+                    <p>Click "Advanced" (bottom left) &rarr; "Go to ObeCure (unsafe)". This is normal for new apps.</p>
                     <hr className="border-gray-200 dark:border-gray-600"/>
-                    
-                    <div>
-                        <p className="font-bold text-gray-800 dark:text-gray-200 mb-1">Step 3: "App not verified"?</p>
-                        <p className="text-gray-600 dark:text-gray-400">
-                            If you see a warning screen, click <b>Advanced</b> (bottom left) &rarr; <b>Go to ObeCure (unsafe)</b>.
-                        </p>
-                    </div>
+                    <p><strong>"Origin Mismatch" Error?</strong></p>
+                    <p>1. Go to Google Cloud Console &gt; APIs &amp; Services &gt; OAuth consent screen. Ensure <b>{window.location.hostname}</b> is added to 'Authorized domains'.</p>
+                    <p>2. Go to Credentials &gt; OAuth Client ID. Add <b>{window.location.origin}</b> to 'Authorized JavaScript origins'.</p>
                 </div>
             </InfoModal>
 
@@ -199,7 +183,7 @@ const StepCounter: React.FC<StepCounterProps> = () => {
             
             {error && (
                 <div className="mt-3 p-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg" onClick={() => setIsHelpOpen(true)}>
-                    <p className="text-xs text-red-600 dark:text-red-300 text-center cursor-pointer hover:underline font-semibold">
+                    <p className="text-xs text-red-600 dark:text-red-300 text-center cursor-pointer hover:underline">
                         {error}
                     </p>
                 </div>

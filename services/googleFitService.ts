@@ -1,17 +1,32 @@
 
+// Helper to safely access process.env without crashing in browser-only environments
+const getEnv = (key: string) => {
+    try {
+        return typeof process !== 'undefined' && process.env ? process.env[key] : undefined;
+    } catch (e) {
+        return undefined;
+    }
+};
+
 // Production Google Cloud Credentials
-// These keys are restricted by HTTP Referrer in Google Cloud Console
-// We use process.env to allow hiding keys in production builds, falling back to provided keys for immediate functionality.
-const CLIENT_ID = process.env.REACT_APP_GOOGLE_CLIENT_ID || '936247255031-hd606mc0qbdge7ej72k6dudsosjt88hr.apps.googleusercontent.com'; 
-const API_KEY = process.env.REACT_APP_GOOGLE_API_KEY || 'AIzaSyAAKoSFqg09J7heGLPPmVJcUoJh2vOb2nw';
+// We use getEnv to safely check for environment variables, falling back to provided keys.
+const CLIENT_ID = getEnv('REACT_APP_GOOGLE_CLIENT_ID') || '936247255031-hd606mc0qbdge7ej72k6dudsosjt88hr.apps.googleusercontent.com'; 
+const API_KEY = getEnv('REACT_APP_GOOGLE_API_KEY') || 'AIzaSyAAKoSFqg09J7heGLPPmVJcUoJh2vOb2nw';
 
 const DISCOVERY_DOCS = ["https://www.googleapis.com/discovery/v1/apis/fitness/v1/rest"];
-const SCOPES = "https://www.googleapis.com/auth/fitness.activity.read";
+// Using profile and email scopes for login, activity read for fitness if available
+const SCOPES = "https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/fitness.activity.read";
 
 export interface FitData {
     steps: number;
     calories: number;
     distance: number; // in km
+}
+
+export interface GoogleProfile {
+    name: string;
+    email: string;
+    imageUrl: string;
 }
 
 export const loadGoogleApi = (callback: () => void) => {
@@ -116,6 +131,21 @@ export const signIn = async (): Promise<boolean> => {
     }
 };
 
+export const getUserProfile = (): GoogleProfile | null => {
+    const gapi = (window as any).gapi;
+    if (!gapi || !gapi.auth2) return null;
+    
+    const authInstance = gapi.auth2.getAuthInstance();
+    if (!authInstance || !authInstance.isSignedIn.get()) return null;
+
+    const profile = authInstance.currentUser.get().getBasicProfile();
+    return {
+        name: profile.getName(),
+        email: profile.getEmail(),
+        imageUrl: profile.getImageUrl(),
+    };
+};
+
 export const signOut = async (): Promise<void> => {
     const gapi = (window as any).gapi;
     if(gapi && gapi.auth2) {
@@ -126,62 +156,83 @@ export const signOut = async (): Promise<void> => {
     }
 };
 
+// Hybrid Strategy: Try Google Fit, Fallback to Local Storage
 export const fetchTodaySteps = async (): Promise<FitData> => {
     const gapi = (window as any).gapi;
-    
-    // Double check if client and fitness API are loaded
-    if (!gapi || !gapi.client || !gapi.client.fitness) {
-        // Attempt lazy load if missing (edge case)
-        await initClient();
-        if (!gapi.client || !gapi.client.fitness) {
-             throw new Error("Google Fit API not loaded or initialized");
-        }
-    }
+    let googleFitData = { steps: 0, calories: 0, distance: 0 };
+    let fitApiAvailable = false;
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const startTimeMillis = today.getTime();
-    const endTimeMillis = Date.now();
-
+    // 1. Attempt to fetch from Google Fit API
     try {
-        const response = await gapi.client.fitness.users.dataset.aggregate({
-            userId: 'me',
-            resource: {
-                aggregateBy: [
-                    { dataTypeName: "com.google.step_count.delta", dataSourceId: "derived:com.google.step_count.delta:com.google.android.gms:estimated_steps" },
-                    { dataTypeName: "com.google.calories.expended", dataSourceId: "derived:com.google.calories.expended:com.google.android.gms:merge_calories_expended" },
-                    { dataTypeName: "com.google.distance.delta", dataSourceId: "derived:com.google.distance.delta:com.google.android.gms:merge_distance_delta" }
-                ],
-                bucketByTime: { durationMillis: 86400000 }, // 24 hours
-                startTimeMillis: startTimeMillis,
-                endTimeMillis: endTimeMillis
-            }
-        });
+        if (gapi && gapi.client && gapi.client.fitness) {
+             const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const startTimeMillis = today.getTime();
+            const endTimeMillis = Date.now();
 
-        const bucket = response.result.bucket[0];
-        let steps = 0;
-        let calories = 0;
-        let distance = 0;
+            const response = await gapi.client.fitness.users.dataset.aggregate({
+                userId: 'me',
+                resource: {
+                    aggregateBy: [
+                        { dataTypeName: "com.google.step_count.delta", dataSourceId: "derived:com.google.step_count.delta:com.google.android.gms:estimated_steps" },
+                        { dataTypeName: "com.google.calories.expended", dataSourceId: "derived:com.google.calories.expended:com.google.android.gms:merge_calories_expended" },
+                        { dataTypeName: "com.google.distance.delta", dataSourceId: "derived:com.google.distance.delta:com.google.android.gms:merge_distance_delta" }
+                    ],
+                    bucketByTime: { durationMillis: 86400000 }, // 24 hours
+                    startTimeMillis: startTimeMillis,
+                    endTimeMillis: endTimeMillis
+                }
+            });
 
-        if (bucket && bucket.dataset) {
-            // Steps
-            if (bucket.dataset[0].point[0]) {
-                steps = bucket.dataset[0].point[0].value[0].intVal || 0;
-            }
-            // Calories
-            if (bucket.dataset[1].point[0]) {
-                calories = bucket.dataset[1].point[0].value[0].fpVal || 0;
-            }
-            // Distance
-            if (bucket.dataset[2].point[0]) {
-                distance = (bucket.dataset[2].point[0].value[0].fpVal || 0) / 1000; // Convert m to km
+            const bucket = response.result.bucket[0];
+            if (bucket && bucket.dataset) {
+                if (bucket.dataset[0].point[0]) googleFitData.steps = bucket.dataset[0].point[0].value[0].intVal || 0;
+                if (bucket.dataset[1].point[0]) googleFitData.calories = Math.round(bucket.dataset[1].point[0].value[0].fpVal || 0);
+                if (bucket.dataset[2].point[0]) googleFitData.distance = parseFloat(((bucket.dataset[2].point[0].value[0].fpVal || 0) / 1000).toFixed(2));
+                fitApiAvailable = true;
             }
         }
-
-        return { steps, calories: Math.round(calories), distance: parseFloat(distance.toFixed(2)) };
-
-    } catch (error) {
-        console.error("Error fetching fitness data:", error);
-        throw error;
+    } catch (e) {
+        console.warn("Google Fit API fetch failed, checking local storage.", e);
     }
+
+    // 2. If API worked and has data, return it
+    if (fitApiAvailable && googleFitData.steps > 0) {
+        return googleFitData;
+    }
+
+    // 3. Fallback: Fetch from Local Storage (Manual Mode)
+    return new Promise((resolve) => {
+        try {
+            const today = new Date().toISOString().split('T')[0];
+            const raw = localStorage.getItem('obeCureLocalSteps');
+            if (raw) {
+                const data = JSON.parse(raw);
+                if (data.date === today) {
+                    // Merge logic: If API returned 0 but manual has data, use manual. 
+                    // Ideally we'd sync them, but for now we prioritize manual if API fails/is empty.
+                    resolve(data.stats);
+                    return;
+                }
+            }
+            // If no manual data either, return zero or whatever API found (likely 0)
+            resolve(googleFitData);
+        } catch (e) {
+            resolve(googleFitData);
+        }
+    });
+};
+
+export const saveManualSteps = (steps: number): FitData => {
+    const calories = Math.round(steps * 0.045); 
+    const distance = parseFloat((steps * 0.000762).toFixed(2));
+    
+    const stats = { steps, calories, distance };
+    const data = {
+        date: new Date().toISOString().split('T')[0],
+        stats
+    };
+    
+    localStorage.setItem('obeCureLocalSteps', JSON.stringify(data));
+    return stats;
 };
