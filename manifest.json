@@ -15,49 +15,49 @@
   "categories": ["health", "fitness", "food", "lifestyle"],
   "icons": [
     {
-      "src": "/android/android-launchericon-48-48.png",
+      "src": "android/android-launchericon-48-48.png",
       "sizes": "48x48",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/android/android-launchericon-72-72.png",
+      "src": "android/android-launchericon-72-72.png",
       "sizes": "72x72",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/android/android-launchericon-96-96.png",
+      "src": "android/android-launchericon-96-96.png",
       "sizes": "96x96",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/android/android-launchericon-144-144.png",
+      "src": "android/android-launchericon-144-144.png",
       "sizes": "144x144",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/android/android-launchericon-192-192.png",
+      "src": "android/android-launchericon-192-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/android/android-launchericon-192-192.png",
+      "src": "android/android-launchericon-192-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "maskable"
     },
     {
-      "src": "/android/android-launchericon-512-512.png",
+      "src": "android/android-launchericon-512-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/android/android-launchericon-512-512.png",
+      "src": "android/android-launchericon-512-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
@@ -65,14 +65,14 @@
   ],
   "screenshots": [
     {
-      "src": "/screenshots/screenshot_phone.png",
+      "src": "screenshots/screenshot_phone.png",
       "sizes": "1080x1920",
       "type": "image/png",
       "form_factor": "narrow",
       "label": "Interactive mobile diet planner and workout timer"
     },
     {
-      "src": "/screenshots/screenshot_desktop.jpg",
+      "src": "screenshots/screenshot_desktop.jpg",
       "sizes": "1920x1080",
       "type": "image/jpeg",
       "form_factor": "wide",
@@ -85,21 +85,21 @@
       "short_name": "New Plan",
       "description": "Generate a new personalized diet plan.",
       "url": "/?view=planner",
-      "icons": [{ "src": "/android/android-launchericon-96-96.png", "sizes": "96x96", "type": "image/png" }]
+      "icons": [{ "src": "android/android-launchericon-96-96.png", "sizes": "96x96", "type": "image/png" }]
     },
     {
       "name": "View Workouts",
       "short_name": "Workouts",
       "description": "Access your workout plans.",
       "url": "/?view=workouts",
-      "icons": [{ "src": "/android/android-launchericon-96-96.png", "sizes": "96x96", "type": "image/png" }]
+      "icons": [{ "src": "android/android-launchericon-96-96.png", "sizes": "96x96", "type": "image/png" }]
     },
     {
       "name": "Log Sleep",
       "short_name": "Log Sleep",
       "description": "Log your sleep for the night.",
       "url": "/?action=logsleep",
-      "icons": [{ "src": "/android/android-launchericon-96-96.png", "sizes": "96x96", "type": "image/png" }]
+      "icons": [{ "src": "android/android-launchericon-96-96.png", "sizes": "96x96", "type": "image/png" }]
     }
   ],
   "share_target": {
