@@ -88,9 +88,9 @@ const BloodReportEvaluator: React.FC = () => {
         }
     }, [isOpen]); // Re-check when opening, in case profile was updated
 
-    if (!isOpen) {
-        return (
-            <div className="animate-fade-in text-center">
+    return (
+        <div className="animate-fade-in space-y-4">
+            {!isOpen ? (
                 <button
                     onClick={() => setIsOpen(true)}
                     aria-expanded="false"
@@ -102,32 +102,38 @@ const BloodReportEvaluator: React.FC = () => {
                     </h1>
                     <p className="text-gray-500 dark:text-gray-400 mt-2">Click to interpret your lab results</p>
                 </button>
-            </div>
-        );
-    }
+            ) : (
+                <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700">
+                    <button onClick={() => setIsOpen(false)} className="w-full text-center mb-6" aria-expanded="true">
+                        <ClipboardListIcon className="w-12 h-12 text-orange-500 mx-auto mb-4" />
+                        <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-200 sm:text-4xl">
+                            My Blood Report Evaluation
+                        </h1>
+                        <p className="text-gray-500 dark:text-gray-400 mt-2">Click to collapse</p>
+                    </button>
+                    
+                    <div className="p-4 mb-6 bg-yellow-50 dark:bg-yellow-900/30 border-l-4 border-yellow-400 text-yellow-800 dark:text-yellow-200">
+                        <p className="font-bold">Important:</p>
+                        <p className="text-sm">This tool provides general interpretations. Always crosscheck the unit values and normal ranges with those provided by your specific lab report, as they may differ.</p>
+                    </div>
 
-    return (
-        <div className="animate-fade-in">
-            <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700">
-                <button onClick={() => setIsOpen(false)} className="w-full text-center mb-6" aria-expanded="true">
-                    <ClipboardListIcon className="w-12 h-12 text-orange-500 mx-auto mb-4" />
-                    <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-200 sm:text-4xl">
-                        My Blood Report Evaluation
-                    </h1>
-                    <p className="text-gray-500 dark:text-gray-400 mt-2">Click to collapse</p>
-                </button>
-                
-                <div className="p-4 mb-6 bg-yellow-50 dark:bg-yellow-900/30 border-l-4 border-yellow-400 text-yellow-800 dark:text-yellow-200">
-                    <p className="font-bold">Important:</p>
-                    <p className="text-sm">This tool provides general interpretations. Always crosscheck the unit values and normal ranges with those provided by your specific lab report, as they may differ.</p>
+                    <div className="space-y-4 max-h-[80vh] overflow-y-auto pr-2">
+                        {bloodTestData.map(test => (
+                            <TestItem key={test.id} test={test} userSex={userSex} />
+                        ))}
+                    </div>
                 </div>
+            )}
 
-                <div className="space-y-4 max-h-[80vh] overflow-y-auto pr-2">
-                    {bloodTestData.map(test => (
-                        <TestItem key={test.id} test={test} userSex={userSex} />
-                    ))}
-                </div>
-            </div>
+            <a 
+                href="https://ObeCure.com" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="w-full block bg-gradient-to-r from-blue-600 to-cyan-500 text-white font-bold py-4 px-6 rounded-xl shadow-md hover:shadow-xl hover:from-blue-700 hover:to-cyan-600 transition-all transform hover:-translate-y-1 active:scale-95 flex items-center justify-center gap-3"
+            >
+                <span className="text-2xl">👨🏻‍⚕️</span>
+                <span className="text-lg">Consult Now</span>
+            </a>
         </div>
     );
 };
