@@ -1,3 +1,4 @@
+
 {
   "short_name": "ObeCure",
   "name": "ObeCure Diet Assistant",
@@ -61,6 +62,21 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
+    },
+    {
+      "src": "ios/180.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    },
+    {
+      "src": "windows11/Square150x150Logo.scale-100.png",
+      "sizes": "150x150",
+      "type": "image/png"
+    },
+    {
+      "src": "windows11/Square44x44Logo.scale-100.png",
+      "sizes": "44x44",
+      "type": "image/png"
     }
   ],
   "screenshots": [

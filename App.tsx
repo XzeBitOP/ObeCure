@@ -70,6 +70,7 @@ const App: React.FC = () => {
   const [streak, setStreak] = useState(0);
   const [motivationalLine, setMotivationalLine] = useState('');
   const [userAge, setUserAge] = useState<number>(0);
+  const [isStandalone, setIsStandalone] = useState(false);
 
   // --- Effects ---
 
@@ -123,6 +124,16 @@ const App: React.FC = () => {
       e.preventDefault();
       setDeferredPrompt(e);
     });
+
+    // Check Standalone Mode
+    const checkStandalone = () => {
+        const isStandaloneMode = window.matchMedia('(display-mode: standalone)').matches || 
+                                 (window.navigator as any).standalone || 
+                                 document.referrer.includes('android-app://');
+        setIsStandalone(isStandaloneMode);
+    };
+    checkStandalone();
+    window.matchMedia('(display-mode: standalone)').addEventListener('change', checkStandalone);
 
     return () => {
         mediaQuery.removeEventListener('change', handleThemeChange);
@@ -290,7 +301,7 @@ const App: React.FC = () => {
     <div className={`min-h-screen bg-transparent text-gray-900 dark:text-gray-100 transition-colors duration-300 flex flex-col font-sans`}>
         <Header 
             onLogSleepClick={() => setIsLogSleepOpen(true)} 
-            showInstallButton={!!deferredPrompt}
+            showInstallButton={!isStandalone}
             onInstallClick={handleInstallClick}
             isNotificationUnread={false} // Todo: implement logic
             onToggleNotification={() => setIsNotificationOpen(!isNotificationOpen)}

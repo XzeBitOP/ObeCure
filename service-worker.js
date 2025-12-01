@@ -1,3 +1,4 @@
+
 const CACHE_NAME = 'obecure-cache-v1';
 const urlsToCache = [
   '/',
@@ -117,6 +118,14 @@ const urlsToCache = [
   'android/android-launchericon-144-144.png',
   'android/android-launchericon-192-192.png',
   'android/android-launchericon-512-512.png',
+  // Windows Icons
+  'windows11/SmallTile.scale-100.png',
+  'windows11/Square150x150Logo.scale-100.png',
+  'windows11/Wide310x150Logo.scale-100.png',
+  'windows11/LargeTile.scale-100.png',
+  'windows11/Square44x44Logo.scale-100.png',
+  'windows11/StoreLogo.scale-100.png',
+  'windows11/SplashScreen.scale-100.png',
   // External assets
   'https://cdn.tailwindcss.com',
   'https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Kalam:wght@400;700&display=swap',
