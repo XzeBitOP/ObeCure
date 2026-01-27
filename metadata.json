@@ -1,8 +1,9 @@
 {
-  "name": "Adaptive  ObeCure Assistant",
+  "name": "Adaptive ObeCure Assistant",
   "description": "An application to generate personalized Indian diet plans based on calorie needs and dietary preferences, featuring workout plans.",
   "requestFramePermissions": [
     "microphone",
-    "camera"
+    "camera",
+    "geolocation"
   ]
 }

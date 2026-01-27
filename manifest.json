@@ -6,15 +6,30 @@
   "id": "/",
   "start_url": "/?source=pwa",
   "display": "standalone",
-  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
+  "display_override": [
+    "window-controls-overlay",
+    "standalone",
+    "minimal-ui"
+  ],
   "scope": "/",
   "theme_color": "#f97316",
   "background_color": "#1C2536",
   "orientation": "portrait-primary",
   "lang": "en-US",
   "dir": "ltr",
-  "categories": ["health", "fitness", "food", "lifestyle"],
+  "categories": [
+    "health",
+    "fitness",
+    "food",
+    "lifestyle"
+  ],
   "icons": [
+    {
+      "src": "https://drive.google.com/uc?id=15d3zogSqpb9kLx_mgxfwynnZBSojgahC",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
     {
       "src": "android/android-launchericon-48-48.png",
       "sizes": "48x48",
@@ -67,32 +82,6 @@
       "src": "ios/180.png",
       "sizes": "180x180",
       "type": "image/png"
-    },
-    {
-      "src": "windows11/Square150x150Logo.scale-100.png",
-      "sizes": "150x150",
-      "type": "image/png"
-    },
-    {
-      "src": "windows11/Square44x44Logo.scale-100.png",
-      "sizes": "44x44",
-      "type": "image/png"
-    }
-  ],
-  "screenshots": [
-    {
-      "src": "screenshots/screenshot_phone.png",
-      "sizes": "1080x1920",
-      "type": "image/png",
-      "form_factor": "narrow",
-      "label": "Interactive mobile diet planner and workout timer"
-    },
-    {
-      "src": "screenshots/screenshot_desktop.jpg",
-      "sizes": "1920x1080",
-      "type": "image/jpeg",
-      "form_factor": "wide",
-      "label": "Desktop view of the progress and body composition charts"
     }
   ],
   "shortcuts": [
@@ -101,49 +90,39 @@
       "short_name": "New Plan",
       "description": "Generate a new personalized diet plan.",
       "url": "/?view=planner",
-      "icons": [{ "src": "android/android-launchericon-96-96.png", "sizes": "96x96", "type": "image/png" }]
+      "icons": [
+        {
+          "src": "android/android-launchericon-96-96.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
     },
     {
       "name": "View Workouts",
       "short_name": "Workouts",
       "description": "Access your workout plans.",
       "url": "/?view=workouts",
-      "icons": [{ "src": "android/android-launchericon-96-96.png", "sizes": "96x96", "type": "image/png" }]
+      "icons": [
+        {
+          "src": "android/android-launchericon-96-96.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
     },
     {
       "name": "Log Sleep",
       "short_name": "Log Sleep",
       "description": "Log your sleep for the night.",
       "url": "/?action=logsleep",
-      "icons": [{ "src": "android/android-launchericon-96-96.png", "sizes": "96x96", "type": "image/png" }]
+      "icons": [
+        {
+          "src": "android/android-launchericon-96-96.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
     }
-  ],
-  "share_target": {
-    "action": "/?action=share",
-    "method": "GET",
-    "params": {
-      "title": "title",
-      "text": "text",
-      "url": "url"
-    }
-  },
-  "file_handlers": [
-    {
-      "action": "/?action=handlefile",
-      "accept": {
-        "image/*": [".jpg", ".jpeg", ".png", ".gif"]
-      }
-    }
-  ],
-  "launch_handler": {
-    "client_mode": ["navigate-existing", "auto"]
-  },
-  "prefer_related_applications": false,
-  "related_applications": [],
-  "iarc_rating_id": "",
-  "widgets": [],
-  "edge_side_panel": {
-    "preferred_width": 400
-  },
-  "scope_extensions": []
+  ]
 }

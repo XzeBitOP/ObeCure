@@ -7,7 +7,6 @@ import DisclaimerModal from './components/DisclaimerModal';
 import SubscriptionModal from './components/SubscriptionModal';
 import CongratulationsModal from './components/CongratulationsModal';
 import SubscriptionLock from './components/SubscriptionLock';
-// ThemeToggle removed
 import { WebsiteIcon } from './components/icons/WebsiteIcon';
 import { InstagramIcon } from './components/icons/InstagramIcon';
 import { ForkAndSpoonIcon } from './components/icons/ForkAndSpoonIcon';
@@ -22,7 +21,7 @@ import { DietPlan } from './types';
 import StreakTracker from './components/StreakTracker';
 import { motivationalLines } from './data/motivationalLines';
 import LogSleepModal from './components/LogSleepModal';
-import ProductShowcase from './components/ProductShowcase'; // Imported ProductShowcase
+import ProductShowcase from './components/ProductShowcase';
 import InfoModal from './components/InfoModal';
 
 // Lazy load heavy components
@@ -227,6 +226,30 @@ const App: React.FC = () => {
       setCurrentView(view);
   };
 
+  const handleEmergencyRequest = () => {
+    if ("geolocation" in navigator) {
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                const lat = position.coords.latitude;
+                const lng = position.coords.longitude;
+                const mapsUrl = `https://www.google.com/maps?q=${lat},${lng}`;
+                const message = encodeURIComponent(`EMERGENCY REQUEST. My Location: ${mapsUrl}`);
+                window.open(`https://wa.me/918200095781?text=${message}`, '_blank');
+            },
+            (error) => {
+                alert("Geolocation failed. Please ensure location services are enabled to send your exact coordinates. Sending generic alert.");
+                const message = encodeURIComponent(`EMERGENCY REQUEST. Location permission denied.`);
+                window.open(`https://wa.me/918200095781?text=${message}`, '_blank');
+            },
+            { enableHighAccuracy: true, timeout: 5000 }
+        );
+    } else {
+        alert("Geolocation is not supported by your browser. Sending generic alert.");
+        const message = encodeURIComponent(`EMERGENCY REQUEST. Geolocation not supported.`);
+        window.open(`https://wa.me/918200095781?text=${message}`, '_blank');
+    }
+  };
+
   // --- Navigation Items ---
   const navItems: { id: View, label: string, icon: React.ElementType }[] = [
       { id: 'diet', label: 'Diet', icon: ForkAndSpoonIcon },
@@ -311,6 +334,29 @@ const App: React.FC = () => {
         <main className="flex-grow container mx-auto px-4 pb-24 pt-6 max-w-5xl">
             <StreakTracker streak={streak} quote={motivationalLine} />
             
+            {/* Quick Access Control Board */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8 animate-fade-in-up">
+                <button 
+                    onClick={handleEmergencyRequest}
+                    className="w-full p-6 bg-red-600 hover:bg-red-700 text-white rounded-2xl flex flex-col items-center justify-center gap-2 shadow-xl shadow-red-900/20 active:scale-95 transition-all group"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-10 h-10 group-hover:animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                    <span className="font-black text-xl uppercase tracking-tighter">REQUEST EMERGENCY HELP</span>
+                </button>
+                
+                <a 
+                    href="upi://pay?pa=8200095781@pthdfc&pn=KenilShah"
+                    className="w-full p-6 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-100 rounded-2xl flex flex-col items-center justify-center gap-2 shadow-lg border border-gray-200 dark:border-gray-700 active:scale-95 transition-all"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-10 h-10 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                    </svg>
+                    <span className="font-bold text-lg uppercase tracking-tight">PAY ADVANCE / BOOKING FEE</span>
+                </a>
+            </div>
+
             {/* Desktop/Tablet Navigation (Top) */}
             <div className="hidden md:flex justify-center gap-4 mb-8 flex-wrap">
                 {navItems.map(item => (
