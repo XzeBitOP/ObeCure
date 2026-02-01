@@ -1,9 +1,9 @@
+
 <!DOCTYPE html>
 <html lang="en" class="">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/png" sizes="32x32" href="ios/32.png">
-    <link rel="icon" type="image/png" sizes="16x16" href="ios/16.png">
+    <link rel="icon" type="image/png" href="https://drive.google.com/uc?id=15d3zogSqpb9kLx_mgxfwynnZBSojgahC">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>ObeCure Diet Assistant</title>
     <link rel="manifest" href="manifest.json" />
@@ -13,7 +13,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="ObeCure" />
-    <link rel="apple-touch-icon" href="ios/180.png" />
+    <link rel="apple-touch-icon" href="https://drive.google.com/uc?id=15d3zogSqpb9kLx_mgxfwynnZBSojgahC" />
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://apis.google.com/js/api.js"></script>
@@ -23,7 +23,6 @@
     <style>
       body {
         font-family: 'Poppins', sans-serif;
-        /* Premium Gradient Background */
         background: linear-gradient(135deg, #fff7ed 0%, #fff1f2 50%, #fefce8 100%);
         background-attachment: fixed;
       }
@@ -35,317 +34,46 @@
       .font-handwriting {
         font-family: 'Kalam', cursive;
       }
-      @keyframes fadeIn {
-        from { opacity: 0; }
-        to { opacity: 1; }
-      }
-      @keyframes fadeInUp {
-        from { opacity: 0; transform: translateY(20px); }
-        to { opacity: 1; transform: translateY(0); }
-      }
-      .animate-fade-in {
-        animation: fadeIn 0.3s ease-out forwards;
-      }
-      .animate-fade-in-up {
-        animation: fadeInUp 0.4s ease-out forwards;
-      }
-      @keyframes dropdown {
-        from { opacity: 0; transform: translateY(-10px) scale(0.95); }
-        to { opacity: 1; transform: translateY(0) scale(1); }
-      }
-      .animate-dropdown {
-        animation: dropdown 0.2s ease-out forwards;
-      }
+      @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+      @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+      .animate-fade-in { animation: fadeIn 0.3s ease-out forwards; }
+      .animate-fade-in-up { animation: fadeInUp 0.4s ease-out forwards; }
+      @keyframes dropdown { from { opacity: 0; transform: translateY(-10px) scale(0.95); } to { opacity: 1; transform: translateY(0) scale(1); } }
+      .animate-dropdown { animation: dropdown 0.2s ease-out forwards; }
       @keyframes bounceIn {
-        0% {
-            transform: scale(0.5);
-            opacity: 0;
-        }
-        50% {
-            transform: scale(1.05);
-            opacity: 1;
-        }
-        70% {
-            transform: scale(0.9);
-        }
-        100% {
-            transform: scale(1);
-        }
+        0% { transform: scale(0.5); opacity: 0; }
+        50% { transform: scale(1.05); opacity: 1; }
+        70% { transform: scale(0.9); }
+        100% { transform: scale(1); }
       }
-      .animate-bounce-in {
-        animation: bounceIn 0.5s ease-out forwards;
-      }
-      @keyframes float {
-        from {
-          transform: translateY(0) rotate(0deg);
-          opacity: 0.5;
-        }
-        to {
-          transform: translateY(-450px) rotate(360deg);
-          opacity: 0;
-        }
-      }
-      .animate-float {
-        animation: float ease-in infinite;
-      }
-      @keyframes marquee {
-        from { transform: translateX(100%); }
-        to { transform: translateX(-100%); }
-      }
-      .animate-marquee {
-        animation: marquee 20s linear infinite;
-      }
-      @keyframes animated-gradient {
-        0% { background-position: 0% 50%; }
-        50% { background-position: 100% 50%; }
-        100% { background-position: 0% 50%; }
-      }
-      .animate-gradient-pulse {
-        background-size: 200% 200%;
-        animation: animated-gradient 8s ease-in-out infinite;
-      }
-       @keyframes drawCheck {
-        from { stroke-dashoffset: 100; }
-        to { stroke-dashoffset: 0; }
-      }
-      .animate-draw-check {
-        stroke-dasharray: 100;
-        stroke-dashoffset: 100;
-        animation: drawCheck 0.5s ease-out 0.3s forwards;
-      }
-      @keyframes sparkle {
-        0%, 100% { transform: scale(0); opacity: 0; }
-        50% { transform: scale(1.2); opacity: 1; }
-        80% { transform: scale(0.8); opacity: 0.5;}
-      }
-      .sparkle {
-        animation: sparkle 0.8s ease-in-out;
-        transform-origin: center;
-      }
-      @keyframes glowing-body {
-        0%, 100% {
-          filter: drop-shadow(0 0 5px #fbbf24) drop-shadow(0 0 10px #f97316) opacity(0.8);
-        }
-        50% {
-          filter: drop-shadow(0 0 15px #fbbf24) drop-shadow(0 0 25px #f97316) opacity(1);
-        }
-      }
-      .animate-glowing-body {
-        animation: glowing-body 4s ease-in-out infinite;
-      }
-
-      /* --- New Animations --- */
-      @keyframes glowing-orange-border {
-        0%, 100% {
-            box-shadow: 0 0 5px #fbbf24, 0 0 10px #f97316, inset 0 0 5px #fbbf24;
-            border-color: #fbbf24;
-        }
-        50% {
-            box-shadow: 0 0 15px #fbbf24, 0 0 25px #f97316, inset 0 0 10px #f97316;
-            border-color: #f59e0b;
-        }
-      }
-      .animate-glowing-orange-border {
-          animation: glowing-orange-border 3s ease-in-out infinite;
-      }
+      .animate-bounce-in { animation: bounceIn 0.5s ease-out forwards; }
+      @keyframes float { from { transform: translateY(0) rotate(0deg); opacity: 0.5; } to { transform: translateY(-450px) rotate(360deg); opacity: 0; } }
+      .animate-float { animation: float ease-in infinite; }
+      @keyframes animated-gradient { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+      .animate-gradient-pulse { background-size: 200% 200%; animation: animated-gradient 8s ease-in-out infinite; }
+       @keyframes drawCheck { from { stroke-dashoffset: 100; } to { stroke-dashoffset: 0; } }
+      .animate-draw-check { stroke-dasharray: 100; stroke-dashoffset: 100; animation: drawCheck 0.5s ease-out 0.3s forwards; }
+      @keyframes sparkle { 0%, 100% { transform: scale(0); opacity: 0; } 50% { transform: scale(1.2); opacity: 1; } 80% { transform: scale(0.8); opacity: 0.5;} }
+      .sparkle { animation: sparkle 0.8s ease-in-out; transform-origin: center; }
+      @keyframes glowing-body { 0%, 100% { filter: drop-shadow(0 0 5px #fbbf24) drop-shadow(0 0 10px #f97316) opacity(0.8); } 50% { filter: drop-shadow(0 0 15px #fbbf24) drop-shadow(0 0 25px #f97316) opacity(1); } }
+      .animate-glowing-body { animation: glowing-body 4s ease-in-out infinite; }
+      @keyframes glowing-orange-border { 0%, 100% { box-shadow: 0 0 5px #fbbf24, 0 0 10px #f97316, inset 0 0 5px #fbbf24; border-color: #fbbf24; } 50% { box-shadow: 0 0 15px #fbbf24, 0 0 25px #f97316, inset 0 0 10px #f97316; border-color: #f59e0b; } }
+      .animate-glowing-orange-border { animation: glowing-orange-border 3s ease-in-out infinite; }
+      @keyframes flame-flicker { 0%, 100% { transform: scale(1) rotate(-1deg); opacity: 1; } 50% { transform: scale(1.05) rotate(1deg); opacity: 0.95; } }
+      @keyframes subtle-glow { 0%, 100% { filter: drop-shadow(0 0 4px #f59e0b) drop-shadow(0 0 8px #ef4444); } 50% { filter: drop-shadow(0 0 8px #f59e0b) drop-shadow(0 0 16px #ef4444); } }
+      .animate-flame { animation: flame-flicker 1.5s ease-in-out infinite, subtle-glow 2.5s ease-in-out infinite; }
+      @keyframes shimmer { 100% { transform: translateX(100%); } }
+      .animate-shimmer { animation: shimmer 2s infinite; }
       
-      @keyframes glowing-red {
-        0%, 100% { text-shadow: 0 0 5px #fecaca, 0 0 10px #ef4444, 0 0 15px #dc2626; }
-        50% { text-shadow: 0 0 10px #fecaca, 0 0 20px #ef4444, 0 0 30px #dc2626; }
-      }
-      .animate-glowing-red {
-        animation: glowing-red 3s ease-in-out infinite;
-      }
-
-      @keyframes glowing-indigo {
-        0%, 100% { text-shadow: 0 0 5px #c7d2fe, 0 0 10px #818cf8, 0 0 15px #6366f1; }
-        50% { text-shadow: 0 0 10px #c7d2fe, 0 0 20px #818cf8, 0 0 30px #6366f1; }
-      }
-      .animate-glowing-indigo {
-        animation: glowing-indigo 3s ease-in-out infinite;
-      }
-
-      @keyframes glowing-yellow {
-        0%, 100% { text-shadow: 0 0 5px #fde68a, 0 0 10px #facc15, 0 0 15px #eab308; }
-        50% { text-shadow: 0 0 10px #fde68a, 0 0 20px #facc15, 0 0 30px #eab308; }
-      }
-      .animate-glowing-yellow {
-        animation: glowing-yellow 3s ease-in-out infinite;
-      }
-
-      @keyframes float-celebrate {
-        from {
-          transform: translateY(0) rotate(0deg) scale(1);
-          opacity: 1;
-        }
-        to {
-          transform: translateY(-200px) rotate(180deg) scale(0.5);
-          opacity: 0;
-        }
-      }
-      .animate-float-celebrate {
-          animation: float-celebrate 2s ease-out forwards;
-      }
-      
-      @keyframes float-card-emoji {
-        from {
-            transform: translateY(10px) rotate(0deg);
-            opacity: 0;
-        }
-        15%, 85% {
-            opacity: 0.7;
-        }
-        to {
-            transform: translateY(-150px) rotate(360deg);
-            opacity: 0;
-        }
-      }
-      .animate-float-card-emoji {
-          animation: float-card-emoji linear infinite;
-      }
-
-      /* --- Streak Animations --- */
-       @keyframes flame-flicker {
-        0%, 100% { transform: scale(1) rotate(-1deg); opacity: 1; }
-        50% { transform: scale(1.05) rotate(1deg); opacity: 0.95; }
-      }
-      @keyframes subtle-glow {
-        0%, 100% { filter: drop-shadow(0 0 4px #f59e0b) drop-shadow(0 0 8px #ef4444); }
-        50% { filter: drop-shadow(0 0 8px #f59e0b) drop-shadow(0 0 16px #ef4444); }
-      }
-      .animate-flame {
-        animation: flame-flicker 1.5s ease-in-out infinite, subtle-glow 2.5s ease-in-out infinite;
-      }
-
-      /* --- Zen Garden Animations --- */
-      @keyframes slideOutLeft {
-        from { transform: translateX(0); opacity: 1; }
-        to { transform: translateX(-100px); opacity: 0; }
-      }
-      .animate-slide-out-left {
-        animation: slideOutLeft 0.3s ease-in forwards;
-      }
-
-      @keyframes slideInRight {
-        from { transform: translateX(100px); opacity: 0; }
-        to { transform: translateX(0); opacity: 1; }
-      }
-      .animate-slide-in-right {
-        animation: slideInRight 0.3s ease-out forwards;
-      }
-
-      @keyframes fadeOut {
-        from { opacity: 1; transform: scale(1); }
-        to { opacity: 0; transform: scale(0.95); }
-      }
-      .animate-fade-out {
-        animation: fadeOut 0.3s ease-out forwards;
-      }
-
-      @keyframes evaporate {
-        to {
-          transform: scale(0.8) translateY(-20px);
-          opacity: 0;
-          filter: blur(5px);
-        }
-      }
-      .animate-evaporate {
-        animation: evaporate 0.5s ease-in forwards;
-      }
-
-      @keyframes burn-in {
-        from {
-          opacity: 0;
-          filter: blur(10px);
-          transform: translateY(20px);
-        }
-        to {
-          opacity: 1;
-          filter: blur(0);
-          transform: translateY(0);
-        }
-      }
-      .animate-burn-in {
-        animation: burn-in 0.6s ease-out forwards;
-      }
-
-      /* Zen Processing Animation */
-      @keyframes zen-lines-draw {
-          to { stroke-dashoffset: 0; }
-      }
-      @keyframes zen-lines-fade {
-          to { opacity: 0; }
-      }
-      @keyframes zen-sprout {
-          from { opacity: 0; transform: scale(0.5); }
-          to { opacity: 1; transform: scale(1); }
-      }
-      .zen-lines {
-          stroke-dasharray: 500;
-          stroke-dashoffset: 500;
-          animation: zen-lines-draw 1.5s ease-out forwards,
-                     zen-lines-fade 0.5s ease-in 1.6s forwards;
-      }
-      .zen-plant {
-          opacity: 0;
-          transform-origin: bottom center;
-          animation: zen-sprout 0.8s ease-out 1.8s forwards;
-      }
-
-      /* Shimmer for Skeleton */
-      @keyframes shimmer {
-        100% {
-          transform: translateX(100%);
-        }
-      }
-      .animate-shimmer {
-        animation: shimmer 2s infinite;
-      }
-
-      /* --- EXERCISE ANIMATIONS --- */
-      /* Squat */
-      @keyframes ex-squat-legs {
-        0%, 100% { d: path("M 70 150 L 70 200 L 70 250"); } /* Standing */
-        50% { d: path("M 70 150 L 40 180 L 70 250"); } /* Squatting */
-      }
-      @keyframes ex-squat-body {
-        0%, 100% { transform: translateY(0); }
-        50% { transform: translateY(30px); }
-      }
-
-      /* Jumping Jack */
-      @keyframes ex-jack-arms {
-        0%, 100% { d: path("M 100 70 L 100 130"); } /* Down */
-        50% { d: path("M 100 70 L 150 40"); } /* Up */
-      }
-      @keyframes ex-jack-legs {
-        0%, 100% { d: path("M 100 150 L 100 250"); } /* Together */
-        50% { d: path("M 100 150 L 140 250"); } /* Apart */
-      }
-
-      /* Pushup (Simulated by rotation) */
-      @keyframes ex-pushup-body {
-        0%, 100% { transform: rotate(-10deg); transform-origin: 150px 250px; }
-        50% { transform: rotate(30deg); transform-origin: 150px 250px; }
-      }
-      
-      /* Leg Raise */
-      @keyframes ex-leg-raise {
-        0%, 100% { d: path("M 100 150 L 100 250"); } /* Down */
-        50% { d: path("M 100 150 L 150 150"); } /* Up (90 deg) */
-      }
-
-      /* Side Stretch */
-      @keyframes ex-stretch-body {
-        0%, 100% { transform: rotate(0deg); transform-origin: 100px 200px; }
-        50% { transform: rotate(15deg); transform-origin: 100px 200px; }
-      }
-
-      /* Breathe / Idle */
-      @keyframes ex-breathe {
-        0%, 100% { transform: scale(1); }
-        50% { transform: scale(1.05); }
-      }
+      /* Exercise Animations */
+      @keyframes ex-squat-legs { 0%, 100% { d: path("M 70 150 L 70 200 L 70 250"); } 50% { d: path("M 70 150 L 40 180 L 70 250"); } }
+      @keyframes ex-squat-body { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(30px); } }
+      @keyframes ex-jack-arms { 0%, 100% { d: path("M 100 70 L 100 130"); } 50% { d: path("M 100 70 L 150 40"); } }
+      @keyframes ex-jack-legs { 0%, 100% { d: path("M 100 150 L 100 250"); } 50% { d: path("M 100 150 L 140 250"); } }
+      @keyframes ex-pushup-body { 0%, 100% { transform: rotate(-10deg); transform-origin: 150px 250px; } 50% { transform: rotate(30deg); transform-origin: 150px 250px; } }
+      @keyframes ex-leg-raise { 0%, 100% { d: path("M 100 150 L 100 250"); } 50% { d: path("M 100 150 L 150 150"); } }
+      @keyframes ex-stretch-body { 0%, 100% { transform: rotate(0deg); transform-origin: 100px 200px; } 50% { transform: rotate(15deg); transform-origin: 100px 200px; } }
+      @keyframes ex-breathe { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
     </style>
   <script type="importmap">
 {
