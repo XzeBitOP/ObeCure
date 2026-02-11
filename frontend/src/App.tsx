@@ -82,6 +82,31 @@ const App: React.FC = () => {
   // --- Effects ---
 
   useEffect(() => {
+    // Check authentication
+    const checkAuth = async () => {
+      const token = localStorage.getItem('auth_token');
+      if (token) {
+        try {
+          const response = await authAPI.getMe();
+          setUser(response.user);
+          setIsAuthenticated(true);
+          
+          // Check subscription status from backend
+          const subStatus = await subscriptionAPI.getStatus();
+          setIsSubscribed(subStatus.is_subscribed);
+        } catch (error) {
+          // Token invalid, clear and show auth modal
+          localStorage.removeItem('auth_token');
+          localStorage.removeItem('user_data');
+          setShowAuthModal(true);
+        }
+      } else {
+        setShowAuthModal(true);
+      }
+    };
+    
+    checkAuth();
+
     // Theme Initialization - Auto select based on system preference
     const handleThemeChange = (e: MediaQueryListEvent) => {
         setTheme(e.matches ? 'dark' : 'light');
@@ -92,21 +117,18 @@ const App: React.FC = () => {
 
     // Onboarding Check
     const prefs = localStorage.getItem(USER_PREFERENCES_KEY);
-    if (!prefs) {
+    if (!prefs && isAuthenticated) {
       setShowOnboarding(true);
-    } else {
+    } else if (prefs) {
         const parsedPrefs = JSON.parse(prefs);
         if(parsedPrefs.age) setUserAge(parseInt(parsedPrefs.age));
     }
 
     // Disclaimer Check
     const hasSeenDisclaimer = sessionStorage.getItem('obeCureDisclaimerSeen');
-    if (!hasSeenDisclaimer && prefs) {
+    if (!hasSeenDisclaimer && prefs && isAuthenticated) {
       setIsDisclaimerOpen(true);
     }
-
-    // Subscription Check
-    checkSubscription();
 
     // Diet Plan Load
     const planRaw = localStorage.getItem(DIET_PLAN_KEY);
@@ -146,7 +168,7 @@ const App: React.FC = () => {
         mediaQuery.removeEventListener('change', handleThemeChange);
     };
 
-  }, []);
+  }, [isAuthenticated]);
 
   useEffect(() => {
     document.documentElement.classList.remove('light', 'dark');
