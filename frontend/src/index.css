@@ -1,0 +1,83 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --bg-gradient-start: #1e1b4b;
+    --bg-gradient-end: #0f172a;
+  }
+  
+  body {
+    @apply font-sans antialiased;
+  }
+}
+
+@layer utilities {
+  .animate-fade-in {
+    animation: fadeIn 0.5s ease-in;
+  }
+  
+  .animate-fade-in-up {
+    animation: fadeInUp 0.6s ease-out;
+  }
+  
+  .animate-slide-in-right {
+    animation: slideInRight 0.4s ease-out;
+  }
+  
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  @keyframes slideInRight {
+    from {
+      transform: translateX(100%);
+    }
+    to {
+      transform: translateX(0);
+    }
+  }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-gray-100 dark:bg-gray-800;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-gray-300 dark:bg-gray-600 rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-gray-400 dark:bg-gray-500;
+}
+
+/* Glassmorphism effect */
+.glass {
+  @apply bg-white/10 backdrop-blur-md border border-white/20;
+}
+
+.glass-dark {
+  @apply dark:bg-gray-900/10 dark:backdrop-blur-md dark:border dark:border-gray-800/20;
+}
