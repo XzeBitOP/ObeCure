@@ -445,9 +445,10 @@ const App: React.FC = () => {
         </div>
 
         {/* Modals */}
+        <AuthModal isOpen={showAuthModal} onClose={() => {}} onSuccess={handleAuthSuccess} />
         <InstallPwaModal isOpen={isInstallModalOpen} onClose={() => setIsInstallModalOpen(false)} deferredPrompt={deferredPrompt} />
         <DisclaimerModal isOpen={isDisclaimerOpen} onClose={handleDisclaimerClose} />
-        <SubscriptionModal isOpen={isSubscriptionModalOpen} onClose={() => setIsSubscriptionModalOpen(false)} onSuccessfulRedeem={handleSuccessfulRedeem} />
+        <SubscriptionModalNew isOpen={isSubscriptionModalOpen} onClose={() => setIsSubscriptionModalOpen(false)} onSuccessfulRedeem={handleSuccessfulRedeem} />
         <CongratulationsModal isOpen={isCongratsModalOpen} onClose={() => setIsCongratsModalOpen(false)} months={unlockedMonths} quote="Your journey to optimal health is powered up!" />
         <LogSleepModal isOpen={isLogSleepOpen} onClose={() => setIsLogSleepOpen(false)} age={userAge} />
         <Suspense fallback={null}><ProgressModal isOpen={isProgressModalOpen} onClose={() => setIsProgressModalOpen(false)} /></Suspense>
