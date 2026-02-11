@@ -204,18 +204,21 @@ const App: React.FC = () => {
       }
   };
 
-  const checkSubscription = () => {
-    const expiryTimestamp = localStorage.getItem(SUBSCRIPTION_KEY);
-    if (expiryTimestamp) {
-        if (new Date().getTime() < parseInt(expiryTimestamp)) {
-            setIsSubscribed(true);
-        } else {
-            setIsSubscribed(false);
-            localStorage.removeItem(SUBSCRIPTION_KEY);
-        }
-    } else {
-        setIsSubscribed(false);
+  const checkSubscription = async () => {
+    try {
+      const status = await subscriptionAPI.getStatus();
+      setIsSubscribed(status.is_subscribed);
+    } catch (error) {
+      console.error('Failed to check subscription:', error);
+      setIsSubscribed(false);
     }
+  };
+
+  const handleAuthSuccess = (token: string, userData: any) => {
+    setIsAuthenticated(true);
+    setUser(userData);
+    setShowAuthModal(false);
+    checkSubscription();
   };
 
   const handleInstallClick = () => {
