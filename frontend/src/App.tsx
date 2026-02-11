@@ -4,9 +4,11 @@ import Header from './components/Header';
 import Onboarding from './components/Onboarding';
 import InstallPwaModal from './components/InstallPwaModal';
 import DisclaimerModal from './components/DisclaimerModal';
-import SubscriptionModal from './components/SubscriptionModal';
+import SubscriptionModalNew from './components/SubscriptionModalNew';
 import CongratulationsModal from './components/CongratulationsModal';
 import SubscriptionLock from './components/SubscriptionLock';
+import AuthModal from './components/AuthModal';
+import { authAPI, subscriptionAPI } from './services/api';
 // ThemeToggle removed
 import { WebsiteIcon } from './components/icons/WebsiteIcon';
 import { InstagramIcon } from './components/icons/InstagramIcon';
