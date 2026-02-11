@@ -1,0 +1,43 @@
+
+{
+  "short_name": "ObeCure",
+  "name": "ObeCure Diet Assistant",
+  "description": "An application to generate personalized Indian diet plans and BioAdaptive recommendations.",
+  "id": "/",
+  "start_url": "/?source=pwa",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
+  "scope": "/",
+  "theme_color": "#f97316",
+  "background_color": "#1C2536",
+  "orientation": "portrait-primary",
+  "lang": "en-US",
+  "dir": "ltr",
+  "categories": ["health", "fitness", "food", "lifestyle"],
+  "icons": [
+    {
+      "src": "https://drive.google.com/uc?id=15d3zogSqpb9kLx_mgxfwynnZBSojgahC",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "https://drive.google.com/uc?id=15d3zogSqpb9kLx_mgxfwynnZBSojgahC",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Create New Diet Plan",
+      "short_name": "New Plan",
+      "url": "/?view=planner"
+    },
+    {
+      "name": "View Workouts",
+      "short_name": "Workouts",
+      "url": "/?view=workouts"
+    }
+  ]
+}

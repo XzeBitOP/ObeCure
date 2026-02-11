@@ -1,0 +1,17 @@
+export const motivationalLines: string[] = [
+    "Small steps create big changes.",
+    "Track today, transform tomorrow.",
+    "Your journey begins with one log.",
+    "Progress starts with consistency.",
+    "Every meal you log counts.",
+    "Stay focused, stay lighter each day.",
+    "Your health record starts here.",
+    "One tap closer to your best self.",
+    "Show up today for the body you want.",
+    "The most powerful habit is showing up.",
+    "Real change happens when you track.",
+    "Keep the streak alive, stay unstoppable.",
+    "One good choice at a time builds success.",
+    "You’re already ahead for opening the app.",
+    "Stay consistent, your results are waiting.",
+];
