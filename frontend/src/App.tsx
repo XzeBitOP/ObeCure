@@ -289,8 +289,19 @@ const App: React.FC = () => {
           case 'stats':
               return (
                   <div className="space-y-8">
-                      <BodyComposition onOpenHistory={() => setIsProgressModalOpen(true)} />
-                      <BloodReportEvaluator />
+                      {isSubscribed ? (
+                          <>
+                              <BodyComposition onOpenHistory={() => setIsProgressModalOpen(true)} />
+                              <BloodReportEvaluator />
+                          </>
+                      ) : (
+                          <SubscriptionLock 
+                              onOpenSubscriptionModal={() => setIsSubscriptionModalOpen(true)} 
+                              featureName="My Body Analytics" 
+                              description="Unlock comprehensive body composition tracking, metabolic age analysis, and personalized health insights." 
+                              icon={<ChartBarIcon className="w-16 h-16 text-orange-500 mb-4" />} 
+                          />
+                      )}
                   </div>
               );
           case 'community':
