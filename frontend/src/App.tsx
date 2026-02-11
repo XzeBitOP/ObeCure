@@ -53,6 +53,11 @@ const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<View>('diet');
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
   
+  // Auth State
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [user, setUser] = useState<any>(null);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [unlockedMonths, setUnlockedMonths] = useState(0);
   
