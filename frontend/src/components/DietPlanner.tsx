@@ -45,13 +45,11 @@ const getActivityFactor = (level: ActivityLevel): number => {
 type GenerationStep = 'form' | 'selecting' | 'done';
 
 interface DietPlannerProps {
-  isSubscribed: boolean;
-  onOpenSubscriptionModal: () => void;
   dietPlan: DietPlan | null;
   setDietPlan: (plan: DietPlan | null) => void;
 }
 
-const DietPlanner: React.FC<DietPlannerProps> = ({ isSubscribed, onOpenSubscriptionModal, dietPlan: finalDietPlan, setDietPlan: setFinalDietPlan }) => {
+const DietPlanner: React.FC<DietPlannerProps> = ({ dietPlan: finalDietPlan, setDietPlan: setFinalDietPlan }) => {
   const [formStep, setFormStep] = useState(1);
   const [generationStep, setGenerationStep] = useState<GenerationStep>('form');
   const [patientName, setPatientName] = useState<string>('');
