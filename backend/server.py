@@ -302,8 +302,9 @@ async def update_preferences(preferences: UserPreferences, current_user: dict = 
     
     update_data = preferences.dict(exclude_none=True)
     
+    user_id = ObjectId(current_user["_id"])
     users_collection.update_one(
-        {"_id": current_user["_id"]},
+        {"_id": user_id},
         {"$set": {"preferences": update_data}}
     )
     
