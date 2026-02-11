@@ -241,11 +241,13 @@ const App: React.FC = () => {
     }
   };
 
-  const handleSuccessfulRedeem = (months: number) => {
+  const handleSuccessfulRedeem = async (months: number) => {
       setUnlockedMonths(months);
       setIsSubscribed(true);
       setIsSubscriptionModalOpen(false);
       setIsCongratsModalOpen(true);
+      // Refresh subscription status
+      await checkSubscription();
   };
 
   const triggerHaptic = () => {
