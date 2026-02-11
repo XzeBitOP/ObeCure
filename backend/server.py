@@ -233,8 +233,16 @@ async def redeem_code(request: RedeemCodeRequest, current_user: dict = Depends(g
             detail="Invalid redeem code"
         )
     
-    # Check if code already used
-    user = users_collection.find_one({"_id": current_user["_id"]})
+    # Check if code already used - get fresh user data
+    user_id = ObjectId(current_user["_id"])
+    user = users_collection.find_one({"_id": user_id})
+    
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+    
     used_codes = user.get("used_codes", [])
     
     if code in used_codes:
@@ -252,7 +260,7 @@ async def redeem_code(request: RedeemCodeRequest, current_user: dict = Depends(g
     
     # Update user subscription
     users_collection.update_one(
-        {"_id": current_user["_id"]},
+        {"_id": user_id},
         {
             "$set": {"subscription_expiry": new_expiry},
             "$push": {"used_codes": code}
