@@ -276,7 +276,7 @@ const App: React.FC = () => {
   const renderView = () => {
       switch (currentView) {
           case 'diet':
-              return <DietPlanner isSubscribed={isSubscribed} onOpenSubscriptionModal={() => setIsSubscriptionModalOpen(true)} dietPlan={dietPlan} setDietPlan={setDietPlan} />;
+              return <DietPlanner dietPlan={dietPlan} setDietPlan={setDietPlan} />;
           case 'bio':
               return (
                   <div className="space-y-8">
