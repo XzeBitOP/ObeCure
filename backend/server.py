@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel, EmailStr
 from pymongo import MongoClient
+from bson import ObjectId
 from passlib.context import CryptContext
 from jose import JWTError, jwt
 from datetime import datetime, timedelta
