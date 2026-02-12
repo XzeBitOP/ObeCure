@@ -57,10 +57,14 @@ const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<View>('diet');
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
   
+  // Splash Screen
+  const [showSplash, setShowSplash] = useState(true);
+  
   // Auth State
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [authChecked, setAuthChecked] = useState(false);
   
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [unlockedMonths, setUnlockedMonths] = useState(0);
