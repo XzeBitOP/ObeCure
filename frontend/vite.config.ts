@@ -8,12 +8,17 @@ export default defineConfig(({ mode }) => {
       server: {
         port: 3000,
         host: '0.0.0.0',
+        strictPort: false,
+        hmr: {
+          clientPort: 443,
+          protocol: 'wss',
+        },
       },
       plugins: [react()],
       define: {
         'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY),
         'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY),
-        'import.meta.env.VITE_BACKEND_URL': JSON.stringify(env.REACT_APP_BACKEND_URL || 'http://localhost:8001')
+        'import.meta.env.VITE_BACKEND_URL': JSON.stringify(env.REACT_APP_BACKEND_URL || env.VITE_BACKEND_URL || 'http://localhost:8001')
       },
       resolve: {
         alias: {
