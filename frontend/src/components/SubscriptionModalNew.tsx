@@ -80,12 +80,24 @@ const SubscriptionModalNew: React.FC<SubscriptionModalProps> = ({ isOpen, onClos
             return;
         }
 
+        // Check if code was already used locally
+        const usedCodes = JSON.parse(localStorage.getItem('used_redeem_codes') || '[]');
+        if (usedCodes.includes(redeemCode.trim())) {
+            setError('This code has already been used on this device');
+            return;
+        }
+
         setLoading(true);
         setError(null);
         setSuccess(null);
 
         try {
             const response = await subscriptionAPI.redeemCode(redeemCode.trim());
+            
+            // Store code in localStorage (keep only last 4 codes)
+            const updatedCodes = [redeemCode.trim(), ...usedCodes].slice(0, 4);
+            localStorage.setItem('used_redeem_codes', JSON.stringify(updatedCodes));
+            
             setSuccess(response.message);
             setTimeout(() => {
                 onSuccessfulRedeem(response.duration_months);
