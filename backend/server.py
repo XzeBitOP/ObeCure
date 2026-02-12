@@ -69,6 +69,32 @@ class UserPreferences(BaseModel):
     weight: Optional[float] = None
     preferences: Optional[dict] = None
 
+class CalorieLog(BaseModel):
+    date: str  # YYYY-MM-DD
+    meal_name: str
+    calories: int
+    meal_type: Optional[str] = None  # breakfast, lunch, dinner, snack
+
+class WorkoutLog(BaseModel):
+    date: str  # YYYY-MM-DD
+    workout_name: str
+    duration_minutes: int
+    calories_burned: Optional[int] = None
+
+class BodyMetricsLog(BaseModel):
+    date: str  # YYYY-MM-DD
+    weight: float
+    waist: Optional[float] = None
+    chest: Optional[float] = None
+    hips: Optional[float] = None
+    body_fat_percentage: Optional[float] = None
+    notes: Optional[str] = None
+
+class ReportRequest(BaseModel):
+    start_date: str
+    end_date: str
+    report_type: str  # "all", "calories", "workouts", "body_metrics"
+
 # Helper Functions
 def hash_password(password: str) -> str:
     return pwd_context.hash(password)
