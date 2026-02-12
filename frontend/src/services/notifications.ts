@@ -27,12 +27,19 @@ export const subscribeToNotifications = async (): Promise<boolean> => {
 
         const registration = await navigator.serviceWorker.ready;
         
+        // Get VAPID key from environment (optional - notifications work without push server)
+        const vapidKey = import.meta.env.VITE_VAPID_PUBLIC_KEY;
+        
+        if (!vapidKey) {
+            console.log('Push notifications not configured (missing VITE_VAPID_PUBLIC_KEY), using local notifications only');
+            scheduleLocalNotifications();
+            return true;
+        }
+        
         // Subscribe to push notifications
         const subscription = await registration.pushManager.subscribe({
             userVisibleOnly: true,
-            applicationServerKey: urlBase64ToUint8Array(
-                'BEl62iUYgUivxIkv69yViEuiBIa-Ib9-SkvMeAtA3LFgDzkrxZJjSgSnfckjBJuBkr3qBUYIHBQmuoWU6p8cYfM'
-            )
+            applicationServerKey: urlBase64ToUint8Array(vapidKey)
         });
 
         // Send subscription to backend
@@ -44,7 +51,9 @@ export const subscribeToNotifications = async (): Promise<boolean> => {
         return true;
     } catch (error) {
         console.error('Failed to subscribe to notifications:', error);
-        return false;
+        // Still try to schedule local notifications
+        scheduleLocalNotifications();
+        return true;
     }
 };
 
