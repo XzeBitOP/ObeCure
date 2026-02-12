@@ -373,6 +373,8 @@ const App: React.FC = () => {
             isNotificationUnread={false} // Todo: implement logic
             onToggleNotification={() => setIsNotificationOpen(!isNotificationOpen)}
             isNotificationOpen={isNotificationOpen}
+            onDailyLogClick={() => setIsDailyLogOpen(true)}
+            onReportsClick={() => setIsReportsOpen(true)}
         />
 
         <main className="flex-grow container mx-auto px-4 pb-24 pt-6 max-w-5xl">
