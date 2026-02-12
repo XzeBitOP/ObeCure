@@ -322,21 +322,11 @@ const SubscriptionModalNew: React.FC<SubscriptionModalProps> = ({ isOpen, onClos
                                 </button>
 
                                 <div className="bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-                                    <h4 className="font-semibold text-gray-800 dark:text-gray-100 mb-2">How it works:</h4>
-                                    <ul className="space-y-1 text-sm text-gray-600 dark:text-gray-400">
-                                        <li className="flex gap-2">
-                                            <span>•</span>
-                                            <span>Code contains <strong>'Y'</strong> → 1 Year access</span>
-                                        </li>
-                                        <li className="flex gap-2">
-                                            <span>•</span>
-                                            <span>Code contains <strong>'6'</strong> → 6 Months access</span>
-                                        </li>
-                                        <li className="flex gap-2">
-                                            <span>•</span>
-                                            <span>Code contains <strong>'1'</strong> → 1 Month access</span>
-                                        </li>
-                                    </ul>
+                                    <h4 className="font-semibold text-gray-800 dark:text-gray-100 mb-2">After Payment:</h4>
+                                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                                        Once you complete the payment and send the screenshot to WhatsApp, you'll receive a unique 14-digit code. 
+                                        Enter that code here to unlock premium features.
+                                    </p>
                                 </div>
                             </div>
                         </>
