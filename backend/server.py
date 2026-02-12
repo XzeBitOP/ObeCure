@@ -15,6 +15,7 @@ SECRET_KEY = os.getenv("SECRET_KEY", "obecure-secret-key-change-in-production")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_DAYS = 30
 MONGO_URL = os.getenv("MONGO_URL", "mongodb://localhost:27017/")
+DB_NAME = os.getenv("DB_NAME", "obecure_db")
 
 # Initialize FastAPI
 app = FastAPI(title="ObeCure API")
