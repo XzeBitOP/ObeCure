@@ -528,6 +528,38 @@ async def generate_report(request: ReportRequest, current_user: dict = Depends(g
     
     return report_data
 
+# === Notification Endpoints ===
+
+@app.post("/api/notifications/subscribe")
+async def subscribe_notifications(subscription: NotificationSubscription, current_user: dict = Depends(get_current_user)):
+    if db is None:
+        raise HTTPException(status_code=500, detail="Database connection error")
+    
+    sub_entry = {
+        "user_id": current_user["_id"],
+        "endpoint": subscription.endpoint,
+        "keys": subscription.keys,
+        "created_at": datetime.utcnow()
+    }
+    
+    # Update or insert subscription
+    notification_subscriptions.update_one(
+        {"user_id": current_user["_id"]},
+        {"$set": sub_entry},
+        upsert=True
+    )
+    
+    return {"success": True, "message": "Notification subscription saved"}
+
+@app.delete("/api/notifications/unsubscribe")
+async def unsubscribe_notifications(current_user: dict = Depends(get_current_user)):
+    if db is None:
+        raise HTTPException(status_code=500, detail="Database connection error")
+    
+    notification_subscriptions.delete_one({"user_id": current_user["_id"]})
+    
+    return {"success": True, "message": "Notification subscription removed"}
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8001)
