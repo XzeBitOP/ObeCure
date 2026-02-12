@@ -63,18 +63,44 @@ const Header: React.FC<HeaderProps> = ({
     <header className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-md sticky top-0 z-20 shadow-sm">
       <div className="max-w-5xl mx-auto py-4 px-4 sm:px-6 md:px-8 flex justify-between items-center">
          <ObeCureLogo />
-         <div className="flex items-center space-x-1 sm:space-x-4">
+         <div className="flex items-center space-x-1 sm:space-x-3">
             <p className="hidden md:block font-medium text-gray-600 dark:text-gray-300">Your Path to a Healthier You</p>
+            
+            {/* Daily Log Button */}
+            {onDailyLogClick && (
+                <button
+                    onClick={onDailyLogClick}
+                    className="relative w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-orange-500 to-pink-500 rounded-full flex items-center justify-center text-white shadow-lg hover:shadow-xl transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-400 active:scale-95"
+                    title="Daily Log"
+                >
+                    <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                    </svg>
+                </button>
+            )}
+            
+            {/* Reports Button */}
+            {onReportsClick && (
+                <button
+                    onClick={onReportsClick}
+                    className="relative w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white shadow-lg hover:shadow-xl transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-400 active:scale-95"
+                    title="View Reports"
+                >
+                    <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                </button>
+            )}
+            
             {showInstallButton && (
                 <div className="flex flex-col items-center">
                     <button
                         onClick={onInstallClick}
-                        className="relative w-12 h-12 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center text-gray-700 dark:text-gray-300 shadow-inner hover:bg-gray-300 dark:hover:bg-gray-600 transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-400 dark:focus:ring-offset-gray-800 active:scale-95"
+                        className="relative w-10 h-10 sm:w-12 sm:h-12 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center text-gray-700 dark:text-gray-300 shadow-inner hover:bg-gray-300 dark:hover:bg-gray-600 transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-400 dark:focus:ring-offset-gray-800 active:scale-95"
                         aria-label="Install App"
                     >
-                        <InstallIcon className="w-6 h-6 text-orange-500" />
+                        <InstallIcon className="w-5 h-5 sm:w-6 sm:h-6 text-orange-500" />
                     </button>
-                    <span className="text-xs font-medium text-gray-600 dark:text-gray-400 mt-1">Install App</span>
                 </div>
             )}
             <div className="relative" ref={notificationRef}>
