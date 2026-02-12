@@ -339,6 +339,190 @@ async def update_preferences(preferences: UserPreferences, current_user: dict = 
     
     return {"success": True, "message": "Preferences updated successfully"}
 
+# === Daily Logging Endpoints ===
+
+@app.post("/api/logs/calories")
+async def log_calories(log: CalorieLog, current_user: dict = Depends(get_current_user)):
+    if db is None:
+        raise HTTPException(status_code=500, detail="Database connection error")
+    
+    log_entry = {
+        "user_id": current_user["_id"],
+        "date": log.date,
+        "meal_name": log.meal_name,
+        "calories": log.calories,
+        "meal_type": log.meal_type,
+        "created_at": datetime.utcnow()
+    }
+    
+    result = calorie_logs_collection.insert_one(log_entry)
+    log_entry["_id"] = str(result.inserted_id)
+    
+    return {"success": True, "message": "Calorie log added", "log": log_entry}
+
+@app.get("/api/logs/calories")
+async def get_calorie_logs(date: Optional[str] = None, current_user: dict = Depends(get_current_user)):
+    if db is None:
+        raise HTTPException(status_code=500, detail="Database connection error")
+    
+    query = {"user_id": current_user["_id"]}
+    if date:
+        query["date"] = date
+    
+    logs = list(calorie_logs_collection.find(query).sort("created_at", -1))
+    for log in logs:
+        log["_id"] = str(log["_id"])
+    
+    return {"logs": logs}
+
+@app.post("/api/logs/workouts")
+async def log_workout(log: WorkoutLog, current_user: dict = Depends(get_current_user)):
+    if db is None:
+        raise HTTPException(status_code=500, detail="Database connection error")
+    
+    log_entry = {
+        "user_id": current_user["_id"],
+        "date": log.date,
+        "workout_name": log.workout_name,
+        "duration_minutes": log.duration_minutes,
+        "calories_burned": log.calories_burned,
+        "created_at": datetime.utcnow()
+    }
+    
+    result = workout_logs_collection.insert_one(log_entry)
+    log_entry["_id"] = str(result.inserted_id)
+    
+    return {"success": True, "message": "Workout log added", "log": log_entry}
+
+@app.get("/api/logs/workouts")
+async def get_workout_logs(date: Optional[str] = None, current_user: dict = Depends(get_current_user)):
+    if db is None:
+        raise HTTPException(status_code=500, detail="Database connection error")
+    
+    query = {"user_id": current_user["_id"]}
+    if date:
+        query["date"] = date
+    
+    logs = list(workout_logs_collection.find(query).sort("created_at", -1))
+    for log in logs:
+        log["_id"] = str(log["_id"])
+    
+    return {"logs": logs}
+
+@app.post("/api/logs/body-metrics")
+async def log_body_metrics(log: BodyMetricsLog, current_user: dict = Depends(get_current_user)):
+    if db is None:
+        raise HTTPException(status_code=500, detail="Database connection error")
+    
+    log_entry = {
+        "user_id": current_user["_id"],
+        "date": log.date,
+        "weight": log.weight,
+        "waist": log.waist,
+        "chest": log.chest,
+        "hips": log.hips,
+        "body_fat_percentage": log.body_fat_percentage,
+        "notes": log.notes,
+        "created_at": datetime.utcnow()
+    }
+    
+    result = body_metrics_collection.insert_one(log_entry)
+    log_entry["_id"] = str(result.inserted_id)
+    
+    return {"success": True, "message": "Body metrics logged", "log": log_entry}
+
+@app.get("/api/logs/body-metrics")
+async def get_body_metrics_logs(date: Optional[str] = None, current_user: dict = Depends(get_current_user)):
+    if db is None:
+        raise HTTPException(status_code=500, detail="Database connection error")
+    
+    query = {"user_id": current_user["_id"]}
+    if date:
+        query["date"] = date
+    
+    logs = list(body_metrics_collection.find(query).sort("date", -1))
+    for log in logs:
+        log["_id"] = str(log["_id"])
+    
+    return {"logs": logs}
+
+@app.post("/api/reports/generate")
+async def generate_report(request: ReportRequest, current_user: dict = Depends(get_current_user)):
+    if db is None:
+        raise HTTPException(status_code=500, detail="Database connection error")
+    
+    report_data = {
+        "user": current_user,
+        "period": {
+            "start": request.start_date,
+            "end": request.end_date
+        },
+        "generated_at": datetime.utcnow().isoformat()
+    }
+    
+    # Get calorie logs
+    if request.report_type in ["all", "calories"]:
+        calorie_logs = list(calorie_logs_collection.find({
+            "user_id": current_user["_id"],
+            "date": {"$gte": request.start_date, "$lte": request.end_date}
+        }).sort("date", 1))
+        
+        for log in calorie_logs:
+            log["_id"] = str(log["_id"])
+        
+        total_calories = sum(log["calories"] for log in calorie_logs)
+        avg_calories = total_calories / len(calorie_logs) if calorie_logs else 0
+        
+        report_data["calories"] = {
+            "logs": calorie_logs,
+            "total": total_calories,
+            "average_per_day": round(avg_calories, 2),
+            "days_logged": len(set(log["date"] for log in calorie_logs))
+        }
+    
+    # Get workout logs
+    if request.report_type in ["all", "workouts"]:
+        workout_logs = list(workout_logs_collection.find({
+            "user_id": current_user["_id"],
+            "date": {"$gte": request.start_date, "$lte": request.end_date}
+        }).sort("date", 1))
+        
+        for log in workout_logs:
+            log["_id"] = str(log["_id"])
+        
+        total_duration = sum(log["duration_minutes"] for log in workout_logs)
+        total_calories_burned = sum(log.get("calories_burned", 0) for log in workout_logs)
+        
+        report_data["workouts"] = {
+            "logs": workout_logs,
+            "total_sessions": len(workout_logs),
+            "total_duration_minutes": total_duration,
+            "total_calories_burned": total_calories_burned,
+            "days_worked_out": len(set(log["date"] for log in workout_logs))
+        }
+    
+    # Get body metrics
+    if request.report_type in ["all", "body_metrics"]:
+        body_metrics = list(body_metrics_collection.find({
+            "user_id": current_user["_id"],
+            "date": {"$gte": request.start_date, "$lte": request.end_date}
+        }).sort("date", 1))
+        
+        for log in body_metrics:
+            log["_id"] = str(log["_id"])
+        
+        weight_change = None
+        if len(body_metrics) >= 2:
+            weight_change = body_metrics[-1]["weight"] - body_metrics[0]["weight"]
+        
+        report_data["body_metrics"] = {
+            "logs": body_metrics,
+            "weight_change": round(weight_change, 2) if weight_change else None,
+            "measurements_taken": len(body_metrics)
+        }
+    
+    return report_data
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8001)
