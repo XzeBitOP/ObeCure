@@ -1,6 +1,11 @@
 import axios from 'axios';
 
-const API_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8001';
+const API_URL = import.meta.env.VITE_BACKEND_URL || import.meta.env.REACT_APP_BACKEND_URL || 'http://localhost:8001';
+
+// Validate API URL is configured
+if (!import.meta.env.VITE_BACKEND_URL && !import.meta.env.REACT_APP_BACKEND_URL && typeof window !== 'undefined') {
+    console.warn('Backend URL not configured. Using localhost fallback.');
+}
 
 // Create axios instance
 const api = axios.create({
