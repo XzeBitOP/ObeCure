@@ -413,7 +413,11 @@ async def get_workout_logs(date: Optional[str] = None, current_user: dict = Depe
     if date:
         query["date"] = date
     
-    logs = list(workout_logs_collection.find(query).sort("created_at", -1))
+    logs = list(workout_logs_collection.find(
+        query,
+        {"_id": 1, "date": 1, "workout_name": 1, "duration_minutes": 1, "calories_burned": 1, "created_at": 1}
+    ).sort("created_at", -1).limit(100))
+    
     for log in logs:
         log["_id"] = str(log["_id"])
     
