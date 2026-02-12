@@ -480,10 +480,13 @@ async def generate_report(request: ReportRequest, current_user: dict = Depends(g
     
     # Get calorie logs
     if request.report_type in ["all", "calories"]:
-        calorie_logs = list(calorie_logs_collection.find({
-            "user_id": current_user["_id"],
-            "date": {"$gte": request.start_date, "$lte": request.end_date}
-        }).sort("date", 1))
+        calorie_logs = list(calorie_logs_collection.find(
+            {
+                "user_id": current_user["_id"],
+                "date": {"$gte": request.start_date, "$lte": request.end_date}
+            },
+            {"_id": 1, "date": 1, "meal_name": 1, "calories": 1, "meal_type": 1}
+        ).sort("date", 1).limit(500))
         
         for log in calorie_logs:
             log["_id"] = str(log["_id"])
@@ -500,10 +503,13 @@ async def generate_report(request: ReportRequest, current_user: dict = Depends(g
     
     # Get workout logs
     if request.report_type in ["all", "workouts"]:
-        workout_logs = list(workout_logs_collection.find({
-            "user_id": current_user["_id"],
-            "date": {"$gte": request.start_date, "$lte": request.end_date}
-        }).sort("date", 1))
+        workout_logs = list(workout_logs_collection.find(
+            {
+                "user_id": current_user["_id"],
+                "date": {"$gte": request.start_date, "$lte": request.end_date}
+            },
+            {"_id": 1, "date": 1, "workout_name": 1, "duration_minutes": 1, "calories_burned": 1}
+        ).sort("date", 1).limit(500))
         
         for log in workout_logs:
             log["_id"] = str(log["_id"])
@@ -521,10 +527,13 @@ async def generate_report(request: ReportRequest, current_user: dict = Depends(g
     
     # Get body metrics
     if request.report_type in ["all", "body_metrics"]:
-        body_metrics = list(body_metrics_collection.find({
-            "user_id": current_user["_id"],
-            "date": {"$gte": request.start_date, "$lte": request.end_date}
-        }).sort("date", 1))
+        body_metrics = list(body_metrics_collection.find(
+            {
+                "user_id": current_user["_id"],
+                "date": {"$gte": request.start_date, "$lte": request.end_date}
+            },
+            {"_id": 1, "date": 1, "weight": 1, "waist": 1, "chest": 1, "hips": 1, "body_fat_percentage": 1}
+        ).sort("date", 1).limit(500))
         
         for log in body_metrics:
             log["_id"] = str(log["_id"])
