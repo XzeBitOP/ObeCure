@@ -33,6 +33,9 @@ try:
     mongo_client = MongoClient(MONGO_URL)
     db = mongo_client["obecure_db"]
     users_collection = db["users"]
+    calorie_logs_collection = db["calorie_logs"]
+    workout_logs_collection = db["workout_logs"]
+    body_metrics_collection = db["body_metrics"]
     # Create unique index on email
     users_collection.create_index("email", unique=True)
     print("✅ Connected to MongoDB successfully")
