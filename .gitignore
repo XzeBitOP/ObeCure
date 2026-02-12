@@ -60,3 +60,7 @@ tmp/
 
 # ObeCure specific
 ObeCure/
+-e 
+# Environment files
+*.env
+*.env.*
