@@ -377,11 +377,16 @@ const App: React.FC = () => {
       }
   };
 
-  if (showOnboarding) {
-      return <Onboarding onComplete={handleOnboardingComplete} />;
-  }
-
   return (
+    <div className={`min-h-screen ${theme === 'dark' ? 'dark' : ''}`}>
+      {/* Splash Screen */}
+      {showSplash && <SplashScreen onComplete={handleSplashComplete} />}
+      
+      {/* Main App Content */}
+      {!showSplash && (
+        <>
+        {showOnboarding && <Onboarding onComplete={handleOnboardingComplete} />}
+        {!showOnboarding && (
     <div className={`min-h-screen bg-transparent text-gray-900 dark:text-gray-100 transition-colors duration-300 flex flex-col font-sans`}>
         <Header 
             onLogSleepClick={() => setIsLogSleepOpen(true)} 
