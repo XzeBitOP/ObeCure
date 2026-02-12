@@ -74,6 +74,8 @@ const App: React.FC = () => {
   const [isProgressModalOpen, setIsProgressModalOpen] = useState(false);
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [isPsychiatryModalOpen, setIsPsychiatryModalOpen] = useState(false);
+  const [isDailyLogOpen, setIsDailyLogOpen] = useState(false);
+  const [isReportsOpen, setIsReportsOpen] = useState(false);
 
   // Data
   const [dietPlan, setDietPlan] = useState<DietPlan | null>(null);
