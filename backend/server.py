@@ -36,6 +36,7 @@ try:
     calorie_logs_collection = db["calorie_logs"]
     workout_logs_collection = db["workout_logs"]
     body_metrics_collection = db["body_metrics"]
+    notification_subscriptions = db["notification_subscriptions"]
     # Create unique index on email
     users_collection.create_index("email", unique=True)
     print("✅ Connected to MongoDB successfully")
