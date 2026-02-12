@@ -513,8 +513,6 @@ const App: React.FC = () => {
                 <p className="mt-2 font-medium text-orange-500">Stay tuned for updates!</p>
             </div>
         </InfoModal>
-        </div>
-        )}
         </>
       )}
     </div>
