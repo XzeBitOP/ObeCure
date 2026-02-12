@@ -454,7 +454,11 @@ async def get_body_metrics_logs(date: Optional[str] = None, current_user: dict =
     if date:
         query["date"] = date
     
-    logs = list(body_metrics_collection.find(query).sort("date", -1))
+    logs = list(body_metrics_collection.find(
+        query,
+        {"_id": 1, "date": 1, "weight": 1, "waist": 1, "chest": 1, "hips": 1, "body_fat_percentage": 1, "notes": 1}
+    ).sort("date", -1).limit(100))
+    
     for log in logs:
         log["_id"] = str(log["_id"])
     
