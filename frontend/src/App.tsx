@@ -468,6 +468,8 @@ const App: React.FC = () => {
 
         {/* Modals */}
         <AuthModal isOpen={showAuthModal} onClose={() => {}} onSuccess={handleAuthSuccess} />
+        <DailyLogModal isOpen={isDailyLogOpen} onClose={() => setIsDailyLogOpen(false)} onSuccess={() => console.log('Log saved')} />
+        <ReportsView isOpen={isReportsOpen} onClose={() => setIsReportsOpen(false)} />
         <InstallPwaModal isOpen={isInstallModalOpen} onClose={() => setIsInstallModalOpen(false)} deferredPrompt={deferredPrompt} />
         <DisclaimerModal isOpen={isDisclaimerOpen} onClose={handleDisclaimerClose} />
         <SubscriptionModalNew isOpen={isSubscriptionModalOpen} onClose={() => setIsSubscriptionModalOpen(false)} onSuccessfulRedeem={handleSuccessfulRedeem} />
