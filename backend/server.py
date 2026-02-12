@@ -32,7 +32,7 @@ app.add_middleware(
 # MongoDB Setup
 try:
     mongo_client = MongoClient(MONGO_URL)
-    db = mongo_client["obecure_db"]
+    db = mongo_client[DB_NAME]
     users_collection = db["users"]
     calorie_logs_collection = db["calorie_logs"]
     workout_logs_collection = db["workout_logs"]
