@@ -200,6 +200,15 @@ const App: React.FC = () => {
 
   }, [isAuthenticated]);
 
+  // Handle splash screen completion
+  const handleSplashComplete = () => {
+    setShowSplash(false);
+    // Show auth modal if not authenticated after splash
+    if (authChecked && !isAuthenticated) {
+      setShowAuthModal(true);
+    }
+  };
+
   useEffect(() => {
     document.documentElement.classList.remove('light', 'dark');
     document.documentElement.classList.add(theme);
