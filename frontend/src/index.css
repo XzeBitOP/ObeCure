@@ -10,6 +10,15 @@
   
   body {
     @apply font-sans antialiased;
+    /* Prevent horizontal scroll on mobile */
+    overflow-x: hidden;
+  }
+  
+  /* Safe area for mobile devices */
+  @supports (padding: max(0px)) {
+    body {
+      padding-bottom: env(safe-area-inset-bottom);
+    }
   }
 }
 
@@ -24,6 +33,10 @@
   
   .animate-slide-in-right {
     animation: slideInRight 0.4s ease-out;
+  }
+  
+  .animate-bounce-in {
+    animation: bounceIn 0.5s ease-out;
   }
   
   @keyframes fadeIn {
@@ -54,11 +67,43 @@
       transform: translateX(0);
     }
   }
+  
+  @keyframes bounceIn {
+    0% {
+      opacity: 0;
+      transform: scale(0.3);
+    }
+    50% {
+      opacity: 1;
+      transform: scale(1.05);
+    }
+    70% {
+      transform: scale(0.9);
+    }
+    100% {
+      transform: scale(1);
+    }
+  }
+  
+  /* Mobile-friendly padding */
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  
+  /* No scrollbar but still scrollable */
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
 }
 
 /* Custom Scrollbar */
 ::-webkit-scrollbar {
   width: 10px;
+  height: 10px;
 }
 
 ::-webkit-scrollbar-track {
@@ -80,4 +125,32 @@
 
 .glass-dark {
   @apply dark:bg-gray-900/10 dark:backdrop-blur-md dark:border dark:border-gray-800/20;
+}
+
+/* Responsive text sizes */
+@media (max-width: 640px) {
+  h1 {
+    @apply text-2xl;
+  }
+  h2 {
+    @apply text-xl;
+  }
+  h3 {
+    @apply text-lg;
+  }
+}
+
+/* Touch-friendly tap targets */
+@media (hover: none) {
+  button, a {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+/* Prevent zoom on input focus (iOS) */
+@media screen and (max-width: 768px) {
+  input, select, textarea {
+    font-size: 16px !important;
+  }
 }
