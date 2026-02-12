@@ -1,7 +1,14 @@
 import { GoogleGenAI, Type } from '@google/genai';
 import { DietPlan, DietPreference, Sex, ActivityLevel, DietType, HealthCondition } from '../types';
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
+// Get API key from environment
+const API_KEY = import.meta.env.VITE_API_KEY || import.meta.env.VITE_GEMINI_API_KEY || (typeof process !== 'undefined' && process.env?.API_KEY);
+
+if (!API_KEY) {
+    console.error('Gemini API Key not configured. Set VITE_API_KEY or VITE_GEMINI_API_KEY in environment.');
+}
+
+const ai = new GoogleGenAI({ apiKey: API_KEY as string });
 
 const OBE_CURE_SPECIAL_MEALS = `
     🍕 1. Mini Paneer Protein Pizza – 380 kcal
