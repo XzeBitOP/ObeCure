@@ -8,7 +8,10 @@ import SubscriptionModalNew from './components/SubscriptionModalNew';
 import CongratulationsModal from './components/CongratulationsModal';
 import SubscriptionLock from './components/SubscriptionLock';
 import AuthModal from './components/AuthModal';
+import DailyLogModal from './components/DailyLogModal';
+import ReportsView from './components/ReportsView';
 import { authAPI, subscriptionAPI } from './services/api';
+import { subscribeToNotifications, checkNotificationStatus } from './services/notifications';
 // ThemeToggle removed
 import { WebsiteIcon } from './components/icons/WebsiteIcon';
 import { InstagramIcon } from './components/icons/InstagramIcon';
