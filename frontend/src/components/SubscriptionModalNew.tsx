@@ -40,16 +40,27 @@ const SubscriptionModalNew: React.FC<SubscriptionModalProps> = ({ isOpen, onClos
         // Create UPI payment link
         const upiLink = `upi://pay?pa=${UPI_ID}&pn=ObeCure&am=${plan.price}&cu=INR&tn=ObeCure ${plan.name} Subscription`;
         
-        // Try to open UPI app
+        // Open UPI app
         window.location.href = upiLink;
         
-        // Show WhatsApp message after a delay
+        // Show success message and WhatsApp instructions
         setTimeout(() => {
-            const message = encodeURIComponent(
-                `Hi! I've just made a payment of ₹${plan.price} for ObeCure ${plan.name} subscription. Please find my payment screenshot attached.`
+            const confirmed = window.confirm(
+                `Payment of ₹${plan.price} initiated!\n\n` +
+                `After completing payment:\n` +
+                `1. Take a screenshot of the payment confirmation\n` +
+                `2. Click OK to open WhatsApp\n` +
+                `3. Send the screenshot to +91 6355137969\n\n` +
+                `You'll receive your 14-digit redeem code within 24 hours.`
             );
-            window.open(`https://wa.me/${WHATSAPP_NUMBER.replace('+', '')}?text=${message}`, '_blank');
-        }, 2000);
+            
+            if (confirmed) {
+                const message = encodeURIComponent(
+                    `Hi! I've just made a payment of ₹${plan.price} for ObeCure ${plan.name} subscription. Please find my payment screenshot attached.`
+                );
+                window.open(`https://wa.me/916355137969?text=${message}`, '_blank');
+            }
+        }, 1000);
     };
 
     const copyUPI = () => {
