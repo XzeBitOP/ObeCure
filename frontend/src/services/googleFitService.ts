@@ -8,9 +8,14 @@ const getEnv = (key: string) => {
     }
 };
 
-// Production Credentials
-const CLIENT_ID = getEnv('REACT_APP_GOOGLE_CLIENT_ID') || '936247255031-hd606mc0qbdge7ej72k6dudsosjt88hr.apps.googleusercontent.com'; 
-const API_KEY = getEnv('REACT_APP_GOOGLE_API_KEY') || 'AIzaSyAAKoSFqg09J7heGLPPmVJcUoJh2vOb2nw';
+// Production Credentials - Must be set in environment variables
+const CLIENT_ID = getEnv('REACT_APP_GOOGLE_CLIENT_ID');
+const API_KEY = getEnv('REACT_APP_GOOGLE_API_KEY');
+
+// Validate credentials are set
+if (!CLIENT_ID || !API_KEY) {
+    console.warn('Google Fit integration disabled: Missing REACT_APP_GOOGLE_CLIENT_ID or REACT_APP_GOOGLE_API_KEY');
+}
 
 const FITNESS_DISCOVERY_URL = "https://www.googleapis.com/discovery/v1/apis/fitness/v1/rest";
 
