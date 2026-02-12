@@ -112,6 +112,23 @@ const App: React.FC = () => {
     
     checkAuth();
 
+    // Setup notifications
+    if (isAuthenticated) {
+      const notifStatus = checkNotificationStatus();
+      if (notifStatus === 'default') {
+        // Ask for permission after a delay
+        setTimeout(() => {
+          subscribeToNotifications().then((subscribed) => {
+            if (subscribed) {
+              console.log('Notifications enabled');
+            }
+          });
+        }, 5000);
+      } else if (notifStatus === 'granted') {
+        subscribeToNotifications();
+      }
+    }
+
     // Theme Initialization - Auto select based on system preference
     const handleThemeChange = (e: MediaQueryListEvent) => {
         setTheme(e.matches ? 'dark' : 'light');
