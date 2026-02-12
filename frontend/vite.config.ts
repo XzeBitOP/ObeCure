@@ -9,6 +9,12 @@ export default defineConfig(({ mode }) => {
         port: 3000,
         host: '0.0.0.0',
         strictPort: false,
+        allowedHosts: [
+          'localhost',
+          '.preview.emergentagent.com',
+          '.stage-preview.emergentagent.com',
+          'premium-diet-app.preview.emergentagent.com'
+        ],
         hmr: {
           clientPort: 443,
           protocol: 'wss',
