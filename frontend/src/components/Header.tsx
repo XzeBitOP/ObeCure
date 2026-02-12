@@ -28,9 +28,20 @@ interface HeaderProps {
   isNotificationUnread: boolean;
   onToggleNotification: () => void;
   isNotificationOpen: boolean;
+  onDailyLogClick?: () => void;
+  onReportsClick?: () => void;
 }
 
-const Header: React.FC<HeaderProps> = ({ onLogSleepClick, showInstallButton, onInstallClick, isNotificationUnread, onToggleNotification, isNotificationOpen }) => {
+const Header: React.FC<HeaderProps> = ({ 
+  onLogSleepClick, 
+  showInstallButton, 
+  onInstallClick, 
+  isNotificationUnread, 
+  onToggleNotification, 
+  isNotificationOpen,
+  onDailyLogClick,
+  onReportsClick
+}) => {
   const notificationRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
