@@ -100,18 +100,21 @@ const App: React.FC = () => {
           const response = await authAPI.getMe();
           setUser(response.user);
           setIsAuthenticated(true);
+          setAuthChecked(true);
           
           // Check subscription status from backend
           const subStatus = await subscriptionAPI.getStatus();
           setIsSubscribed(subStatus.is_subscribed);
         } catch (error) {
           // Token invalid, clear and show auth modal
+          console.error('Auth check failed:', error);
           localStorage.removeItem('auth_token');
           localStorage.removeItem('user_data');
-          setShowAuthModal(true);
+          setAuthChecked(true);
+          // Don't show auth modal immediately, let splash finish first
         }
       } else {
-        setShowAuthModal(true);
+        setAuthChecked(true);
       }
     };
     
