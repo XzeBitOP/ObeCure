@@ -98,6 +98,10 @@ class ReportRequest(BaseModel):
     end_date: str
     report_type: str  # "all", "calories", "workouts", "body_metrics"
 
+class NotificationSubscription(BaseModel):
+    endpoint: str
+    keys: dict
+
 # Helper Functions
 def hash_password(password: str) -> str:
     return pwd_context.hash(password)
