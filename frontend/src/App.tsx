@@ -10,6 +10,7 @@ import SubscriptionLock from './components/SubscriptionLock';
 import AuthModal from './components/AuthModal';
 import DailyLogModal from './components/DailyLogModal';
 import ReportsView from './components/ReportsView';
+import SplashScreen from './components/SplashScreen';
 import { authAPI, subscriptionAPI } from './services/api';
 import { subscribeToNotifications, checkNotificationStatus } from './services/notifications';
 // ThemeToggle removed
